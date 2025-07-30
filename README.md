@@ -1,10 +1,13 @@
 # Plone MCP Server
 
-A Model Context Protocol (MCP) server that provides integration with Plone CMS REST API. This server allows Claude and other MCP clients to interact with Plone sites for content management, search, workflow operations, and more.
+A Model Context Protocol (MCP) server that provides integration with Plone CMS REST API. This server allows Claude and other MCP clients to interact with Plone sites for content management, search, workflow operations, and comprehensive Volto blocks support.
 
 ## Features
 
 - **Content Management**: Create, read, update, and delete content
+- **Volto Blocks Support**: Full support for Plone 6 blocks-based content editing
+- **Block Management**: Add, update, and remove individual blocks from content
+- **Rich Block Types**: Support for all major Volto block types (text, image, teaser, listing, etc.)
 - **Search**: Full-text search across Plone content
 - **Workflow**: View workflow states and execute transitions
 - **Site Information**: Access site configuration and available content types
@@ -67,9 +70,23 @@ plone_configure({
 ### Content Management
 
 - **plone_get_content**: Get content by path, with optional component expansion
-- **plone_create_content**: Create new content (Documents, Folders, News Items, etc.)
-- **plone_update_content**: Update existing content
+- **plone_create_content**: Create new content (Documents, Folders, News Items, etc.) with optional blocks support
+- **plone_update_content**: Update existing content with optional blocks support
 - **plone_delete_content**: Delete content
+
+### Volto Blocks Management
+
+- **plone_create_blocks_content**: Create new content with a complete blocks structure
+- **plone_add_block**: Add a single block to existing content
+- **plone_update_block**: Update a specific block in content
+- **plone_remove_block**: Remove a specific block from content
+
+### Block Creation Helpers
+
+- **plone_create_text_block**: Create a rich text (Slate) block with formatted content
+- **plone_create_image_block**: Create an image block with size and alignment options
+- **plone_create_teaser_block**: Create a teaser block with links and preview images
+- **plone_create_listing_block**: Create a content listing block with query and template options
 
 ### Search and Discovery
 
@@ -89,14 +106,74 @@ plone_configure({
 plone_get_site_info()
 ```
 
-### Create a Document
+### Create a Document with Blocks
 ```
-plone_create_content({
+plone_create_blocks_content({
   "parentPath": "/news",
   "type": "Document",
   "title": "My New Document",
   "description": "A sample document",
-  "text": "<p>This is the body text</p>"
+  "blocksData": [
+    {
+      "blockType": "slate",
+      "data": {
+        "value": [{"type": "p", "children": [{"text": "Welcome to our new document!"}]}],
+        "plaintext": "Welcome to our new document!"
+      }
+    },
+    {
+      "blockType": "image",
+      "data": {
+        "url": "/path/to/image.jpg",
+        "alt": "Sample image",
+        "size": "l",
+        "align": "center"
+      }
+    }
+  ]
+})
+```
+
+### Add a Block to Existing Content
+```
+plone_add_block({
+  "path": "/news/my-document",
+  "blockType": "teaser",
+  "blockData": {
+    "href": "/related-page",
+    "title": "Related Article",
+    "description": "Check out this related content"
+  },
+  "position": 1
+})
+```
+
+### Create Individual Block Types
+```
+// Create a text block
+plone_create_text_block({
+  "text": "This is a rich text block",
+  "format": "plain"
+})
+
+// Create an image block
+plone_create_image_block({
+  "imageUrl": "/path/to/image.jpg",
+  "alt": "Description of image",
+  "caption": "Image caption",
+  "size": "l",
+  "align": "center"
+})
+
+// Create a listing block
+plone_create_listing_block({
+  "query": [
+    {"i": "portal_type", "o": "plone.app.querystring.operation.selection.any", "v": ["News Item"]}
+  ],
+  "sort_on": "modified",
+  "sort_order": "descending",
+  "limit": 5,
+  "template": "summary"
 })
 ```
 
