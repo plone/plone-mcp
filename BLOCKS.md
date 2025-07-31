@@ -15,7 +15,7 @@
   - Just a kicker
   - Just a description
   - Just an image
-- Internal / External Links (we just test internal links for now)
+- Internal / External Links (we just test external links for now)
 
 ### Teaser Block Spec
 

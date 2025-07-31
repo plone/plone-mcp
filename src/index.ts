@@ -540,25 +540,126 @@ class PloneMCPServer {
           },
           {
             name: "plone_create_teaser_block",
-            description: "Create a teaser block",
+            description: "Create a teaser block with all styling variants (default theme, grey theme, left/center/right alignment, overwrite mode)",
             inputSchema: {
               type: "object",
               properties: {
                 href: {
                   type: "string",
-                  description: "URL or path to link to",
+                  description: "Link target (URL or internal path). Can be external URL or internal Plone content path",
+                },
+                overwrite: {
+                  type: "boolean",
+                  description: "Whether to override content from target item (false = use target's content, true = use custom content)",
+                  default: false,
                 },
                 title: {
                   type: "string",
-                  description: "Teaser title",
+                  description: "Custom teaser title (only used when overwrite=true)",
+                },
+                head_title: {
+                  type: "string",
+                  description: "Custom kicker/head title shown above main title (only used when overwrite=true)",
                 },
                 description: {
                   type: "string",
-                  description: "Teaser description",
+                  description: "Custom teaser description (only used when overwrite=true)",
                 },
                 preview_image: {
                   type: "string",
-                  description: "Preview image URL or UID",
+                  description: "Custom preview image URL or path (only used when overwrite=true)",
+                },
+                theme: {
+                  type: "string",
+                  enum: ["default", "grey"],
+                  description: "Background theme for the teaser block",
+                  default: "default",
+                },
+                align: {
+                  type: "string",
+                  enum: ["left", "center", "right"],
+                  description: "Image alignment within the teaser",
+                  default: "left",
+                },
+                openLinkInNewTab: {
+                  type: "boolean",
+                  description: "Whether to open the link in a new tab",
+                  default: false,
+                },
+              },
+              required: ["href"],
+            },
+          },
+          {
+            name: "plone_create_teaser_with_custom_content",
+            description: "Create a teaser block with custom content (overwrite mode)",
+            inputSchema: {
+              type: "object",
+              properties: {
+                href: {
+                  type: "string",
+                  description: "Link target (URL or internal path)",
+                },
+                title: {
+                  type: "string",
+                  description: "Custom teaser title",
+                },
+                head_title: {
+                  type: "string",
+                  description: "Custom kicker/head title shown above main title",
+                },
+                description: {
+                  type: "string",
+                  description: "Custom teaser description",
+                },
+                preview_image: {
+                  type: "string",
+                  description: "Custom preview image URL or path",
+                },
+                theme: {
+                  type: "string",
+                  enum: ["default", "grey"],
+                  description: "Background theme for the teaser block",
+                  default: "default",
+                },
+                align: {
+                  type: "string",
+                  enum: ["left", "center", "right"],
+                  description: "Image alignment within the teaser",
+                  default: "left",
+                },
+              },
+              required: ["href", "title"],
+            },
+          },
+          {
+            name: "plone_create_teaser_grey_theme",
+            description: "Create a teaser block with grey background theme",
+            inputSchema: {
+              type: "object",
+              properties: {
+                href: {
+                  type: "string",
+                  description: "Link target (URL or internal path)",
+                },
+                align: {
+                  type: "string",
+                  enum: ["left", "center", "right"],
+                  description: "Image alignment within the teaser",
+                  default: "left",
+                },
+                overwrite: {
+                  type: "boolean",
+                  description: "Whether to use custom content instead of target content",
+                  default: false,
+                },
+                title: {
+                  type: "string",
+                  description: "Custom title (only if overwrite=true)",
+                },
+                description: {
+                  type: "string", 
+                  description: "Custom description (only if overwrite=true)",
                 },
               },
               required: ["href"],
@@ -649,6 +750,10 @@ class PloneMCPServer {
             return await this.handleCreateImageBlock(args);
           case "plone_create_teaser_block":
             return await this.handleCreateTeaserBlock(args);
+          case "plone_create_teaser_with_custom_content":
+            return await this.handleCreateTeaserWithCustomContent(args);
+          case "plone_create_teaser_grey_theme":
+            return await this.handleCreateTeaserGreyTheme(args);
           case "plone_create_listing_block":
             return await this.handleCreateListingBlock(args);
           default:
@@ -1158,16 +1263,40 @@ class PloneMCPServer {
   }
 
   private async handleCreateTeaserBlock(args: any) {
-    const { href, title, description, preview_image } = args;
+    const { 
+      href, 
+      overwrite = false, 
+      title, 
+      head_title, 
+      description, 
+      preview_image, 
+      theme = "default",
+      align = "left",
+      openLinkInNewTab = false
+    } = args;
     
     const blockData: any = {
       "@type": "teaser",
-      href,
+      href: href,
+      overwrite: overwrite,
+      styles: {
+        align: align
+      },
+      theme: theme
     };
     
-    if (title) blockData.title = title;
-    if (description) blockData.description = description;
-    if (preview_image) blockData.preview_image = preview_image;
+    // Add custom content only when overwrite is true
+    if (overwrite) {
+      if (title) blockData.title = title;
+      if (head_title) blockData.head_title = head_title;
+      if (description) blockData.description = description;
+      if (preview_image) blockData.preview_image = preview_image;
+    }
+    
+    // Add openLinkInNewTab if specified
+    if (openLinkInNewTab) {
+      blockData.openLinkInNewTab = openLinkInNewTab;
+    }
     
     return {
       content: [
@@ -1177,6 +1306,48 @@ class PloneMCPServer {
         },
       ],
     };
+  }
+
+  private async handleCreateTeaserWithCustomContent(args: any) {
+    const { 
+      href, 
+      title, 
+      head_title, 
+      description, 
+      preview_image, 
+      theme = "default",
+      align = "left"
+    } = args;
+    
+    return this.handleCreateTeaserBlock({
+      href,
+      overwrite: true,
+      title,
+      head_title,
+      description,
+      preview_image,
+      theme,
+      align
+    });
+  }
+
+  private async handleCreateTeaserGreyTheme(args: any) {
+    const { 
+      href, 
+      align = "left",
+      overwrite = false,
+      title,
+      description
+    } = args;
+    
+    return this.handleCreateTeaserBlock({
+      href,
+      overwrite,
+      title,
+      description,
+      theme: "grey",
+      align
+    });
   }
 
   private async handleCreateListingBlock(args: any) {

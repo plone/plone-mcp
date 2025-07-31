@@ -116,4 +116,86 @@ describe('Block Helpers', () => {
       expect(blocks_layout.items).toHaveLength(0);
     });
   });
+
+  describe('Teaser Block Variants', () => {
+    it('should create standard teaser block', () => {
+      const teaserBlock = {
+        "@type": "teaser",
+        href: "/path/to/content",
+        overwrite: false,
+        styles: { align: "left" },
+        theme: "default"
+      };
+
+      expect(teaserBlock["@type"]).toBe("teaser");
+      expect(teaserBlock.href).toBe("/path/to/content");
+      expect(teaserBlock.overwrite).toBe(false);
+      expect(teaserBlock.styles.align).toBe("left");
+      expect(teaserBlock.theme).toBe("default");
+    });
+
+    it('should create teaser with custom content (overwrite mode)', () => {
+      const teaserBlock = {
+        "@type": "teaser",
+        href: "/path/to/content",
+        overwrite: true,
+        title: "Custom Title",
+        head_title: "Custom Kicker",
+        description: "Custom description text",
+        preview_image: "/path/to/image.jpg",
+        styles: { align: "center" },
+        theme: "default"
+      };
+
+      expect(teaserBlock.overwrite).toBe(true);
+      expect(teaserBlock.title).toBe("Custom Title");
+      expect(teaserBlock.head_title).toBe("Custom Kicker");
+      expect(teaserBlock.description).toBe("Custom description text");
+      expect(teaserBlock.preview_image).toBe("/path/to/image.jpg");
+      expect(teaserBlock.styles.align).toBe("center");
+    });
+
+    it('should create teaser with grey theme', () => {
+      const teaserBlock = {
+        "@type": "teaser",
+        href: "/path/to/content",
+        overwrite: false,
+        styles: { align: "right" },
+        theme: "grey"
+      };
+
+      expect(teaserBlock.theme).toBe("grey");
+      expect(teaserBlock.styles.align).toBe("right");
+    });
+
+    it('should support all alignment options', () => {
+      const alignments = ["left", "center", "right"];
+      
+      alignments.forEach(align => {
+        const teaserBlock = {
+          "@type": "teaser",
+          href: "/path/to/content",
+          styles: { align: align },
+          theme: "default"
+        };
+        
+        expect(teaserBlock.styles.align).toBe(align);
+      });
+    });
+
+    it('should support external links', () => {
+      const teaserBlock = {
+        "@type": "teaser",
+        href: "https://external-site.com",
+        overwrite: true,
+        title: "External Link",
+        openLinkInNewTab: true,
+        styles: { align: "left" },
+        theme: "default"
+      };
+
+      expect(teaserBlock.href).toBe("https://external-site.com");
+      expect(teaserBlock.openLinkInNewTab).toBe(true);
+    });
+  });
 });
