@@ -8,6 +8,8 @@
     "build": "tsc",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
+    "inspector": "npx @modelcontextprotocol/inspector tsx src/index.ts",
+    "inspector:built": "npx @modelcontextprotocol/inspector node dist/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
