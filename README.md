@@ -25,19 +25,39 @@ npm run build
 
 ### With Claude Desktop
 
-Add the following to your Claude Desktop configuration:
+Add the following to your Claude Desktop configuration (on OSX: ~/Library/Application Support/Claude/claude_desktop_config.json):
 
 ```json
 {
   "mcpServers": {
     "plone": {
-      "command": "node",
+      "command": "/Users/timo/.nvm/versions/node/v22.15.0/bin/node",
       "args": ["/path/to/plone-mcp/dist/index.js"],
       "env": {}
     }
   }
 }
 ```
+
+Amend the path in the config to your actual path (e.g. vi "/Users/timo/workspace/kitconcept/plone-mcp/dist/index.js").
+
+Amend the Node version you are using to the path to your actual node version (e.g. "/Users/timo/.nvm/versions/node/v22.15.0/bin/node").
+
+An example of a working version might look like this:
+
+```
+{
+  "mcpServers": {
+    "plone": {
+      "command": "/Users/timo/.nvm/versions/node/v22.15.0/bin/node",
+      "args": ["/Users/timo/workspace/kitconcept/plone-mcp/dist/index.js"],
+      "env": {}
+    }
+  }
+}
+```
+
+Then restart Claude Desktop.
 
 ### Configuration
 
