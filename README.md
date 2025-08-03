@@ -235,7 +235,27 @@ npm run build
 
 # Start built server
 npm start
+
+# Test with MCP Inspector (development)
+npm run inspector
+
+# Test with MCP Inspector (built version)
+npm run inspector:built
 ```
+
+### Using the MCP Inspector
+
+The MCP Inspector provides a web-based interface to test and explore your MCP server tools:
+
+1. Run `npm run inspector` to start the inspector with the development server
+2. Open your browser to the URL shown in the terminal (typically `http://localhost:5173`)
+3. The inspector will connect to your Plone MCP server and allow you to:
+   - Browse available tools and their schemas
+   - Test tool calls with sample data
+   - View request/response cycles
+   - Debug connection issues
+
+This is especially useful for testing your Plone server configuration and exploring the available content management tools before integrating with Claude or other MCP clients.
 
 ## API Reference
 
