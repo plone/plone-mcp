@@ -1,0 +1,153 @@
+{
+  "teaser": {
+    "description": "The teaser block is used to create a teaser for a content item. It can be used to link to any content item (target). By default, it uses the target's properties (title, description, preview image, etc.) but these can be overridden.",
+    "inputSchema": {
+      "blockData": {
+        "href": {
+          "type": "string",
+          "description": "Link target (URL or internal path)."
+        },
+        "title": {
+          "type": "string",
+          "description": "Custom teaser title"
+        },
+        "head_title": {
+          "type": "string",
+          "description": "Custom kicker/head title shown above main title"
+        },
+        "description": {
+          "type": "string",
+          "description": "Custom teaser description"
+        },
+        "preview_image": {
+          "type": "string",
+          "description": "Custom preview image URL or path"
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["default", "grey"],
+          "description": "Background theme for the teaser block",
+          "default": "default"
+        },
+        "styles": {
+          "align": {
+            "type": "string",
+            "enum": ["left", "center", "right"],
+            "description": "Image alignment within the teaser",
+            "default": "left"
+          }
+        }
+      },
+      "required": ["href", "title"]
+    }
+  },
+  "text": {
+    "description": "The text block is used to create text content. It will be converted to Slate format automatically.",
+    "inputSchema": {
+      "blockData": {
+        "text": {
+          "type": "string",
+          "description": "Plain text content that will be converted to Slate format"
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["default", "grey"],
+          "description": "Background theme for the block",
+          "default": "default"
+        }
+      },
+      "required": ["text"]
+    }
+  },
+  "__button": {
+    "description": "The Button block is used to create a navigation button. It can be used to link to any URL or path.",
+    "inputSchema": {
+      "blockData": {
+        "href": {
+          "type": "string",
+          "description": "Link target (URL or internal path)."
+        },
+        "title": {
+          "type": "string",
+          "description": "The button text, it will be displayed on the button."
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["default", "grey"],
+          "description": "Background theme for the block",
+          "default": "default"
+        },
+        "styles": {
+          "align:noprefix": {
+            "--block-alignment": {
+              "type": "string",
+              "enum": [
+                "var(--align-left)",
+                "var(--align-center)",
+                "var(--align-right)"
+              ],
+              "description": "Button alignment within the block's available width.",
+              "default": "var(--align-right)"
+            }
+          },
+          "blockWidth:noprefix": {
+            "--block-width": {
+              "type": "string",
+              "enum": [
+                "var(--narrow-container-width)",
+                "var(--default-container-width)"
+              ],
+              "description": "Width avalable for the block on the page layout, narrow-width is the smallest (used by text blocks for readibility), and default-width is adequate for most blocks.",
+              "default": "var(--default-container-width)"
+            }
+          }
+        }
+      },
+      "required": []
+    }
+  },
+  "separator": {
+    "description": "The Separator block adds a horizontal line to separate content visually.",
+    "inputSchema": {
+      "blockData": {
+        "theme": {
+          "type": "string",
+          "enum": ["default", "grey"],
+          "description": "Background theme for the block",
+          "default": "default"
+        },
+        "styles": {
+          "align:noprefix": {
+            "--block-alignment": {
+              "type": "string",
+              "enum": [
+                "var(--align-left)",
+                "var(--align-center)",
+                "var(--align-right)"
+              ],
+              "description": "Separator alignment within the block's available width. This option is disabled unless the separator block has shortLine set to true.",
+              "default": "var(--align-right)"
+            }
+          },
+          "blockWidth:noprefix": {
+            "--block-width": {
+              "type": "string",
+              "enum": [
+                "var(--narrow-container-width)",
+                "var(--default-container-width)"
+              ],
+              "description": "Width available for the block on the page layout, narrow-width is the smallest (used by text blocks for readibility), and default-width is adequate for most blocks.",
+              "default": "var(--default-container-width)"
+            }
+          },
+          "shortLine": {
+            "type": "boolean",
+            "description": "If true, the separator will be a short line, otherwise it will be a full-width line within the block's available width.",
+            "default": false
+          }
+        }
+      },
+      "required": []
+    }
+  }
+}

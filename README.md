@@ -25,19 +25,39 @@ npm run build
 
 ### With Claude Desktop
 
-Add the following to your Claude Desktop configuration:
+Add the following to your Claude Desktop configuration (on OSX: ~/Library/Application Support/Claude/claude_desktop_config.json):
 
 ```json
 {
   "mcpServers": {
     "plone": {
-      "command": "node",
+      "command": "/Users/timo/.nvm/versions/node/v22.15.0/bin/node",
       "args": ["/path/to/plone-mcp/dist/index.js"],
       "env": {}
     }
   }
 }
 ```
+
+Amend the path in the config to your actual path (e.g. vi "/Users/timo/workspace/kitconcept/plone-mcp/dist/index.js").
+
+Amend the Node version you are using to the path to your actual node version (e.g. "/Users/timo/.nvm/versions/node/v22.15.0/bin/node").
+
+An example of a working version might look like this:
+
+```
+{
+  "mcpServers": {
+    "plone": {
+      "command": "/Users/timo/.nvm/versions/node/v22.15.0/bin/node",
+      "args": ["/Users/timo/workspace/kitconcept/plone-mcp/dist/index.js"],
+      "env": {}
+    }
+  }
+}
+```
+
+Then restart Claude Desktop.
 
 ### Configuration
 
@@ -215,7 +235,27 @@ npm run build
 
 # Start built server
 npm start
+
+# Test with MCP Inspector (development)
+npm run inspector
+
+# Test with MCP Inspector (built version)
+npm run inspector:built
 ```
+
+### Using the MCP Inspector
+
+The MCP Inspector provides a web-based interface to test and explore your MCP server tools:
+
+1. Run `npm run inspector` to start the inspector with the development server
+2. Open your browser to the URL shown in the terminal (typically `http://localhost:5173`)
+3. The inspector will connect to your Plone MCP server and allow you to:
+   - Browse available tools and their schemas
+   - Test tool calls with sample data
+   - View request/response cycles
+   - Debug connection issues
+
+This is especially useful for testing your Plone server configuration and exploring the available content management tools before integrating with Claude or other MCP clients.
 
 ## API Reference
 

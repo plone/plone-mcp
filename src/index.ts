@@ -1,14 +1,18 @@
 #!/usr/bin/env node
 
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import {
+  McpServer,
+  ResourceTemplate,
+} from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  Tool,
+  TextContent,
+  CallToolResult,
 } from "@modelcontextprotocol/sdk/types.js";
-import axios, { AxiosInstance, AxiosResponse } from "axios";
+import axios, { AxiosInstance } from "axios";
 import { z } from "zod";
+import blocksSpecification from "./blocks.json" assert { type: "json" };
+import { v4 as uuidv4 } from "uuid";
 
 // Configuration schema
 const ConfigSchema = z.object({
@@ -20,27 +24,85 @@ const ConfigSchema = z.object({
 
 type Config = z.infer<typeof ConfigSchema>;
 
+// Tool parameter schemas
+const PloneConfigureSchema = z.object({
+  baseUrl: z.string().url(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+  token: z.string().optional(),
+});
+
+// Create a well-formatted description that includes the full JSON specification
+const createAddBlockDescription = (blocksSpec: any) => {
+  const blockTypesList = Object.keys(blocksSpec)
+    .map((type) => `"${type}"`)
+    .join(", ");
+
+  return `Add a content block to a Plone page. This tool supports multiple block types with specific schemas.
+
+SUPPORTED BLOCK TYPES: ${blockTypesList}
+
+BLOCK SPECIFICATIONS AND SCHEMAS:
+${JSON.stringify(blocksSpec, null, 2)}
+
+IMPORTANT GUIDELINES:
+- Always include a "styles" object in blockData, even if empty
+- Follow the exact schema structure for each block type
+- Required fields must be provided for each block type
+- Use appropriate properties for visual appearance and behavior`;
+};
+
+const addBlockSpecification = createAddBlockDescription(blocksSpecification);
+
+const PloneAddBlockSchema = z.object({
+  path: z.string(),
+  blockType: z.enum(["teaser", "text", "separator", "__button"]),
+  blockData: z.record(z.any()),
+  position: z.number().optional(),
+});
+
+const PloneUpdateBlockSchema = z.object({
+  path: z.string(),
+  blockId: z.string(),
+  blockData: z.record(z.any()),
+});
+
+const PloneRemoveBlockSchema = z.object({
+  path: z.string(),
+  blockId: z.string(),
+});
+
+// Types
+interface PloneContent {
+  "@type": string;
+  title: string;
+  blocks?: Record<string, any>;
+  blocks_layout?: { items: string[] };
+  [key: string]: any;
+}
+
 class PloneClient {
   private axios: AxiosInstance;
-  private config: Config;
 
-  constructor(config: Config) {
+  constructor(public config: Config) {
     this.config = config;
-    
+
     // Remove trailing slash from baseUrl if present
-    const baseUrl = config.baseUrl.replace(/\/$/, '');
-    
+    const baseUrl = config.baseUrl.replace(/\/$/, "");
+
     this.axios = axios.create({
       baseURL: `${baseUrl}/++api++`,
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        Accept: "application/json",
+        "Content-Type": "application/json",
       },
     });
 
     // Set up authentication
     if (config.token) {
-      this.axios.defaults.headers.common['Authorization'] = `Bearer ${config.token}`;
+      this.axios.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${config.token}`;
     } else if (config.username && config.password) {
       this.axios.defaults.auth = {
         username: config.username,
@@ -71,11 +133,11 @@ class PloneClient {
 }
 
 class PloneMCPServer {
-  private server: Server;
+  private server: McpServer;
   private client: PloneClient | null = null;
 
   constructor() {
-    this.server = new Server(
+    this.server = new McpServer(
       {
         name: "plone-mcp-server",
         version: "1.0.0",
@@ -84,6 +146,8 @@ class PloneMCPServer {
       {
         capabilities: {
           tools: {},
+          prompts: {},
+          resources: {},
         },
       }
     );
@@ -93,727 +157,68 @@ class PloneMCPServer {
   }
 
   private setupErrorHandling(): void {
-    this.server.onerror = (error) => {
+    this.server.server.onerror = (error: any) => {
       console.error("[MCP Error]", error);
     };
 
     process.on("SIGINT", async () => {
-      await this.server.close();
+      await this.server.server.close();
       process.exit(0);
     });
   }
 
   private setupToolHandlers(): void {
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      return {
-        tools: [
-          {
-            name: "plone_configure",
-            description: "Configure connection to Plone site",
-            inputSchema: {
-              type: "object",
-              properties: {
-                baseUrl: {
-                  type: "string",
-                  description: "Base URL of the Plone site (e.g., https://example.com/plone)",
-                },
-                username: {
-                  type: "string",
-                  description: "Username for authentication (optional if using token)",
-                },
-                password: {
-                  type: "string",
-                  description: "Password for authentication (optional if using token)",
-                },
-                token: {
-                  type: "string",
-                  description: "JWT token for authentication (optional if using username/password)",
-                },
-              },
-              required: ["baseUrl"],
-            },
-          },
-          {
-            name: "plone_get_content",
-            description: "Get content from Plone site by path or UID",
-            inputSchema: {
-              type: "object",
-              properties: {
-                path: {
-                  type: "string",
-                  description: "Path to content (e.g., '/folder/document' or just 'document' for root level)",
-                },
-                expand: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: "Components to expand (e.g., ['breadcrumbs', 'actions', 'workflow'])",
-                },
-              },
-              required: ["path"],
-            },
-          },
-          {
-            name: "plone_create_content",
-            description: "Create new content in Plone",
-            inputSchema: {
-              type: "object",
-              properties: {
-                parentPath: {
-                  type: "string",
-                  description: "Path where to create the content (e.g., '/folder' or '' for root)",
-                },
-                type: {
-                  type: "string",
-                  description: "Content type to create (e.g., 'Document', 'Folder', 'News Item')",
-                },
-                title: {
-                  type: "string",
-                  description: "Title of the new content",
-                },
-                description: {
-                  type: "string",
-                  description: "Description of the new content",
-                },
-                id: {
-                  type: "string",
-                  description: "ID for the new content (optional, will be auto-generated if not provided)",
-                },
-                text: {
-                  type: "string",
-                  description: "Body text for content types that support it (deprecated, use blocks instead)",
-                },
-                blocks: {
-                  type: "object",
-                  description: "Volto blocks structure for the content",
-                },
-                blocks_layout: {
-                  type: "object",
-                  description: "Volto blocks layout configuration",
-                },
-                additionalFields: {
-                  type: "object",
-                  description: "Additional fields specific to the content type",
-                },
-              },
-              required: ["parentPath", "type", "title"],
-            },
-          },
-          {
-            name: "plone_update_content",
-            description: "Update existing content in Plone",
-            inputSchema: {
-              type: "object",
-              properties: {
-                path: {
-                  type: "string",
-                  description: "Path to the content to update",
-                },
-                title: {
-                  type: "string",
-                  description: "New title",
-                },
-                description: {
-                  type: "string",
-                  description: "New description",
-                },
-                text: {
-                  type: "string",
-                  description: "New body text (deprecated, use blocks instead)",
-                },
-                blocks: {
-                  type: "object",
-                  description: "Volto blocks structure for the content",
-                },
-                blocks_layout: {
-                  type: "object",
-                  description: "Volto blocks layout configuration",
-                },
-                additionalFields: {
-                  type: "object",
-                  description: "Additional fields to update",
-                },
-              },
-              required: ["path"],
-            },
-          },
-          {
-            name: "plone_delete_content",
-            description: "Delete content from Plone",
-            inputSchema: {
-              type: "object",
-              properties: {
-                path: {
-                  type: "string",
-                  description: "Path to the content to delete",
-                },
-              },
-              required: ["path"],
-            },
-          },
-          {
-            name: "plone_search",
-            description: "Search for content in Plone",
-            inputSchema: {
-              type: "object",
-              properties: {
-                query: {
-                  type: "string",
-                  description: "Search query text",
-                },
-                portal_type: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: "Content types to search for",
-                },
-                path: {
-                  type: "string",
-                  description: "Path to search within",
-                },
-                review_state: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: "Workflow states to filter by",
-                },
-                sort_on: {
-                  type: "string",
-                  description: "Field to sort by (e.g., 'modified', 'created', 'sortable_title')",
-                },
-                sort_order: {
-                  type: "string",
-                  enum: ["ascending", "descending"],
-                  description: "Sort order",
-                },
-                b_size: {
-                  type: "number",
-                  description: "Batch size (number of results per page)",
-                },
-                b_start: {
-                  type: "number",
-                  description: "Batch start (for pagination)",
-                },
-              },
-            },
-          },
-          {
-            name: "plone_get_workflow_info",
-            description: "Get workflow information for content",
-            inputSchema: {
-              type: "object",
-              properties: {
-                path: {
-                  type: "string",
-                  description: "Path to the content",
-                },
-              },
-              required: ["path"],
-            },
-          },
-          {
-            name: "plone_transition_workflow",
-            description: "Execute a workflow transition",
-            inputSchema: {
-              type: "object",
-              properties: {
-                path: {
-                  type: "string",
-                  description: "Path to the content",
-                },
-                transition: {
-                  type: "string",
-                  description: "Workflow transition to execute",
-                },
-                comment: {
-                  type: "string",
-                  description: "Comment for the transition",
-                },
-              },
-              required: ["path", "transition"],
-            },
-          },
-          {
-            name: "plone_get_site_info",
-            description: "Get information about the Plone site",
-            inputSchema: {
-              type: "object",
-              properties: {},
-            },
-          },
-          {
-            name: "plone_get_types",
-            description: "Get available content types",
-            inputSchema: {
-              type: "object",
-              properties: {},
-            },
-          },
-          {
-            name: "plone_get_vocabularies",
-            description: "Get vocabulary values",
-            inputSchema: {
-              type: "object",
-              properties: {
-                vocabulary: {
-                  type: "string",
-                  description: "Vocabulary name",
-                },
-                title: {
-                  type: "string",
-                  description: "Filter by title",
-                },
-                token: {
-                  type: "string",
-                  description: "Filter by token",
-                },
-              },
-              required: ["vocabulary"],
-            },
-          },
-          {
-            name: "plone_create_blocks_content",
-            description: "Create new content with Volto blocks structure",
-            inputSchema: {
-              type: "object",
-              properties: {
-                parentPath: {
-                  type: "string",
-                  description: "Path where to create the content",
-                },
-                type: {
-                  type: "string",
-                  description: "Content type to create (e.g., 'Document', 'News Item')",
-                },
-                title: {
-                  type: "string",
-                  description: "Title of the new content",
-                },
-                description: {
-                  type: "string",
-                  description: "Description of the new content",
-                },
-                id: {
-                  type: "string",
-                  description: "ID for the new content (optional)",
-                },
-                blocksData: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      blockType: {
-                        type: "string",
-                        enum: ["title", "text", "slate", "image", "teaser", "listing", "video", "maps", "html", "toc", "grid", "search"],
-                        description: "Type of block to create",
-                      },
-                      data: {
-                        type: "object",
-                        description: "Block-specific data",
-                      },
-                    },
-                    required: ["blockType", "data"],
-                  },
-                  description: "Array of blocks to create in the content",
-                },
-              },
-              required: ["parentPath", "type", "title", "blocksData"],
-            },
-          },
-          {
-            name: "plone_add_block",
-            description: "Add a single block to existing content",
-            inputSchema: {
-              type: "object",
-              properties: {
-                path: {
-                  type: "string",
-                  description: "Path to the content",
-                },
-                blockType: {
-                  type: "string",
-                  enum: ["title", "text", "slate", "image", "teaser", "listing", "video", "maps", "html", "toc", "grid", "search"],
-                  description: "Type of block to add",
-                },
-                blockData: {
-                  type: "object",
-                  description: "Block-specific data",
-                },
-                position: {
-                  type: "number",
-                  description: "Position to insert the block (optional, defaults to end)",
-                },
-              },
-              required: ["path", "blockType", "blockData"],
-            },
-          },
-          {
-            name: "plone_update_block",
-            description: "Update a specific block in content",
-            inputSchema: {
-              type: "object",
-              properties: {
-                path: {
-                  type: "string",
-                  description: "Path to the content",
-                },
-                blockId: {
-                  type: "string",
-                  description: "ID of the block to update",
-                },
-                blockData: {
-                  type: "object",
-                  description: "New block data",
-                },
-              },
-              required: ["path", "blockId", "blockData"],
-            },
-          },
-          {
-            name: "plone_remove_block",
-            description: "Remove a specific block from content",
-            inputSchema: {
-              type: "object",
-              properties: {
-                path: {
-                  type: "string",
-                  description: "Path to the content",
-                },
-                blockId: {
-                  type: "string",
-                  description: "ID of the block to remove",
-                },
-              },
-              required: ["path", "blockId"],
-            },
-          },
-          {
-            name: "plone_create_text_block",
-            description: "Create a rich text (Slate) block with formatted content",
-            inputSchema: {
-              type: "object",
-              properties: {
-                text: {
-                  type: "string",
-                  description: "Plain text content",
-                },
-                format: {
-                  type: "string",
-                  enum: ["plain", "html", "markdown"],
-                  description: "Input format of the text",
-                  default: "plain",
-                },
-              },
-              required: ["text"],
-            },
-          },
-          {
-            name: "plone_create_image_block",
-            description: "Create an image block",
-            inputSchema: {
-              type: "object",
-              properties: {
-                imageUrl: {
-                  type: "string",
-                  description: "URL or UID of the image",
-                },
-                alt: {
-                  type: "string",
-                  description: "Alt text for the image",
-                },
-                caption: {
-                  type: "string",
-                  description: "Image caption",
-                },
-                size: {
-                  type: "string",
-                  enum: ["s", "m", "l", "full"],
-                  description: "Image size",
-                  default: "l",
-                },
-                align: {
-                  type: "string",
-                  enum: ["left", "center", "right", "full"],
-                  description: "Image alignment",
-                  default: "center",
-                },
-              },
-              required: ["imageUrl"],
-            },
-          },
-          {
-            name: "plone_create_teaser_block",
-            description: "Create a teaser block with all styling variants (default theme, grey theme, left/center/right alignment, overwrite mode)",
-            inputSchema: {
-              type: "object",
-              properties: {
-                href: {
-                  type: "string",
-                  description: "Link target (URL or internal path). Can be external URL or internal Plone content path",
-                },
-                overwrite: {
-                  type: "boolean",
-                  description: "Whether to override content from target item (false = use target's content, true = use custom content)",
-                  default: false,
-                },
-                title: {
-                  type: "string",
-                  description: "Custom teaser title (only used when overwrite=true)",
-                },
-                head_title: {
-                  type: "string",
-                  description: "Custom kicker/head title shown above main title (only used when overwrite=true)",
-                },
-                description: {
-                  type: "string",
-                  description: "Custom teaser description (only used when overwrite=true)",
-                },
-                preview_image: {
-                  type: "string",
-                  description: "Custom preview image URL or path (only used when overwrite=true)",
-                },
-                theme: {
-                  type: "string",
-                  enum: ["default", "grey"],
-                  description: "Background theme for the teaser block",
-                  default: "default",
-                },
-                align: {
-                  type: "string",
-                  enum: ["left", "center", "right"],
-                  description: "Image alignment within the teaser",
-                  default: "left",
-                },
-                openLinkInNewTab: {
-                  type: "boolean",
-                  description: "Whether to open the link in a new tab",
-                  default: false,
-                },
-              },
-              required: ["href"],
-            },
-          },
-          {
-            name: "plone_create_teaser_with_custom_content",
-            description: "Create a teaser block with custom content (overwrite mode)",
-            inputSchema: {
-              type: "object",
-              properties: {
-                href: {
-                  type: "string",
-                  description: "Link target (URL or internal path)",
-                },
-                title: {
-                  type: "string",
-                  description: "Custom teaser title",
-                },
-                head_title: {
-                  type: "string",
-                  description: "Custom kicker/head title shown above main title",
-                },
-                description: {
-                  type: "string",
-                  description: "Custom teaser description",
-                },
-                preview_image: {
-                  type: "string",
-                  description: "Custom preview image URL or path",
-                },
-                theme: {
-                  type: "string",
-                  enum: ["default", "grey"],
-                  description: "Background theme for the teaser block",
-                  default: "default",
-                },
-                align: {
-                  type: "string",
-                  enum: ["left", "center", "right"],
-                  description: "Image alignment within the teaser",
-                  default: "left",
-                },
-              },
-              required: ["href", "title"],
-            },
-          },
-          {
-            name: "plone_create_teaser_grey_theme",
-            description: "Create a teaser block with grey background theme",
-            inputSchema: {
-              type: "object",
-              properties: {
-                href: {
-                  type: "string",
-                  description: "Link target (URL or internal path)",
-                },
-                align: {
-                  type: "string",
-                  enum: ["left", "center", "right"],
-                  description: "Image alignment within the teaser",
-                  default: "left",
-                },
-                overwrite: {
-                  type: "boolean",
-                  description: "Whether to use custom content instead of target content",
-                  default: false,
-                },
-                title: {
-                  type: "string",
-                  description: "Custom title (only if overwrite=true)",
-                },
-                description: {
-                  type: "string", 
-                  description: "Custom description (only if overwrite=true)",
-                },
-              },
-              required: ["href"],
-            },
-          },
-          {
-            name: "plone_create_listing_block",
-            description: "Create a content listing block",
-            inputSchema: {
-              type: "object",
-              properties: {
-                query: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      i: { type: "string", description: "Field name" },
-                      o: { type: "string", description: "Operator" },
-                      v: { type: "string", description: "Value" },
-                    },
-                  },
-                  description: "Search query criteria",
-                },
-                sort_on: {
-                  type: "string",
-                  description: "Field to sort by",
-                },
-                sort_order: {
-                  type: "string",
-                  enum: ["ascending", "descending"],
-                  description: "Sort order",
-                },
-                limit: {
-                  type: "number",
-                  description: "Maximum number of items to show",
-                },
-                template: {
-                  type: "string",
-                  enum: ["default", "summary", "imageGallery"],
-                  description: "Listing template",
-                  default: "default",
-                },
-              },
-            },
-          },
-        ] as Tool[],
-      };
-    });
-
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const { name, arguments: args } = request.params;
-
-      try {
-        switch (name) {
-          case "plone_configure":
-            return await this.handleConfigure(args);
-          case "plone_get_content":
-            return await this.handleGetContent(args);
-          case "plone_create_content":
-            return await this.handleCreateContent(args);
-          case "plone_update_content":
-            return await this.handleUpdateContent(args);
-          case "plone_delete_content":
-            return await this.handleDeleteContent(args);
-          case "plone_search":
-            return await this.handleSearch(args);
-          case "plone_get_workflow_info":
-            return await this.handleGetWorkflowInfo(args);
-          case "plone_transition_workflow":
-            return await this.handleTransitionWorkflow(args);
-          case "plone_get_site_info":
-            return await this.handleGetSiteInfo(args);
-          case "plone_get_types":
-            return await this.handleGetTypes(args);
-          case "plone_get_vocabularies":
-            return await this.handleGetVocabularies(args);
-          case "plone_create_blocks_content":
-            return await this.handleCreateBlocksContent(args);
-          case "plone_add_block":
-            return await this.handleAddBlock(args);
-          case "plone_update_block":
-            return await this.handleUpdateBlock(args);
-          case "plone_remove_block":
-            return await this.handleRemoveBlock(args);
-          case "plone_create_text_block":
-            return await this.handleCreateTextBlock(args);
-          case "plone_create_image_block":
-            return await this.handleCreateImageBlock(args);
-          case "plone_create_teaser_block":
-            return await this.handleCreateTeaserBlock(args);
-          case "plone_create_teaser_with_custom_content":
-            return await this.handleCreateTeaserWithCustomContent(args);
-          case "plone_create_teaser_grey_theme":
-            return await this.handleCreateTeaserGreyTheme(args);
-          case "plone_create_listing_block":
-            return await this.handleCreateListingBlock(args);
-          default:
-            throw new Error(`Unknown tool: ${name}`);
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error: ${errorMessage}`,
-            },
-          ],
-        };
-      }
-    });
   }
 
-  private async handleConfigure(args: any) {
+  private async handleConfigure(args: unknown): Promise<CallToolResult> {
     try {
-      const config = ConfigSchema.parse(args);
+      const config = PloneConfigureSchema.parse(args);
       this.client = new PloneClient(config);
-      
+
       // Test the connection
-      await this.client.get('/');
-      
+      await this.client.get("/");
+
+      const textContent: TextContent = {
+        type: "text",
+        text: `Successfully configured connection to Plone site: ${config.baseUrl}`,
+      };
       return {
-        content: [
-          {
-            type: "text",
-            text: `Successfully configured connection to Plone site: ${config.baseUrl}`,
-          },
-        ],
+        content: [textContent],
       };
     } catch (error) {
-      throw new Error(`Configuration failed: ${error instanceof Error ? error.message : String(error)}`);
+      if (error instanceof z.ZodError) {
+        throw new Error(`Invalid configuration: ${error.message}`);
+      }
+      throw new Error(
+        `Configuration failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
   }
 
   private requireClient(): PloneClient {
     if (!this.client) {
-      throw new Error("Plone client not configured. Please run plone_configure first.");
+      throw new Error(
+        "Plone client not configured. Please run plone_configure first."
+      );
     }
     return this.client;
   }
 
-  private async handleGetContent(args: any) {
+  private async handleGetContent(args: any): Promise<CallToolResult> {
     const client = this.requireClient();
     const { path, expand } = args;
-    
-    let url = path.startsWith('/') ? path : `/${path}`;
+
+    let url = path.startsWith("/") ? path : `/${path}`;
     const params: Record<string, any> = {};
-    
+
     if (expand && expand.length > 0) {
-      params.expand = expand.join(',');
+      params.expand = expand.join(",");
     }
-    
+
     const content = await client.get(url, params);
-    
+
     return {
       content: [
         {
@@ -824,32 +229,42 @@ class PloneMCPServer {
     };
   }
 
-  private async handleCreateContent(args: any) {
+  private async handleCreateContent(args: any): Promise<CallToolResult> {
     const client = this.requireClient();
-    const { parentPath, type, title, description, id, text, blocks, blocks_layout, additionalFields } = args;
-    
+    const {
+      parentPath,
+      type,
+      title,
+      description,
+      id,
+      text,
+      blocks,
+      blocks_layout,
+      additionalFields,
+    } = args;
+
     const data: any = {
       "@type": type,
       title,
     };
-    
+
     if (description) data.description = description;
     if (id) data.id = id;
     if (text) data.text = text;
     if (blocks) data.blocks = blocks;
     if (blocks_layout) data.blocks_layout = blocks_layout;
     if (additionalFields) Object.assign(data, additionalFields);
-    
+
     let url = parentPath;
-    if (!url.startsWith('/')) {
+    if (!url.startsWith("/")) {
       url = `/${url}`;
     }
-    if (url === '/') {
-      url = '';
+    if (url === "/") {
+      url = "";
     }
-    
+
     const content = await client.post(url, data);
-    
+
     return {
       content: [
         {
@@ -860,10 +275,18 @@ class PloneMCPServer {
     };
   }
 
-  private async handleUpdateContent(args: any) {
+  private async handleUpdateContent(args: any): Promise<CallToolResult> {
     const client = this.requireClient();
-    const { path, title, description, text, blocks, blocks_layout, additionalFields } = args;
-    
+    const {
+      path,
+      title,
+      description,
+      text,
+      blocks,
+      blocks_layout,
+      additionalFields,
+    } = args;
+
     const data: any = {};
     if (title) data.title = title;
     if (description) data.description = description;
@@ -871,11 +294,11 @@ class PloneMCPServer {
     if (blocks) data.blocks = blocks;
     if (blocks_layout) data.blocks_layout = blocks_layout;
     if (additionalFields) Object.assign(data, additionalFields);
-    
-    let url = path.startsWith('/') ? path : `/${path}`;
-    
+
+    let url = path.startsWith("/") ? path : `/${path}`;
+
     const content = await client.patch(url, data);
-    
+
     return {
       content: [
         {
@@ -886,14 +309,14 @@ class PloneMCPServer {
     };
   }
 
-  private async handleDeleteContent(args: any) {
+  private async handleDeleteContent(args: any): Promise<CallToolResult> {
     const client = this.requireClient();
     const { path } = args;
-    
-    let url = path.startsWith('/') ? path : `/${path}`;
-    
+
+    let url = path.startsWith("/") ? path : `/${path}`;
+
     await client.delete(url);
-    
+
     return {
       content: [
         {
@@ -904,12 +327,21 @@ class PloneMCPServer {
     };
   }
 
-  private async handleSearch(args: any) {
+  private async handleSearch(args: any): Promise<CallToolResult> {
     const client = this.requireClient();
-    const { query, portal_type, path, review_state, sort_on, sort_order, b_size, b_start } = args;
-    
+    const {
+      query,
+      portal_type,
+      path,
+      review_state,
+      sort_on,
+      sort_order,
+      b_size,
+      b_start,
+    } = args;
+
     const params: Record<string, any> = {};
-    
+
     if (query) params.SearchableText = query;
     if (portal_type) params.portal_type = portal_type;
     if (path) params.path = path;
@@ -918,9 +350,9 @@ class PloneMCPServer {
     if (sort_order) params.sort_order = sort_order;
     if (b_size) params.b_size = b_size;
     if (b_start) params.b_start = b_start;
-    
-    const results = await client.get('/@search', params);
-    
+
+    const results = await client.get("/@search", params);
+
     return {
       content: [
         {
@@ -931,14 +363,14 @@ class PloneMCPServer {
     };
   }
 
-  private async handleGetWorkflowInfo(args: any) {
+  private async handleGetWorkflowInfo(args: any): Promise<CallToolResult> {
     const client = this.requireClient();
     const { path } = args;
-    
-    let url = path.startsWith('/') ? path : `/${path}`;
-    
+
+    let url = path.startsWith("/") ? path : `/${path}`;
+
     const workflow = await client.get(`${url}/@workflow`);
-    
+
     return {
       content: [
         {
@@ -949,17 +381,17 @@ class PloneMCPServer {
     };
   }
 
-  private async handleTransitionWorkflow(args: any) {
+  private async handleTransitionWorkflow(args: any): Promise<CallToolResult> {
     const client = this.requireClient();
     const { path, transition, comment } = args;
-    
-    let url = path.startsWith('/') ? path : `/${path}`;
-    
+
+    let url = path.startsWith("/") ? path : `/${path}`;
+
     const data: any = { transition };
     if (comment) data.comment = comment;
-    
+
     const result = await client.post(`${url}/@workflow/${transition}`, data);
-    
+
     return {
       content: [
         {
@@ -970,11 +402,11 @@ class PloneMCPServer {
     };
   }
 
-  private async handleGetSiteInfo(args: any) {
+  private async handleGetSiteInfo(_args: any): Promise<CallToolResult> {
     const client = this.requireClient();
-    
-    const siteInfo = await client.get('/');
-    
+
+    const siteInfo = await client.get("/");
+
     return {
       content: [
         {
@@ -985,11 +417,11 @@ class PloneMCPServer {
     };
   }
 
-  private async handleGetTypes(args: any) {
+  private async handleGetTypes(_args: any): Promise<CallToolResult> {
     const client = this.requireClient();
-    
-    const types = await client.get('/@types');
-    
+
+    const types = await client.get("/@types");
+
     return {
       content: [
         {
@@ -1000,16 +432,19 @@ class PloneMCPServer {
     };
   }
 
-  private async handleGetVocabularies(args: any) {
+  private async handleGetVocabularies(args: any): Promise<CallToolResult> {
     const client = this.requireClient();
     const { vocabulary, title, token } = args;
-    
+
     const params: Record<string, any> = {};
     if (title) params.title = title;
     if (token) params.token = token;
-    
-    const vocabularies = await client.get(`/@vocabularies/${vocabulary}`, params);
-    
+
+    const vocabularies = await client.get(
+      `/@vocabularies/${vocabulary}`,
+      params
+    );
+
     return {
       content: [
         {
@@ -1022,355 +457,282 @@ class PloneMCPServer {
 
   // Utility methods for generating UUIDs and managing blocks
   private generateBlockId(): string {
-    return 'block-' + Math.random().toString(36).substr(2, 9);
+    const blockID = uuidv4();
+    return blockID;
   }
 
-  private createSlateBlock(text: string, format: string = 'plain'): any {
-    if (format === 'html') {
-      return {
-        "@type": "slate",
-        value: [
-          {
-            type: "p",
-            children: [{ text }]
-          }
-        ],
-        plaintext: text
-      };
-    } else if (format === 'markdown') {
-      // Simple markdown to Slate conversion - in a real implementation, you'd use a proper parser
-      return {
-        "@type": "slate",
-        value: [
-          {
-            type: "p",
-            children: [{ text }]
-          }
-        ],
-        plaintext: text
-      };
-    } else {
-      return {
-        "@type": "slate",
-        value: [
-          {
-            type: "p",
-            children: [{ text }]
-          }
-        ],
-        plaintext: text
-      };
+  // Centralized path normalization utility
+  private normalizePath(path: string): string {
+    if (!path) return "";
+    // Remove trailing slash, ensure leading slash
+    let normalized = path.replace(/\/$/, "");
+    if (!normalized.startsWith("/") && normalized !== "") {
+      normalized = `/${normalized}`;
     }
+    return normalized;
   }
 
-  // New block-specific handlers
-  private async handleCreateBlocksContent(args: any) {
-    const client = this.requireClient();
-    const { parentPath, type, title, description, id, blocksData } = args;
-    
-    const blocks: Record<string, any> = {};
-    const blocks_layout: { items: string[] } = { items: [] };
-    
-    // Generate blocks from the blocksData array
-    for (const blockDef of blocksData) {
-      const blockId = this.generateBlockId();
-      blocks[blockId] = {
-        "@type": blockDef.blockType,
-        ...blockDef.data
-      };
-      blocks_layout.items.push(blockId);
-    }
-    
-    const data: any = {
-      "@type": type,
-      title,
-      blocks,
-      blocks_layout,
-    };
-    
-    if (description) data.description = description;
-    if (id) data.id = id;
-    
-    let url = parentPath;
-    if (!url.startsWith('/')) {
-      url = `/${url}`;
-    }
-    if (url === '/') {
-      url = '';
-    }
-    
-    const content = await client.post(url, data);
-    
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(content, null, 2),
-        },
-      ],
-    };
-  }
-
-  private async handleAddBlock(args: any) {
-    const client = this.requireClient();
-    const { path, blockType, blockData, position } = args;
-    
-    let url = path.startsWith('/') ? path : `/${path}`;
-    
-    // First get the current content
-    const content = await client.get(url);
-    
-    const blocks = content.blocks || {};
-    const blocks_layout = content.blocks_layout || { items: [] };
-    
-    // Generate new block ID
-    const blockId = this.generateBlockId();
-    blocks[blockId] = {
-      "@type": blockType,
-      ...blockData
-    };
-    
-    // Insert at specified position or at the end
-    if (position !== undefined && position >= 0 && position <= blocks_layout.items.length) {
-      blocks_layout.items.splice(position, 0, blockId);
-    } else {
-      blocks_layout.items.push(blockId);
-    }
-    
-    // Update the content
-    const updatedContent = await client.patch(url, { blocks, blocks_layout });
-    
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(updatedContent, null, 2),
-        },
-      ],
-    };
-  }
-
-  private async handleUpdateBlock(args: any) {
-    const client = this.requireClient();
-    const { path, blockId, blockData } = args;
-    
-    let url = path.startsWith('/') ? path : `/${path}`;
-    
-    // First get the current content
-    const content = await client.get(url);
-    
-    const blocks = content.blocks || {};
-    
-    if (!blocks[blockId]) {
-      throw new Error(`Block with ID '${blockId}' not found`);
-    }
-    
-    // Update the specific block
-    blocks[blockId] = {
-      ...blocks[blockId],
-      ...blockData
-    };
-    
-    // Update the content
-    const updatedContent = await client.patch(url, { blocks });
-    
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(updatedContent, null, 2),
-        },
-      ],
-    };
-  }
-
-  private async handleRemoveBlock(args: any) {
-    const client = this.requireClient();
-    const { path, blockId } = args;
-    
-    let url = path.startsWith('/') ? path : `/${path}`;
-    
-    // First get the current content
-    const content = await client.get(url);
-    
-    const blocks = content.blocks || {};
-    const blocks_layout = content.blocks_layout || { items: [] };
-    
-    if (!blocks[blockId]) {
-      throw new Error(`Block with ID '${blockId}' not found`);
-    }
-    
-    // Remove the block
-    delete blocks[blockId];
-    
-    // Remove from layout
-    const index = blocks_layout.items.indexOf(blockId);
-    if (index > -1) {
-      blocks_layout.items.splice(index, 1);
-    }
-    
-    // Update the content
-    const updatedContent = await client.patch(url, { blocks, blocks_layout });
-    
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(updatedContent, null, 2),
-        },
-      ],
-    };
-  }
-
-  private async handleCreateTextBlock(args: any) {
-    const { text, format = 'plain' } = args;
-    
-    const blockData = this.createSlateBlock(text, format);
-    
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(blockData, null, 2),
-        },
-      ],
-    };
-  }
-
-  private async handleCreateImageBlock(args: any) {
-    const { imageUrl, alt, caption, size = 'l', align = 'center' } = args;
-    
-    const blockData: any = {
-      "@type": "image",
-      url: imageUrl,
-      alt: alt || '',
-      size,
-      align,
-    };
-    
-    if (caption) {
-      blockData.caption = caption;
-    }
-    
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(blockData, null, 2),
-        },
-      ],
-    };
-  }
-
-  private async handleCreateTeaserBlock(args: any) {
-    const { 
-      href, 
-      overwrite = false, 
-      title, 
-      head_title, 
-      description, 
-      preview_image, 
-      theme = "default",
-      align = "left",
-      openLinkInNewTab = false
-    } = args;
-    
-    const blockData: any = {
-      "@type": "teaser",
-      href: href,
-      overwrite: overwrite,
-      styles: {
-        align: align
+  // Resources setup
+  private setupResources(): void {
+    // Dynamic Plone content resource
+    this.server.registerResource(
+      "plone-content",
+      new ResourceTemplate("plone://{path}", { list: undefined }),
+      {
+        title: "Plone Content",
+        description: "Access Plone content items by path",
       },
-      theme: theme
-    };
-    
-    // Add custom content only when overwrite is true
-    if (overwrite) {
-      if (title) blockData.title = title;
-      if (head_title) blockData.head_title = head_title;
-      if (description) blockData.description = description;
-      if (preview_image) blockData.preview_image = preview_image;
-    }
-    
-    // Add openLinkInNewTab if specified
-    if (openLinkInNewTab) {
-      blockData.openLinkInNewTab = openLinkInNewTab;
-    }
-    
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(blockData, null, 2),
+      async (uri, { path }) => {
+        if (!this.client) {
+          throw new Error(
+            "Plone client not configured. Please run plone_configure first."
+          );
+        }
+
+        const normalizedPath = this.normalizePath(
+          typeof path === "string" ? path : path[0] || ""
+        );
+        const content = await this.client.get(normalizedPath);
+
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              text: JSON.stringify(content, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      }
+    );
+
+    // Plone site information resource
+    this.server.registerResource(
+      "plone-site",
+      "plone://site",
+      {
+        title: "Plone Site Information",
+        description: "General information about the Plone site",
+      },
+      async (uri) => {
+        if (!this.client) {
+          throw new Error(
+            "Plone client not configured. Please run plone_configure first."
+          );
+        }
+
+        const siteInfo = await this.client.get("/");
+
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              text: JSON.stringify(siteInfo, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      }
+    );
+
+    // Plone content types resource
+    this.server.registerResource(
+      "plone-types",
+      "plone://types",
+      {
+        title: "Plone Content Types",
+        description: "Available content types in the Plone site",
+      },
+      async (uri) => {
+        if (!this.client) {
+          throw new Error(
+            "Plone client not configured. Please run plone_configure first."
+          );
+        }
+
+        const types = await this.client.get("/@types");
+
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              text: JSON.stringify(types, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      }
+    );
+  }
+
+  // Prompts setup
+  private setupPrompts(): void {
+    // Content creation workflow prompt
+    this.server.registerPrompt(
+      "create-page-workflow",
+      {
+        title: "Create Page Workflow",
+        description:
+          "Guide through creating a new page with structured content",
+        argsSchema: {
+          contentType: z
+            .string()
+            .describe("Type of content to create (Document, News Item, etc.)"),
+          purpose: z.string().describe("Purpose or topic of the page"),
+          audience: z.string().optional().describe("Target audience"),
         },
-      ],
-    };
+      },
+      ({ contentType, purpose, audience }) => ({
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text" as const,
+              text: `I want to create a ${contentType} about "${purpose}"${
+                audience ? ` for ${audience}` : ""
+              }. Please help me:
+
+1. First, configure the Plone connection if not already done
+2. Choose an appropriate parent path for this content
+3. Create the content with a good title and description
+4. Add relevant blocks (text, images, etc.) to structure the content
+5. Review and publish the content
+
+Let's start by configuring the connection and then proceed step by step.`,
+            },
+          },
+        ],
+      })
+    );
   }
 
-  private async handleCreateTeaserWithCustomContent(args: any) {
-    const { 
-      href, 
-      title, 
-      head_title, 
-      description, 
-      preview_image, 
-      theme = "default",
-      align = "left"
-    } = args;
-    
-    return this.handleCreateTeaserBlock({
-      href,
-      overwrite: true,
-      title,
-      head_title,
-      description,
-      preview_image,
-      theme,
-      align
-    });
+  // Block-specific handlers
+
+  private async handleAddBlock(args: unknown): Promise<CallToolResult> {
+    try {
+      const { path, blockType, blockData, position } =
+        PloneAddBlockSchema.parse(args);
+      const client = this.requireClient();
+
+      let url = path.startsWith("/") ? path : `/${path}`;
+
+      // First get the current content
+      const content: PloneContent = await client.get(url);
+
+      const blocks = content.blocks || {};
+      const blocks_layout = content.blocks_layout || { items: [] };
+
+      // Generate new block ID
+      const blockId = this.generateBlockId();
+
+      // Handle different block types with proper structure
+      if (blockType === "text") {
+        // Convert text block to Slate format
+        const textContent = blockData.text || "";
+        blocks[blockId] = {
+          "@type": "slate",
+          plaintext: textContent,
+          value: [
+            {
+              children: [
+                {
+                  text: textContent,
+                },
+              ],
+              type: "p",
+            },
+          ],
+          theme: blockData.theme || "default",
+        };
+      } else {
+        // For other block types, use the provided data with correct @type
+        blocks[blockId] = {
+          ...blockData,
+          "@type": blockType,
+        };
+      }
+
+      // Insert at specified position or at the end
+      if (
+        position !== undefined &&
+        position >= 0 &&
+        position <= blocks_layout.items.length
+      ) {
+        blocks_layout.items.splice(position, 0, blockId);
+      } else {
+        blocks_layout.items.push(blockId);
+      }
+
+      // Update the content
+      const updatedContent = await client.patch(url, { blocks, blocks_layout });
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(updatedContent, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new Error(`Invalid add block parameters: ${error.message}`);
+      }
+      throw error;
+    }
   }
 
-  private async handleCreateTeaserGreyTheme(args: any) {
-    const { 
-      href, 
-      align = "left",
-      overwrite = false,
-      title,
-      description
-    } = args;
-    
-    return this.handleCreateTeaserBlock({
-      href,
-      overwrite,
-      title,
-      description,
-      theme: "grey",
-      align
-    });
+  private async handleUpdateBlock(args: unknown): Promise<CallToolResult> {
+    try {
+      const { path, blockId, blockData } = PloneUpdateBlockSchema.parse(args);
+      const client = this.requireClient();
+
+      let url = path.startsWith("/") ? path : `/${path}`;
+
+      // First get the current content
+      const content: PloneContent = await client.get(url);
+
+      const blocks = content.blocks || {};
+
+      if (!blocks[blockId]) {
+        throw new Error(`Block with ID '${blockId}' not found`);
+      }
+
+      // Update the specific block
+      blocks[blockId] = {
+        ...blocks[blockId],
+        ...blockData,
+      };
+
+      // Update the content
+      const updatedContent = await client.patch(url, { blocks });
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(updatedContent, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new Error(`Invalid update block parameters: ${error.message}`);
+      }
+      throw error;
+    }
   }
 
-  private async handleCreateListingBlock(args: any) {
-    const { query, sort_on, sort_order, limit, template = 'default' } = args;
-    
-    const blockData: any = {
-      "@type": "listing",
-      template,
-    };
-    
-    if (query) blockData.query = query;
-    if (sort_on) blockData.sort_on = sort_on;
-    if (sort_order) blockData.sort_order = sort_order;
-    if (limit) blockData.limit = limit;
-    
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(blockData, null, 2),
-        },
-      ],
-    };
+  private async handleRemoveBlock(args: unknown): Promise<CallToolResult> {
+    try {
+      const { path, blockId } = PloneRemoveBlockSchema.parse(args);
+      const client = this.requireClient();
+
+      let url = path.startsWith("/") ? path : `/${path}`;
+
+      // First get the current content
+      const content: PloneContent = await client.get(url);
+
   }
 
   async run(): Promise<void> {
