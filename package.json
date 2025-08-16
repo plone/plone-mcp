@@ -15,7 +15,10 @@
     "test:coverage": "jest --coverage",
     "test:unit": "jest tests/unit",
     "test:integration": "jest tests/integration",
-    "test:functional": "jest tests/functional"
+    "test:functional": "jest tests/functional",
+    "test:acceptance": "jest tests/acceptance",
+    "test:acceptance:hello-world": "jest tests/acceptance/create-page-hello-world.test.ts",
+    "test:acceptance:mcp": "node tests/acceptance/mcp-create-page-test.js"
   },
   "keywords": [
     "mcp",
