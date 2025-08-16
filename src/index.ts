@@ -11,8 +11,14 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import axios, { AxiosInstance } from "axios";
 import { z } from "zod";
-import blocksSpecification from "./blocks.json" assert { type: "json" };
 import { v4 as uuidv4 } from "uuid";
+import { readFileSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const blocksSpecification = JSON.parse(readFileSync(join(__dirname, "blocks.json"), "utf-8"));
 
 // Configuration schema
 const ConfigSchema = z.object({
@@ -550,7 +556,33 @@ class PloneMCPServer {
     if (description) data.description = description;
     if (id) data.id = id;
     if (text) data.text = text;
-    if (blocks) data.blocks = blocks;
+    
+    // Auto-generate blocks with title block if no blocks provided
+    if (!blocks && !text) {
+      const titleBlockId = this.generateBlockId();
+      data.blocks = {
+        [titleBlockId]: {
+          "@type": "slate",
+          plaintext: title,
+          value: [
+            {
+              type: "h1",
+              children: [
+                {
+                  text: title,
+                },
+              ],
+            },
+          ],
+        },
+      };
+      data.blocks_layout = {
+        items: [titleBlockId],
+      };
+    } else if (blocks) {
+      data.blocks = blocks;
+    }
+    
     if (blocks_layout) data.blocks_layout = blocks_layout;
     if (additionalFields) Object.assign(data, additionalFields);
 
