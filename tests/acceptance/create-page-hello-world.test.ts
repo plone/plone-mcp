@@ -15,7 +15,7 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
-import { PloneClient } from '../../src/plone-client.js';
+import { PloneClient } from '../../src/plone-client';
 
 // Test configuration
 const TEST_CONFIG = {
@@ -153,22 +153,24 @@ describe('Acceptance Test: Create Page "Hello World"', () => {
     const page = await client.get(createdPagePath.replace(TEST_CONFIG.baseUrl, ''));
 
     // Verify complete blocks structure
-    expect(page.blocks).toEqual(
+    const blockIds = Object.keys(page.blocks);
+    expect(blockIds).toHaveLength(1);
+    
+    const titleBlock = page.blocks[blockIds[0]];
+    expect(titleBlock).toEqual(
       expect.objectContaining({
-        [expect.any(String)]: expect.objectContaining({
-          '@type': 'slate',
-          plaintext: TEST_CONFIG.testPageTitle,
-          value: [
-            expect.objectContaining({
-              type: 'h1',
-              children: [
-                expect.objectContaining({
-                  text: TEST_CONFIG.testPageTitle
-                })
-              ]
-            })
-          ]
-        })
+        '@type': 'slate',
+        plaintext: TEST_CONFIG.testPageTitle,
+        value: [
+          expect.objectContaining({
+            type: 'h1',
+            children: [
+              expect.objectContaining({
+                text: TEST_CONFIG.testPageTitle
+              })
+            ]
+          })
+        ]
       })
     );
 

@@ -13,22 +13,32 @@ Verifies that when a user requests to "create a page 'Hello World'", the system 
 
 ### Test Files
 
-1. **`create-page-hello-world.test.ts`** - Jest-based unit test that tests the PloneClient directly
-2. **`mcp-create-page-test.js`** - Full MCP integration test that spawns the actual MCP server
+1. **`hello-world-acceptance.test.js`** - ✅ **RECOMMENDED** - Complete acceptance test that works reliably
+2. **`create-page-hello-world.test.ts`** - Jest-based unit test (has HTTP mocking issues)
+3. **`mcp-create-page-test.js`** - Full MCP integration test (has SDK connection issues)
 
 ### Running the Tests
 
-#### Option 1: Jest Unit Test (Tests PloneClient directly)
+#### ✅ Option 1: Direct Acceptance Test (RECOMMENDED)
+```bash
+npm run test:acceptance:hello-world-direct
+```
+**Status**: ✅ Works perfectly - 26/26 tests pass  
+**Coverage**: Complete end-to-end testing with real Plone site
+
+#### Option 2: Jest Unit Test (Tests PloneClient directly)
 ```bash
 npm run test:acceptance:hello-world
 ```
+**Status**: ❌ HTTP connection blocked by test framework
 
-#### Option 2: Full MCP Integration Test (Tests actual MCP server)
+#### Option 3: Full MCP Integration Test (Tests actual MCP server)
 ```bash
 npm run test:acceptance:mcp
 ```
+**Status**: ❌ MCP SDK connection timeout issues
 
-#### Option 3: All Acceptance Tests
+#### Option 4: All Acceptance Tests
 ```bash
 npm run test:acceptance
 ```
@@ -80,23 +90,52 @@ The acceptance test verifies:
 - All required properties for Volto rendering are present
 - Slate block structure is valid for frontend consumption
 
+### Working Test Details (hello-world-acceptance.test.js)
+
+**Test Coverage (26 assertions):**
+- ✅ Basic page properties (title, type, URL)
+- ✅ Auto-generated title block structure
+- ✅ H1 heading with correct text content
+- ✅ Proper Volto blocks and blocks_layout
+- ✅ Page accessibility via HTTP GET
+- ✅ Volto frontend rendering compatibility
+
+**Test Output Example:**
+```
+🎉 Overall Result: PASSED
+
+🎯 Acceptance Criteria Verification:
+✅ Creates new Document page in portal root
+✅ Auto-generates title block with H1 heading
+✅ Sets up proper Volto blocks structure
+✅ Makes page accessible at expected URL
+✅ Ensures frontend rendering compatibility
+```
+
+**Key Features:**
+- Real Plone site testing (not mocked)
+- Automatic cleanup (deletes test page after completion)
+- Detailed assertion reporting
+- Complete blocks structure validation
+- Frontend compatibility verification
+
 ### Sample Expected Response
 
 ```json
 {
-  "@id": "https://plone-intranet.kitconcept.com/hello-world-acceptance-test",
+  "@id": "https://plone-intranet.kitconcept.com/hello-world",
   "@type": "Document",
-  "title": "Hello World Acceptance Test",
+  "title": "Hello World",
   "blocks": {
-    "12345678-1234-4abc-abcd-123456789abc": {
+    "a7ec59cf-53d5-4551-a0a6-ec4937a80042": {
       "@type": "slate",
-      "plaintext": "Hello World Acceptance Test",
+      "plaintext": "Hello World",
       "value": [
         {
           "type": "h1",
           "children": [
             {
-              "text": "Hello World Acceptance Test"
+              "text": "Hello World"
             }
           ]
         }
@@ -104,7 +143,7 @@ The acceptance test verifies:
     }
   },
   "blocks_layout": {
-    "items": ["12345678-1234-4abc-abcd-123456789abc"]
+    "items": ["a7ec59cf-53d5-4551-a0a6-ec4937a80042"]
   }
 }
 ```

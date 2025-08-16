@@ -562,18 +562,7 @@ class PloneMCPServer {
       const titleBlockId = this.generateBlockId();
       data.blocks = {
         [titleBlockId]: {
-          "@type": "slate",
-          plaintext: title,
-          value: [
-            {
-              type: "h1",
-              children: [
-                {
-                  text: title,
-                },
-              ],
-            },
-          ],
+          "@type": "title",
         },
       };
       data.blocks_layout = {
