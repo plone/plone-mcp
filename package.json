@@ -21,7 +21,10 @@
     "test:acceptance:mcp": "node tests/acceptance/mcp-create-page-test.js",
     "test:acceptance:hello-world-direct": "node tests/acceptance/hello-world-acceptance.test.js",
     "test:ci": "jest --coverage --ci --watchAll=false",
-    "test:unit-only": "jest tests/unit tests/integration --coverage"
+    "test:unit-only": "jest tests/unit tests/integration --coverage",
+    "test:acceptance:all": "./scripts/run-acceptance-tests.sh",
+    "test:acceptance:docker": "./scripts/run-acceptance-tests.sh --docker",
+    "test:acceptance:debug": "./scripts/run-acceptance-tests.sh --skip-cleanup"
   },
   "keywords": [
     "mcp",
