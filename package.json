@@ -19,7 +19,9 @@
     "test:acceptance": "jest tests/acceptance",
     "test:acceptance:hello-world": "jest tests/acceptance/create-page-hello-world.test.ts",
     "test:acceptance:mcp": "node tests/acceptance/mcp-create-page-test.js",
-    "test:acceptance:hello-world-direct": "node tests/acceptance/hello-world-acceptance.test.js"
+    "test:acceptance:hello-world-direct": "node tests/acceptance/hello-world-acceptance.test.js",
+    "test:ci": "jest --coverage --ci --watchAll=false",
+    "test:unit-only": "jest tests/unit tests/integration --coverage"
   },
   "keywords": [
     "mcp",
