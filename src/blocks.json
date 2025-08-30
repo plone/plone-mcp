@@ -41,8 +41,8 @@
       "required": ["href", "title"]
     }
   },
-  "text": {
-    "description": "The text block is used to create text content. It will be converted to Slate format automatically.",
+  "slate": {
+    "description": "The text (slate) block is used to create text content. Its text content will be converted to Slate format automatically. DO NOT create nested blocks, only text is supported.",
     "inputSchema": {
       "blockData": {
         "text": {
