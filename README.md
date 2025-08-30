@@ -4,7 +4,8 @@ A Model Context Protocol (MCP) server that provides integration with Plone CMS R
 
 ## Features
 
-- **Content Management**: Create, read, update, and delete content
+- **Authentication**: Connect and authenticate against an existing Plone instance (Support for both JWT tokens and basic authentication)
+- **Content Management**: Create, read, update, and delete content objects (including all Plone core content types)
 - **Volto Blocks Support**: Full support for Plone 6 blocks-based content editing
 - **Block Management**: Add, update, and remove individual blocks from content
 - **Rich Block Types**: Support for all major Volto block types (text, image, teaser, listing, etc.)
@@ -12,7 +13,6 @@ A Model Context Protocol (MCP) server that provides integration with Plone CMS R
 - **Workflow**: View workflow states and execute transitions
 - **Site Information**: Access site configuration and available content types
 - **Vocabularies**: Query Plone vocabularies for form fields
-- **Authentication**: Support for both JWT tokens and basic authentication
 
 ## Installation
 
@@ -31,7 +31,7 @@ Add the following to your Claude Desktop configuration (on OSX: ~/Library/Applic
 {
   "mcpServers": {
     "plone": {
-      "command": "/Users/timo/.nvm/versions/node/v22.15.0/bin/node",
+      "command": "/path/to/node/v22.15.0/bin/node",
       "args": ["/path/to/plone-mcp/dist/index.js"],
       "env": {}
     }
@@ -49,7 +49,7 @@ An example of a working version might look like this:
 {
   "mcpServers": {
     "plone": {
-      "command": "/Users/timo/.nvm/versions/node/v22.15.0/bin/node",
+      "command": "/Users/timo/.nvm/versions/node/v22.19.0/bin/node",
       "args": ["/Users/timo/workspace/kitconcept/plone-mcp/dist/index.js"],
       "env": {}
     }
@@ -58,6 +58,12 @@ An example of a working version might look like this:
 ```
 
 Then restart Claude Desktop.
+
+Claude Desktop should now show `plone-mcp` under Claude > Settings > Connectors.
+
+### With ChatGPT (OpenAI)
+
+todo
 
 ### Configuration
 
@@ -122,11 +128,13 @@ plone_configure({
 ## Examples
 
 ### Get Site Information
+
 ```
 plone_get_site_info()
 ```
 
 ### Create a Document with Blocks
+
 ```
 plone_create_blocks_content({
   "parentPath": "/news",
@@ -155,6 +163,7 @@ plone_create_blocks_content({
 ```
 
 ### Add a Block to Existing Content
+
 ```
 plone_add_block({
   "path": "/news/my-document",
@@ -169,6 +178,7 @@ plone_add_block({
 ```
 
 ### Create Individual Block Types
+
 ```
 // Create a text block
 plone_create_text_block({
@@ -198,6 +208,7 @@ plone_create_listing_block({
 ```
 
 ### Search for Content
+
 ```
 plone_search({
   "query": "news",
@@ -208,6 +219,7 @@ plone_search({
 ```
 
 ### Get Content with Expanded Components
+
 ```
 plone_get_content({
   "path": "/news/my-document",
@@ -216,6 +228,7 @@ plone_get_content({
 ```
 
 ### Execute Workflow Transition
+
 ```
 plone_transition_workflow({
   "path": "/news/my-document",
@@ -262,8 +275,9 @@ This is especially useful for testing your Plone server configuration and explor
 Based on the official Plone REST API documentation: https://plonerestapi.readthedocs.io/
 
 The server implements the following endpoint patterns:
+
 - `GET /++api++/path/to/content` - Get content
-- `POST /++api++/path/to/parent` - Create content  
+- `POST /++api++/path/to/parent` - Create content
 - `PATCH /++api++/path/to/content` - Update content
 - `DELETE /++api++/path/to/content` - Delete content
 - `GET /++api++/@search` - Search content

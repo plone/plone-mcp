@@ -8,8 +8,7 @@ export default {
     '**/?(*.)+(spec|test).ts'
   ],
   testPathIgnorePatterns: [
-    '<rootDir>/tests/acceptance/create-page-hello-world.test.ts',
-    '<rootDir>/tests/functional/'
+    '<rootDir>/tests/acceptance/create-page-hello-world.test.ts'
   ],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
