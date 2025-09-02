@@ -1,276 +1,205 @@
 # Plone MCP Server
 
-A Model Context Protocol (MCP) server that provides integration with Plone CMS REST API. This server allows Claude and other MCP clients to interact with Plone sites for content management, search, workflow operations, and comprehensive Volto blocks support.
+A Model Context Protocol (MCP) server for integrating MCP clients with Plone CMS via REST API. Enables content management, search, workflow operations, and Volto blocks management.
 
-## Features
+## Quick Start using Claude Desktop as an example
 
-- **Content Management**: Create, read, update, and delete content
-- **Volto Blocks Support**: Full support for Plone 6 blocks-based content editing
-- **Block Management**: Add, update, and remove individual blocks from content
-- **Rich Block Types**: Support for all major Volto block types (text, image, teaser, listing, etc.)
-- **Search**: Full-text search across Plone content
-- **Workflow**: View workflow states and execute transitions
-- **Site Information**: Access site configuration and available content types
-- **Vocabularies**: Query Plone vocabularies for form fields
-- **Authentication**: Support for both JWT tokens and basic authentication
-
-## Installation
-
+1. **Install**
 ```bash
-npm install
-npm run build
+git clone git@github.com:kitconcept/plone-mcp.git
+cd plone-mcp
+pnpm run build
 ```
 
-## Usage
+2. **Configure Claude Desktop**
 
-### With Claude Desktop
-
-Add the following to your Claude Desktop configuration (on OSX: ~/Library/Application Support/Claude/claude_desktop_config.json):
+Add to Claude's configuration file:
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
     "plone": {
-      "command": "/Users/timo/.nvm/versions/node/v22.15.0/bin/node",
-      "args": ["/path/to/plone-mcp/dist/index.js"],
-      "env": {}
+      "command": "node",
+      "args": ["/absolute/path/to/plone-mcp/dist/index.js"]
     }
   }
 }
 ```
 
-Amend the path in the config to your actual path (e.g. vi "/Users/timo/workspace/kitconcept/plone-mcp/dist/index.js").
+3. **Restart Claude Desktop**
 
-Amend the Node version you are using to the path to your actual node version (e.g. "/Users/timo/.nvm/versions/node/v22.15.0/bin/node").
-
-An example of a working version might look like this:
-
-```
-{
-  "mcpServers": {
-    "plone": {
-      "command": "/Users/timo/.nvm/versions/node/v22.15.0/bin/node",
-      "args": ["/Users/timo/workspace/kitconcept/plone-mcp/dist/index.js"],
-      "env": {}
-    }
-  }
-}
-```
-
-Then restart Claude Desktop.
-
-### Configuration
-
-Before using any other tools, configure the connection to your Plone site:
-
-```
+4. **Connect to Plone** (by requesting it to Claude, while providing necessary url and credentials)
+```javascript
 plone_configure({
-  "baseUrl": "https://your-plone-site.com",
+  "baseUrl": "https://demo.plone.org",
   "username": "admin",
-  "password": "secret"
+  "password": "admin"
 })
 ```
 
-Or with JWT token:
+## Prerequisites
 
-```
-plone_configure({
-  "baseUrl": "https://your-plone-site.com",
-  "token": "your-jwt-token"
-})
-```
+- Node.js 18+
+- pnpm 8+
+- Plone 6.0+ site with REST API
 
-## Available Tools
+## Core Features
 
-### Core Tools
+- **Content Management**: CRUD operations on all Plone content types
+- **Block System**: Create and manage Volto blocks
+- **Search**: Full-text search with filtering and sorting
+- **Workflow**: Manage publication states and transitions
+- **Site Info**: Access content types, vocabularies, and site configuration
 
-- **plone_configure**: Configure connection to Plone site
-- **plone_get_site_info**: Get information about the Plone site
+## Essential Tools
 
-### Content Management
+| Tool | Description | Example |
+|------|-------------|---------|
+| `plone_configure` | Connect to Plone (required first) | `plone_configure({baseUrl, username, password})` |
+| `plone_get_content` | Get content by path | `plone_get_content({path: "/news"})` |
+| `plone_create_content` | Create new content | `plone_create_content({parentPath: "/", type: "Document", title: "Page"})` |
+| `plone_update_content` | Update existing content | `plone_update_content({path: "/page", title: "New Title"})` |
+| `plone_delete_content` | Delete content | `plone_delete_content({path: "/old-page"})` |
+| `plone_search` | Search content | `plone_search({query: "news", portal_type: ["Document"]})` |
+| `plone_transition_workflow` | Change workflow state | `plone_transition_workflow({path: "/page", transition: "publish"})` |
 
-- **plone_get_content**: Get content by path, with optional component expansion
-- **plone_create_content**: Create new content (Documents, Folders, News Items, etc.) with optional blocks support
-- **plone_update_content**: Update existing content with optional blocks support
-- **plone_delete_content**: Delete content
+## Block Management
 
-### Volto Blocks Management
+### Creating Content with Blocks
 
-- **plone_create_blocks_content**: Create new content with a complete blocks structure
-- **plone_add_block**: Add a single block to existing content
-- **plone_update_block**: Update a specific block in content
-- **plone_remove_block**: Remove a specific block from content
-
-### Block Creation Helpers
-
-- **plone_create_text_block**: Create a rich text (Slate) block with formatted content
-- **plone_create_image_block**: Create an image block with size and alignment options
-- **plone_create_teaser_block**: Create a teaser block with links and preview images
-- **plone_create_listing_block**: Create a content listing block with query and template options
-
-### Search and Discovery
-
-- **plone_search**: Search for content with filters and sorting
-- **plone_get_types**: Get available content types
-- **plone_get_vocabularies**: Query vocabulary values
-
-### Workflow
-
-- **plone_get_workflow_info**: Get workflow information for content
-- **plone_transition_workflow**: Execute workflow transitions
-
-## Examples
-
-### Get Site Information
-```
-plone_get_site_info()
-```
-
-### Create a Document with Blocks
-```
-plone_create_blocks_content({
-  "parentPath": "/news",
-  "type": "Document",
-  "title": "My New Document",
-  "description": "A sample document",
-  "blocksData": [
+```javascript
+// 1. Prepare blocks (60-second TTL - meant to be used inmediatly before content creation/editing)
+plone_create_blocks_layout({
+  "blocks": [
     {
-      "blockType": "slate",
-      "data": {
-        "value": [{"type": "p", "children": [{"text": "Welcome to our new document!"}]}],
-        "plaintext": "Welcome to our new document!"
-      }
+      "type": "text",
+      "data": {"text": "Welcome to our site!"}
     },
     {
-      "blockType": "image",
+      "type": "teaser",
       "data": {
-        "url": "/path/to/image.jpg",
-        "alt": "Sample image",
-        "size": "l",
-        "align": "center"
+        "href": "/about",
+        "title": "Learn More",
+        "description": "Discover what we do"
       }
     }
   ]
 })
+
+// 2. Create content (within 60 seconds), the previously prepared blocks will automatically be included in the request
+plone_create_content({
+  "parentPath": "/",
+  "type": "Document",
+  "title": "Homepage"
+})
 ```
 
-### Add a Block to Existing Content
-```
-plone_add_block({
-  "path": "/news/my-document",
-  "blockType": "teaser",
-  "blockData": {
-    "href": "/related-page",
-    "title": "Related Article",
-    "description": "Check out this related content"
-  },
+### Managing Individual Blocks
+
+```javascript
+// Add a single block
+plone_add_single_block({
+  "path": "/homepage",
+  "blockType": "text",
+  "blockData": {"text": "New paragraph"},
   "position": 1
 })
-```
 
-### Create Individual Block Types
-```
-// Create a text block
-plone_create_text_block({
-  "text": "This is a rich text block",
-  "format": "plain"
+// Update a block
+plone_update_single_block({
+  "path": "/homepage",
+  "blockId": "51176ead-7b59-402d-9412-baed46821b36",  // Get ID from plone_get_content
+  "blockData": {"text": "Updated text"}
 })
 
-// Create an image block
-plone_create_image_block({
-  "imageUrl": "/path/to/image.jpg",
-  "alt": "Description of image",
-  "caption": "Image caption",
-  "size": "l",
-  "align": "center"
+// Remove a block
+plone_remove_single_block({
+  "path": "/homepage",
+  "blockId": "51176ead-7b59-402d-9412-baed46821b36"
+})
+```
+
+## Available Block Types
+
+- **text**: Rich text content
+- **teaser**: Link preview card with image
+- **__button**: Call-to-action button
+- **separator**: Visual divider line
+
+Use `plone_get_block_schemas()` to see all block types and their properties.
+
+## Common Workflows
+
+### Create and Publish a Page
+
+```javascript
+// Configure connection
+plone_configure({baseUrl: "https://mysite.com", username: "editor", password: "secret"})
+
+// Create with blocks
+plone_create_blocks_layout({
+  "blocks": [{"type": "text", "data": {"text": "Article content..."}}]
+})
+plone_create_content({
+  "parentPath": "/news",
+  "type": "News Item",
+  "title": "Breaking News"
 })
 
-// Create a listing block
-plone_create_listing_block({
-  "query": [
-    {"i": "portal_type", "o": "plone.app.querystring.operation.selection.any", "v": ["News Item"]}
-  ],
+// Publish
+plone_transition_workflow({
+  "path": "/news/breaking-news",
+  "transition": "publish"
+})
+```
+
+### Search and Filter
+
+```javascript
+plone_search({
+  "query": "annual report",
+  "portal_type": ["Document", "File"],
+  "review_state": ["published"],
   "sort_on": "modified",
   "sort_order": "descending",
-  "limit": 5,
-  "template": "summary"
+  "b_size": 10
 })
 ```
 
-### Search for Content
-```
-plone_search({
-  "query": "news",
-  "portal_type": ["News Item", "Document"],
-  "sort_on": "modified",
-  "sort_order": "descending"
-})
-```
+## Important Notes
 
-### Get Content with Expanded Components
-```
-plone_get_content({
-  "path": "/news/my-document",
-  "expand": ["breadcrumbs", "workflow", "actions"]
-})
-```
+⚠️ **Prepared blocks expire after 60 seconds** - Always call `plone_create_blocks_layout` immediately before creating/updating content.
 
-### Execute Workflow Transition
-```
-plone_transition_workflow({
-  "path": "/news/my-document",
-  "transition": "publish",
-  "comment": "Ready for publication"
-})
-```
+⚠️ **Always configure first** - Run `plone_configure` before any other operations in each session.
 
 ## Development
 
 ```bash
-# Development mode
-npm run dev
+# Development mode with hot reload
+pnpm run dev
 
-# Build
-npm run build
+# Test with MCP Inspector
+pnpm run inspector
 
-# Start built server
-npm start
-
-# Test with MCP Inspector (development)
-npm run inspector
-
-# Test with MCP Inspector (built version)
-npm run inspector:built
+# Build for production
+pnpm run build
 ```
 
-### Using the MCP Inspector
+## Troubleshooting
 
-The MCP Inspector provides a web-based interface to test and explore your MCP server tools:
+| Issue | Solution |
+|-------|----------|
+| "Plone client not configured" | Run `plone_configure` first |
+| "Block not found" | Use `plone_get_content` to get valid block IDs |
+| Connection errors | Check Plone URL and credentials |
+| Blocks not applied | Ensure you use them within 60 seconds |
 
-1. Run `npm run inspector` to start the inspector with the development server
-2. Open your browser to the URL shown in the terminal (typically `http://localhost:5173`)
-3. The inspector will connect to your Plone MCP server and allow you to:
-   - Browse available tools and their schemas
-   - Test tool calls with sample data
-   - View request/response cycles
-   - Debug connection issues
+## Resources
 
-This is especially useful for testing your Plone server configuration and exploring the available content management tools before integrating with Claude or other MCP clients.
-
-## API Reference
-
-Based on the official Plone REST API documentation: https://plonerestapi.readthedocs.io/
-
-The server implements the following endpoint patterns:
-- `GET /++api++/path/to/content` - Get content
-- `POST /++api++/path/to/parent` - Create content  
-- `PATCH /++api++/path/to/content` - Update content
-- `DELETE /++api++/path/to/content` - Delete content
-- `GET /++api++/@search` - Search content
-- `GET /++api++/path/to/content/@workflow` - Get workflow info
-- `POST /++api++/path/to/content/@workflow/transition` - Execute transition
-- `GET /++api++/@types` - Get content types
-- `GET /++api++/@vocabularies/vocab-name` - Get vocabulary
+- [Plone REST API Documentation](https://plonerestapi.readthedocs.io/)
+- [MCP Documentation](https://modelcontextprotocol.io/docs)
 
 ## License
 
