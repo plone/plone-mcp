@@ -1,5 +1,5 @@
 import nock from 'nock';
-import { PloneClient } from '../../src/plone-client';
+import { PloneClient } from '../../src/index';
 
 describe('Basic Integration Tests', () => {
   const baseUrl = 'https://test.plone.com';

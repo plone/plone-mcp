@@ -1,5 +1,5 @@
 import nock from 'nock';
-import { PloneClient, ConfigSchema } from '../../src/plone-client';
+import { PloneClient, ConfigSchema } from '../../src/index';
 
 describe('PloneClient', () => {
   const config = {
