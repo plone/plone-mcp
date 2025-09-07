@@ -24,12 +24,17 @@ const __dirname = dirname(__filename);
 // =============================================================================
 
 // Load block specifications from JSON
-const blocksSpecification = JSON.parse(
-  readFileSync(join(__dirname, "blocks.json"), "utf-8")
-);
+const blocksSpecification = (() => {
+  try {
+    return JSON.parse(readFileSync(join(__dirname, "blocks.json"), "utf-8"));
+  } catch (error) {
+    console.error("Error loading blocks specification:", error);
+    return;
+  }
+})();
 
 // Configuration schema
-const ConfigSchema = z.object({
+export const ConfigSchema = z.object({
   baseUrl: z.string().url(),
   username: z.string().optional(),
   password: z.string().optional(),
@@ -88,7 +93,7 @@ const blockRegistry = new BlockRegistry(blocksSpecification);
 /**
  * HTTP client for communicating with Plone REST API
  */
-class PloneClient {
+export class PloneClient {
   private axios: AxiosInstance;
 
   constructor(public config: Config) {

@@ -4,9 +4,16 @@
   "description": "Model Context Protocol server for Plone CMS REST API integration",
   "main": "dist/index.js",
   "type": "module",
+  "bin": {
+    "plone-mcp-server": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run copy-blocks-specs && chmod 755 dist/index.js",
     "dev": "tsx src/index.ts",
+    "copy-blocks-specs": "copyfiles -u 1 src/blocks.json dist/",
     "start": "node dist/index.js",
     "inspector": "npx @modelcontextprotocol/inspector tsx src/index.ts",
     "inspector:built": "npx @modelcontextprotocol/inspector node dist/index.js",
@@ -14,14 +21,8 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:unit": "jest tests/unit",
-    "test:integration": "jest tests/integration",
-    "test:functional": "jest tests/functional",
-    "test:acceptance": "jest tests/acceptance",
-    "test:acceptance:hello-world": "jest tests/acceptance/create-page-hello-world.test.ts",
-    "test:acceptance:mcp": "node tests/acceptance/mcp-create-page-test.js",
-    "test:acceptance:hello-world-direct": "node tests/acceptance/hello-world-acceptance.test.js",
+    "test:unit-only": "jest tests/unit --coverage"
     "test:ci": "jest --coverage --ci --watchAll=false",
-    "test:unit-only": "jest tests/unit tests/integration --coverage",
     "test:acceptance:all": "./scripts/run-acceptance-tests.sh",
     "test:acceptance:docker": "./scripts/run-acceptance-tests.sh --docker",
     "test:acceptance:debug": "./scripts/run-acceptance-tests.sh --skip-cleanup"
@@ -43,6 +44,7 @@
   "devDependencies": {
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
+    "copyfiles": "^2.4.1",
     "jest": "^29.5.0",
     "nock": "^13.5.0",
     "supertest": "^6.3.0",
