@@ -7,9 +7,6 @@ export default {
     '**/__tests__/**/*.ts',
     '**/?(*.)+(spec|test).ts'
   ],
-  testPathIgnorePatterns: [
-    '<rootDir>/tests/functional/'
-  ],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
       useESM: true

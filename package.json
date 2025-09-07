@@ -21,7 +21,6 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:unit": "jest tests/unit",
-    "test:functional": "jest tests/functional",
     "test:ci": "jest --coverage --ci --watchAll=false",
     "test:unit-only": "jest tests/unit --coverage"
   },
