@@ -13,11 +13,7 @@ export default {
   ],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
-      useESM: true,
-      tsconfig: {
-        target: 'es2022',
-        module: 'esnext'
-      }
+      useESM: true
     }]
   },
   collectCoverageFrom: [
