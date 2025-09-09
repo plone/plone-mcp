@@ -202,7 +202,7 @@
                 "var(--layout-container-width)",
                 "unset"
               ],
-              "description": "Width available for the block on the page layout, narrow-width is the smallest (used by text blocks for readibility), default-width is adequate for most blocks, layout-width is the full width of the main content area, and 100% is the full width of the viewport.",
+              "description": "Width available for the block on the page layout, narrow-width is the smallest (used by text blocks for readibility), default-width is adequate for most blocks, layout-width is the full width of the main content area, and 100% is the full width of the viewport. This setting is ONLY available when the align style is set to center.",
               "default": "var(--default-container-width)"
             }
           }
