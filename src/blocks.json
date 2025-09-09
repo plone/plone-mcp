@@ -42,7 +42,7 @@
     }
   },
   "slate": {
-    "description": "The text (slate) block is used to create text content. Its text content will be converted to Slate format automatically. DO NOT create nested blocks, only text is supported.",
+    "description": "The slate block is used to create text content. Its text content will be converted to Slate format automatically. DO NOT create nested blocks, only text is supported. ONLY the following markdown formatting is supported: [h2, h3, h4, bold, italic, strikethrough, links, lists, nested lists, paragraphs, blockquote, deleted/strikethrough (del), and combinations of the mentioned options].",
     "inputSchema": {
       "blockData": {
         "text": {

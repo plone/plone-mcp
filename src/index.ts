@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from "uuid";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { markdownParse } from "./markdown-parser.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1074,7 +1075,11 @@ class PloneMCPServer {
       const blockId = this.generateBlockId();
 
       // Process block using centralized logic
-      blocks[blockId] = this.processBlock(blockType, blockData);
+      try {
+        blocks[blockId] = this.processBlock(blockType, blockData);
+      } catch (error) {
+        throw new Error(`Error processing block data: ${error instanceof Error ? error.message : String(error)}`);
+      }
 
       // Insert at specified position or at the end
       if (
@@ -1283,26 +1288,17 @@ class PloneMCPServer {
   /**
    * Process a block
    */
-  private processBlock(
+  private async processBlock(
     blockType: string,
     blockData: Record<string, any>
-  ): Record<string, any> {
-    if (blockType === "text") {
+  ): Promise<Record<string, any>> {
+    if (blockType === "slate" || blockType === "text") {
       // Convert text block to Slate format
       const textContent = blockData.text || "";
       return {
         "@type": "slate",
         plaintext: textContent,
-        value: [
-          {
-            children: [
-              {
-                text: textContent,
-              },
-            ],
-            type: "p",
-          },
-        ],
+        value: markdownParse(textContent),
         theme: blockData.theme || "default",
       };
     } else {
