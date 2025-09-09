@@ -1074,7 +1074,6 @@ class PloneMCPServer {
 
       // Process block using centralized logic
       blocks[blockId] = this.processBlock(blockType, blockData);
-
       // Insert at specified position or at the end
       if (
         position !== undefined &&
@@ -1200,7 +1199,7 @@ class PloneMCPServer {
 
   // Check if the url is an image address, to avoid creation of blank image blocks
   private isImageURL(url: string): boolean {
-    return /\.(jpeg|jpg|gif|png|svg)$/.test(url);
+    return /\.(jpeg|jpg|gif|png|svg)(\?.*)?(#.*)?$/i.test(url);
   }
 
   // IMPROVEMENT: Check for expired prepared blocks
@@ -1309,7 +1308,8 @@ class PloneMCPServer {
         ],
         theme: blockData.theme || "default",
       };
-    } else if (blockType === "image") {
+    }
+    else if (blockType === "image") {
       //check if url received is an url for image
       if (!this.isImageURL(blockData.url)) {
         throw this.wrapError("ProcessBlock", `Invalid image URL: ${blockData.url}`);
@@ -1318,7 +1318,8 @@ class PloneMCPServer {
         ...blockData,
         "@type": "image",
       }
-    } else {
+    }
+    else {
       return {
         ...blockData,
         "@type": blockType,
