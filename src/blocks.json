@@ -42,12 +42,12 @@
     }
   },
   "slate": {
-    "description": "The slate block is used to create text content. Its text content will be converted to Slate format automatically. DO NOT create nested blocks, only text is supported. ONLY the following markdown formatting is supported: [h2, h3, h4, bold, italic, strikethrough, links, lists, nested lists, paragraphs, blockquote, deleted/strikethrough (del), and combinations of the mentioned options].",
+    "description": "The slate block is used to create rich text content. Input text MUST be in markdown format, which will be automatically converted to Slate format. DO NOT create nested blocks, only text with formatting is supported. DO NOT create h1 headings (# Heading h1 text). The ONLY supported markdown formatting: [h2, h3, h4, bold, italic, strikethrough (~~text~~), links ('Link title' is not supported), lists, nested lists, paragraphs, blockquote, subscript (CO~2~), superscript (X^2^Y^3^), and combinations of these (e.g., [**bold link**](https://example.com))].",
     "inputSchema": {
       "blockData": {
         "text": {
           "type": "string",
-          "description": "Plain text content that will be converted to Slate format"
+          "description": "Markdown-formatted text that will be converted to Slate format"
         },
         "theme": {
           "type": "string",

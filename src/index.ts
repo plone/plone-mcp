@@ -1020,6 +1020,7 @@ class PloneMCPServer {
 
       const processedBlocks: Record<string, any> = {};
       const blockIds: string[] = [];
+      const blockInfo: Array<{ id: string; type: string }> = [];
 
       // Process each block in the array
       for (const blockSpec of blocks) {
@@ -1031,6 +1032,7 @@ class PloneMCPServer {
 
         processedBlocks[blockId] = processedBlock;
         blockIds.push(blockId);
+        blockInfo.push({ id: blockId, type: blockSpec.type });
       }
 
       // Store the prepared blocks for immediate use with timestamp
@@ -1046,9 +1048,9 @@ class PloneMCPServer {
             type: "text" as const,
             text: `Successfully prepared ${
               blocks.length
-            } blocks for next create/update operation (valid for 60 seconds). Blocks ready: ${blockIds.join(
-              ", "
-            )}`,
+            } blocks for next create/update operation (valid for 60 seconds). Blocks ready: ${blockInfo
+              .map(block => `${block.type}:[${block.id}]`)
+              .join(", ")}`,
           },
         ],
       };
@@ -1288,10 +1290,10 @@ class PloneMCPServer {
   /**
    * Process a block
    */
-  private async processBlock(
+  private processBlock(
     blockType: string,
     blockData: Record<string, any>
-  ): Promise<Record<string, any>> {
+  ): Record<string, any> {
     if (blockType === "slate" || blockType === "text") {
       // Convert text block to Slate format
       const textContent = blockData.text || "";
