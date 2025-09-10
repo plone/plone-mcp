@@ -149,5 +149,66 @@
       },
       "required": []
     }
+  },
+  "image": {
+    "description": "The Image block is used to display an (internal or external) image  with title, description and alt text. It can also be linked to a URL or internal path. It can be aligned and size of the image can be adjusted.",
+    "inputSchema": {
+      "blockData": {
+        "url": {
+          "type": "string",
+          "description": "Internal or External image URL"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title for the image"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description for the image."
+        },
+        "alt": {
+          "type": "string",
+          "description": "Alternative text for the image, used for accessibility"
+        },
+        "href": {
+          "type": "string",
+          "description": "Link target (URL or internal path) when the image is clicked."
+        },
+        "align": {
+          "type": "string",
+          "enum": ["left", "center", "right"],
+          "description": "Image alignment within the block",
+          "default": "center"
+        },
+        "size": {
+          "type": "string",
+          "enum": ["s", "m", "l"],
+          "description": "Image size within the block",
+          "default": "l"
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["default", "grey"],
+          "description": "Background theme for the block",
+          "default": "default"
+        },
+        "styles": {
+          "blockWidth:noprefix": {
+            "--block-width": {
+              "type": "string",
+              "enum": [
+                "var(--narrow-container-width)",
+                "var(--default-container-width)",
+                "var(--layout-container-width)",
+                "unset"
+              ],
+              "description": "Width available for the block on the page layout, narrow-width is the smallest (used by text blocks for readibility), default-width is adequate for most blocks, layout-width is the full width of the main content area, and 100% is the full width of the viewport. This setting is ONLY available when the align style is set to center.",
+              "default": "var(--default-container-width)"
+            }
+          }
+        }
+      },
+      "required": []
+    }
   }
 }

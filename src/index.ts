@@ -1206,6 +1206,11 @@ class PloneMCPServer {
   // SECTION 5: HELPER METHODS
   // =============================================================================
 
+  // Check if the url is an image address, to avoid creation of blank image blocks
+  private isImageURL(url: string): boolean {
+    return /\.(jpeg|jpg|gif|png|svg)(\?.*)?(#.*)?$/i.test(url);
+  }
+
   // IMPROVEMENT: Check for expired prepared blocks
   private isExpiredPreparedBlocks(): boolean {
     if (!this.preparedBlocks) return true;
@@ -1303,8 +1308,18 @@ class PloneMCPServer {
         value: markdownParse(textContent),
         theme: blockData.theme || "default",
       };
-    } else {
-      // For other block types, use the provided data with correct @type
+    }
+    else if (blockType === "image") {
+      //check if url received is an url for image
+      if (!this.isImageURL(blockData.url)) {
+        throw this.wrapError("ProcessBlock", `Invalid image URL: ${blockData.url}`);
+      }
+      return {
+        ...blockData,
+        "@type": "image",
+      }
+    }
+    else {
       return {
         ...blockData,
         "@type": blockType,
@@ -1492,9 +1507,8 @@ class PloneMCPServer {
             role: "user",
             content: {
               type: "text" as const,
-              text: `My goal is to create a new ${contentType} page about "${purpose}"${
-                audience ? ` for an audience of ${audience}` : ""
-              }. Perform the following steps:
+              text: `My goal is to create a new ${contentType} page about "${purpose}"${audience ? ` for an audience of ${audience}` : ""
+                }. Perform the following steps:
 
 1.  Ensure the Plone connection is configured.
 2.  Determine the best parent path for this new content.
@@ -1539,9 +1553,8 @@ Begin with the first step.`,
             role: "user",
             content: {
               type: "text" as const,
-              text: `My goal is to create an example site with ${numberOfPages} pages of type ${contentTypes}, all centered around the theme of "${purpose}"${
-                audience ? `, aimed at an audience of ${audience}` : ""
-              }. Follow this plan:
+              text: `My goal is to create an example site with ${numberOfPages} pages of type ${contentTypes}, all centered around the theme of "${purpose}"${audience ? `, aimed at an audience of ${audience}` : ""
+                }. Follow this plan:
 
 1.  Ensure the Plone connection is configured.
 2.  Establish a logical folder (Document type objects can be used as folders) structure for the new pages.
