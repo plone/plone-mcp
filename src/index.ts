@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from "uuid";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { markdownParse } from "./markdown-parser.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1019,6 +1020,7 @@ class PloneMCPServer {
 
       const processedBlocks: Record<string, any> = {};
       const blockIds: string[] = [];
+      const blockInfo: Array<{ id: string; type: string }> = [];
 
       // Process each block in the array
       for (const blockSpec of blocks) {
@@ -1030,6 +1032,7 @@ class PloneMCPServer {
 
         processedBlocks[blockId] = processedBlock;
         blockIds.push(blockId);
+        blockInfo.push({ id: blockId, type: blockSpec.type });
       }
 
       // Store the prepared blocks for immediate use with timestamp
@@ -1043,10 +1046,11 @@ class PloneMCPServer {
         content: [
           {
             type: "text" as const,
-            text: `Successfully prepared ${blocks.length
-              } blocks for next create/update operation (valid for 60 seconds). Blocks ready: ${blockIds.join(
-                ", "
-              )}`,
+            text: `Successfully prepared ${
+              blocks.length
+            } blocks for next create/update operation (valid for 60 seconds). Blocks ready: ${blockInfo
+              .map(block => `${block.type}:[${block.id}]`)
+              .join(", ")}`,
           },
         ],
       };
@@ -1073,7 +1077,12 @@ class PloneMCPServer {
       const blockId = this.generateBlockId();
 
       // Process block using centralized logic
-      blocks[blockId] = this.processBlock(blockType, blockData);
+      try {
+        blocks[blockId] = this.processBlock(blockType, blockData);
+      } catch (error) {
+        throw new Error(`Error processing block data: ${error instanceof Error ? error.message : String(error)}`);
+      }
+
       // Insert at specified position or at the end
       if (
         position !== undefined &&
@@ -1290,22 +1299,13 @@ class PloneMCPServer {
     blockType: string,
     blockData: Record<string, any>
   ): Record<string, any> {
-    if (blockType === "text") {
+    if (blockType === "slate" || blockType === "text") {
       // Convert text block to Slate format
       const textContent = blockData.text || "";
       return {
         "@type": "slate",
         plaintext: textContent,
-        value: [
-          {
-            children: [
-              {
-                text: textContent,
-              },
-            ],
-            type: "p",
-          },
-        ],
+        value: markdownParse(textContent),
         theme: blockData.theme || "default",
       };
     }
