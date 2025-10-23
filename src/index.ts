@@ -1046,11 +1046,10 @@ class PloneMCPServer {
         content: [
           {
             type: "text" as const,
-            text: `Successfully prepared ${
-              blocks.length
-            } blocks for next create/update operation (valid for 60 seconds). Blocks ready: ${blockInfo
-              .map(block => `${block.type}:[${block.id}]`)
-              .join(", ")}`,
+            text: `Successfully prepared ${blocks.length
+              } blocks for next create/update operation (valid for 60 seconds). Blocks ready: ${blockInfo
+                .map(block => `${block.type}:[${block.id}]`)
+                .join(", ")}`,
           },
         ],
       };
@@ -1206,11 +1205,35 @@ class PloneMCPServer {
   // SECTION 5: HELPER METHODS
   // =============================================================================
 
-  // Check if the url is an image address, to avoid creation of blank image blocks
-  private isImageURL(url: string): boolean {
-    return /\.(jpeg|jpg|gif|png|svg)(\?.*)?(#.*)?$/i.test(url);
-  }
 
+  // Check if the url is an image address, to avoid creation of blank image blocks
+  private async isImageURL(url: string): Promise<boolean> {
+    try {
+      // For data URLs, check MIME type
+      if (url.startsWith('data:')) {
+        return url.startsWith('data:image/');
+      }
+
+      // For external URLs
+      const response = await fetch(url, {
+        method: 'HEAD',
+        headers: {
+          'Accept': 'image/*'
+        }
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const contentType = response.headers.get('Content-Type');
+      return contentType ? contentType.startsWith('image/') : false;
+
+    } catch (error) {
+      console.error(`Error checking image URL ${url}:`, error);
+      return false;
+    }
+  }
   // IMPROVEMENT: Check for expired prepared blocks
   private isExpiredPreparedBlocks(): boolean {
     if (!this.preparedBlocks) return true;
@@ -1295,10 +1318,10 @@ class PloneMCPServer {
   /**
    * Process a block
    */
-  private processBlock(
+  private async processBlock(
     blockType: string,
     blockData: Record<string, any>
-  ): Record<string, any> {
+  ): Promise<Record<string, any>> {
     if (blockType === "slate" || blockType === "text") {
       // Convert text block to Slate format
       const textContent = blockData.text || "";
@@ -1311,13 +1334,17 @@ class PloneMCPServer {
     }
     else if (blockType === "image") {
       //check if url received is an url for image
-      if (!this.isImageURL(blockData.url)) {
+      if (!blockData || typeof blockData.url !== "string" || blockData.url.trim() === "") {
+        throw this.wrapError("ProcessBlock", `Missing or invalid image URL: ${String(blockData?.url)}`);
+      }
+      const isImage = await this.isImageURL(blockData.url);
+      if (!isImage) {
         throw this.wrapError("ProcessBlock", `Invalid image URL: ${blockData.url}`);
       }
       return {
         ...blockData,
         "@type": "image",
-      }
+      };
     }
     else {
       return {
