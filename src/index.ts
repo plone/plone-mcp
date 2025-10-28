@@ -34,15 +34,77 @@ const blocksSpecification = (() => {
   }
 })();
 
-// Configuration schema
+// Environment variable names for configuration
+const ENV_BASE_URL = "PLONE_BASE_URL";
+const ENV_USERNAME = "PLONE_USERNAME";
+const ENV_PASSWORD = "PLONE_PASSWORD";
+const ENV_TOKEN = "PLONE_TOKEN";
+
+// Helper for optional non-empty strings with environment variable fallback
+const optionalNonEmpty = (envVar: string) =>
+  z.string()
+    .optional()
+    .refine(val => !val || val.trim() !== '', {
+      message: `Cannot be empty string. Omit field to use ${envVar} environment variable.`
+    });
+
+// Helper to validate URL format
+const isValidUrl = (url: string): boolean => {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// Configuration schema - all fields are optional to allow environment variable fallback
 export const ConfigSchema = z.object({
-  baseUrl: z.string().url(),
-  username: z.string().optional(),
-  password: z.string().optional(),
-  token: z.string().optional(),
+  baseUrl: optionalNonEmpty(ENV_BASE_URL)
+    .refine(val => !val || isValidUrl(val), {
+      message: 'Must be a valid URL (e.g., https://example.com)'
+    }),
+  username: optionalNonEmpty(ENV_USERNAME),
+  password: optionalNonEmpty(ENV_PASSWORD),
+  token: optionalNonEmpty(ENV_TOKEN),
 });
 
 type Config = z.infer<typeof ConfigSchema>;
+
+/**
+ * Resolves configuration by merging provided config with environment variables.
+ * Environment variables are used as fallback when config values are not provided.
+ *
+ * Supported environment variables:
+ * - PLONE_BASE_URL: Base URL of the Plone site
+ * - PLONE_USERNAME: Username for authentication
+ * - PLONE_PASSWORD: Password for authentication
+ * - PLONE_TOKEN: JWT token for authentication
+ */
+function resolveConfig(config: Config): Config & { baseUrl: string } {
+  const baseUrl = config.baseUrl || process.env[ENV_BASE_URL];
+  const username = config.username || process.env[ENV_USERNAME];
+  const password = config.password || process.env[ENV_PASSWORD];
+  const token = config.token || process.env[ENV_TOKEN];
+
+  // Validate baseUrl exists and is not empty
+  if (!baseUrl || baseUrl.trim() === '') {
+    throw new Error(
+      `Base URL is required. Provide it via config.baseUrl or ${ENV_BASE_URL} environment variable.`
+    );
+  }
+
+  if (!isValidUrl(baseUrl)) {
+    throw new Error(`Invalid base URL: ${baseUrl}`);
+  }
+
+  return {
+    baseUrl,
+    username,
+    password,
+    token,
+  };
+}
 
 // Plone content interface
 interface PloneContent {
@@ -96,12 +158,11 @@ const blockRegistry = new BlockRegistry(blocksSpecification);
  */
 export class PloneClient {
   private axios: AxiosInstance;
+  public config: Config & { baseUrl: string };
 
-  constructor(public config: Config) {
-    this.config = config;
-
-    // Remove trailing slash from baseUrl if present
-    const baseUrl = config.baseUrl.replace(/\/$/, "");
+  constructor(config: Config) {
+    this.config = resolveConfig(config);
+    const baseUrl = this.config.baseUrl.replace(/\/$/, "");
 
     this.axios = axios.create({
       baseURL: `${baseUrl}/++api++`,
@@ -112,14 +173,14 @@ export class PloneClient {
     });
 
     // Set up authentication
-    if (config.token) {
+    if (this.config.token) {
       this.axios.defaults.headers.common[
         "Authorization"
-      ] = `Bearer ${config.token}`;
-    } else if (config.username && config.password) {
+      ] = `Bearer ${this.config.token}`;
+    } else if (this.config.username && this.config.password) {
       this.axios.defaults.auth = {
-        username: config.username,
-        password: config.password,
+        username: this.config.username,
+        password: this.config.password,
       };
     }
   }
@@ -165,24 +226,17 @@ export class PloneClient {
 // =============================================================================
 
 const PloneConfigureSchema = z.object({
-  baseUrl: z
-    .string()
-    .url()
-    .describe("Base URL of the Plone site (e.g., https://example.com/)"),
-  username: z
-    .string()
-    .optional()
-    .describe("Username for authentication (optional if using token)"),
-  password: z
-    .string()
-    .optional()
-    .describe("Password for authentication (optional if using token)"),
-  token: z
-    .string()
-    .optional()
-    .describe(
-      "JWT token for authentication (optional if using username/password)"
-    ),
+  baseUrl: optionalNonEmpty(ENV_BASE_URL)
+    .refine(val => !val || isValidUrl(val), {
+      message: 'Must be a valid URL (e.g., https://example.com)'
+    })
+    .describe("Base URL of the Plone site. Can be set via PLONE_BASE_URL environment variable."),
+  username: optionalNonEmpty(ENV_USERNAME)
+    .describe("Username for authentication. Can be set via PLONE_USERNAME environment variable."),
+  password: optionalNonEmpty(ENV_PASSWORD)
+    .describe("Password for authentication. Can be set via PLONE_PASSWORD environment variable."),
+  token: optionalNonEmpty(ENV_TOKEN)
+    .describe("JWT token for authentication (alternative to username/password). Can be set via PLONE_TOKEN environment variable."),
 });
 
 const PloneGetContentSchema = z.object({
@@ -406,7 +460,6 @@ class PloneMCPServer {
     });
   }
 
-  // IMPROVEMENT: Consistent error wrapper
   private wrapError(operation: string, error: unknown): Error {
     if (error instanceof z.ZodError) {
       return new Error(`[${operation}] Invalid parameters: ${error.message}`);
@@ -427,7 +480,7 @@ class PloneMCPServer {
       {
         title: "Configure Plone Connection",
         description:
-          "Establishes and authenticates the connection to a Plone CMS. **Must be called first** before any other tool can be used. Example: plone_configure({baseUrl: 'https://demo.plone.org', username: 'admin', password: 'secret'})",
+          "Establishes and authenticates the connection to a Plone CMS. **Must be called once per session** before other tools can be used. Configuration can be provided via arguments or environment variables (PLONE_BASE_URL, PLONE_USERNAME, PLONE_PASSWORD, PLONE_TOKEN). Arguments take precedence over environment variables. To use environment variables only, call with an empty object: plone_configure({}). Example with arguments: plone_configure({baseUrl: 'https://demo.plone.org', username: 'admin', password: 'secret'}).",
         inputSchema: PloneConfigureSchema.shape,
       },
       async (args) => this.handleConfigure(args)

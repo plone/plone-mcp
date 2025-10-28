@@ -2,12 +2,19 @@
 
 A Model Context Protocol (MCP) server for integrating MCP clients with Plone CMS via REST API. Enables content management, search, workflow operations, and Volto blocks management.
 
+## Prerequisites
+
+- **Node.js 18+** - Required to run the server (install: `brew install node` on macOS or from [nodejs.org](https://nodejs.org))
+- **pnpm 8+** - Package manager (install: `npm install -g pnpm` or `brew install pnpm` on macOS)
+- **Plone 6.0+** site with REST API - The CMS you'll be connecting to
+
 ## Quick Start using Claude Desktop as an example
 
 1. **Install**
 ```bash
 git clone git@github.com:kitconcept/plone-mcp.git
 cd plone-mcp
+pnpm install
 pnpm run build
 ```
 
@@ -17,6 +24,24 @@ Add to Claude's configuration file:
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
+**With environment variables (optional):**
+```json
+{
+  "mcpServers": {
+    "plone": {
+      "command": "node",
+      "args": ["/absolute/path/to/plone-mcp/dist/index.js"],
+      "env": {
+        "PLONE_BASE_URL": "https://demo.plone.org",
+        "PLONE_USERNAME": "admin",
+        "PLONE_PASSWORD": "admin"
+      }
+    }
+  }
+}
+```
+
+**Without environment variables:**
 ```json
 {
   "mcpServers": {
@@ -30,20 +55,28 @@ Add to Claude's configuration file:
 
 3. **Restart Claude Desktop**
 
-4. **Connect to Plone** (by requesting it to Claude, while providing necessary url and credentials)
+4. **Connect to Plone**
+
+Call `plone_configure` once per session:
+
 ```javascript
+// Using environment variables
+plone_configure({})
+
+// OR providing credentials/token directly to the LLM
 plone_configure({
   "baseUrl": "https://demo.plone.org",
   "username": "admin",
   "password": "admin"
 })
+
+plone_configure({
+  "baseUrl": "https://demo.plone.org",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+})
 ```
 
-## Prerequisites
-
-- Node.js 18+
-- pnpm 8+
-- Plone 6.0+ site with REST API
+**Note:** Arguments take precedence over environment variables.
 
 ## Core Features
 
@@ -57,7 +90,7 @@ plone_configure({
 
 | Tool | Description | Example |
 |------|-------------|---------|
-| `plone_configure` | Connect to Plone (required first) | `plone_configure({baseUrl, username, password})` |
+| `plone_configure` | Connect to Plone (call once per session) | `plone_configure({baseUrl, username, password})` or `plone_configure({})` for env vars |
 | `plone_get_content` | Get content by path | `plone_get_content({path: "/news"})` |
 | `plone_create_content` | Create new content | `plone_create_content({parentPath: "/", type: "Document", title: "Page"})` |
 | `plone_update_content` | Update existing content | `plone_update_content({path: "/page", title: "New Title"})` |
@@ -172,7 +205,7 @@ plone_search({
 
 ⚠️ **Prepared blocks expire after 60 seconds** - Always call `plone_create_blocks_layout` immediately before creating/updating content.
 
-⚠️ **Always configure first** - Run `plone_configure` before any other operations in each session.
+⚠️ **Configure once per session** - Run `plone_configure` once at the start of each session before using other tools. Once configured, you can use all other tools without reconfiguring.
 
 ## Development
 
@@ -191,10 +224,11 @@ pnpm run build
 
 | Issue | Solution |
 |-------|----------|
-| "Plone client not configured" | Run `plone_configure` first |
+| "Plone client not configured" | Run `plone_configure` once at the start of your session |
 | "Block not found" | Use `plone_get_content` to get valid block IDs |
-| Connection errors | Check Plone URL and credentials |
-| Blocks not applied | Ensure you use them within 60 seconds |
+| Connection errors | Verify Plone URL and credentials are correct |
+| Blocks not applied | Call `plone_create_blocks_layout` immediately before create/update (60s TTL) |
+| TypeScript errors during build | Run `pnpm install` to ensure all dependencies are installed |
 
 ## Resources
 
