@@ -8,6 +8,7 @@ A Model Context Protocol (MCP) server for integrating MCP clients with Plone CMS
 ```bash
 git clone git@github.com:kitconcept/plone-mcp.git
 cd plone-mcp
+pnpm install
 pnpm run build
 ```
 
