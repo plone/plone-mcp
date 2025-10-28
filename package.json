@@ -21,8 +21,11 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:unit": "jest tests/unit",
-    "test:ci": "jest --coverage --ci --watchAll=false",
     "test:unit-only": "jest tests/unit --coverage"
+    "test:ci": "jest --coverage --ci --watchAll=false",
+    "test:acceptance:all": "./scripts/run-acceptance-tests.sh",
+    "test:acceptance:docker": "./scripts/run-acceptance-tests.sh --docker",
+    "test:acceptance:debug": "./scripts/run-acceptance-tests.sh --skip-cleanup"
   },
   "keywords": [
     "mcp",
