@@ -34,12 +34,39 @@ const blocksSpecification = (() => {
   }
 })();
 
-// Configuration schema
+// Configuration schema with environment variable support
 export const ConfigSchema = z.object({
-  baseUrl: z.string().url(),
+  baseUrl: z.string().url().optional(),
   username: z.string().optional(),
   password: z.string().optional(),
-  token: z.string().optional(),
+}).transform((config) => {
+  // Apply environment variable fallbacks
+  const baseUrl = config.baseUrl || process.env.PLONE_BASE_URL;
+  const username = config.username || process.env.PLONE_USERNAME;
+  const password = config.password || process.env.PLONE_PASSWORD;
+
+  // Validate that we have at least baseUrl
+  if (!baseUrl) {
+    throw new Error('baseUrl is required either as parameter or PLONE_BASE_URL environment variable');
+  }
+
+  // Validate URL format
+  try {
+    new URL(baseUrl);
+  } catch {
+    throw new Error(`Invalid baseUrl format: ${baseUrl}`);
+  }
+
+  // Validate that we have authentication credentials
+  if (!username || !password) {
+    throw new Error('Authentication required: provide username and password via parameters or PLONE_USERNAME and PLONE_PASSWORD environment variables');
+  }
+
+  return {
+    baseUrl,
+    username,
+    password,
+  };
 });
 
 type Config = z.infer<typeof ConfigSchema>;
@@ -109,19 +136,11 @@ export class PloneClient {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-    });
-
-    // Set up authentication
-    if (config.token) {
-      this.axios.defaults.headers.common[
-        "Authorization"
-      ] = `Bearer ${config.token}`;
-    } else if (config.username && config.password) {
-      this.axios.defaults.auth = {
+      auth: {
         username: config.username,
         password: config.password,
-      };
-    }
+      },
+    });
   }
 
   // IMPROVEMENT: Centralize path normalization
@@ -168,21 +187,16 @@ const PloneConfigureSchema = z.object({
   baseUrl: z
     .string()
     .url()
-    .describe("Base URL of the Plone site (e.g., https://example.com/)"),
+    .optional()
+    .describe("Base URL of the Plone site (e.g., https://example.com/). Falls back to PLONE_BASE_URL environment variable if not provided."),
   username: z
     .string()
     .optional()
-    .describe("Username for authentication (optional if using token)"),
+    .describe("Username for authentication. Falls back to PLONE_USERNAME environment variable."),
   password: z
     .string()
     .optional()
-    .describe("Password for authentication (optional if using token)"),
-  token: z
-    .string()
-    .optional()
-    .describe(
-      "JWT token for authentication (optional if using username/password)"
-    ),
+    .describe("Password for authentication. Falls back to PLONE_PASSWORD environment variable."),
 });
 
 const PloneGetContentSchema = z.object({
@@ -427,7 +441,7 @@ class PloneMCPServer {
       {
         title: "Configure Plone Connection",
         description:
-          "Establishes and authenticates the connection to a Plone CMS. **Must be called first** before any other tool can be used. Example: plone_configure({baseUrl: 'https://demo.plone.org', username: 'admin', password: 'secret'})",
+          "Establishes and authenticates the connection to a Plone CMS. **Must be called first** before any other tool can be used. Credentials can be provided as parameters or via environment variables (PLONE_BASE_URL, PLONE_USERNAME, PLONE_PASSWORD). Example: plone_configure({baseUrl: 'https://demo.plone.org', username: 'admin', password: 'secret'}) or plone_configure({}) to use environment variables.",
         inputSchema: PloneConfigureSchema.shape,
       },
       async (args) => this.handleConfigure(args)
@@ -618,15 +632,26 @@ class PloneMCPServer {
 
   private async handleConfigure(args: unknown): Promise<CallToolResult> {
     try {
+      const inputArgs = args as any;
       const config = PloneConfigureSchema.parse(args);
       this.client = new PloneClient(config);
 
       // Test the connection
       await this.client.get("/");
 
+      // Determine credential sources for feedback
+      const sources: string[] = [];
+      if (!inputArgs.baseUrl && process.env.PLONE_BASE_URL) sources.push("PLONE_BASE_URL");
+      if (!inputArgs.username && process.env.PLONE_USERNAME) sources.push("PLONE_USERNAME");
+      if (!inputArgs.password && process.env.PLONE_PASSWORD) sources.push("PLONE_PASSWORD");
+
+      const sourceInfo = sources.length > 0
+        ? ` (using environment variables: ${sources.join(", ")})`
+        : "";
+
       const textContent: TextContent = {
         type: "text",
-        text: `Successfully configured connection to Plone site: ${config.baseUrl}`,
+        text: `Successfully configured connection to Plone site: ${config.baseUrl}\nAuthentication: username/password${sourceInfo}`,
       };
       return { content: [textContent] };
     } catch (error) {
