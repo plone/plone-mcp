@@ -42,10 +42,11 @@ const ENV_TOKEN = "PLONE_TOKEN";
 
 // Helper for optional non-empty strings with environment variable fallback
 const optionalNonEmpty = (envVar: string) =>
-  z.string()
+  z
+    .string()
     .optional()
-    .refine(val => !val || val.trim() !== '', {
-      message: `Cannot be empty string. Omit field to use ${envVar} environment variable.`
+    .refine((val) => !val || val.trim() !== "", {
+      message: `Cannot be empty string. Omit field to use ${envVar} environment variable.`,
     });
 
 // Helper to validate URL format
@@ -60,10 +61,12 @@ const isValidUrl = (url: string): boolean => {
 
 // Configuration schema - all fields are optional to allow environment variable fallback
 export const ConfigSchema = z.object({
-  baseUrl: optionalNonEmpty(ENV_BASE_URL)
-    .refine(val => !val || isValidUrl(val), {
-      message: 'Must be a valid URL (e.g., https://example.com)'
-    }),
+  baseUrl: optionalNonEmpty(ENV_BASE_URL).refine(
+    (val) => !val || isValidUrl(val),
+    {
+      message: "Must be a valid URL (e.g., https://example.com)",
+    }
+  ),
   username: optionalNonEmpty(ENV_USERNAME),
   password: optionalNonEmpty(ENV_PASSWORD),
   token: optionalNonEmpty(ENV_TOKEN),
@@ -88,7 +91,7 @@ function resolveConfig(config: Config): Config & { baseUrl: string } {
   const token = config.token || process.env[ENV_TOKEN];
 
   // Validate baseUrl exists and is not empty
-  if (!baseUrl || baseUrl.trim() === '') {
+  if (!baseUrl || baseUrl.trim() === "") {
     throw new Error(
       `Base URL is required. Provide it via config.baseUrl or ${ENV_BASE_URL} environment variable.`
     );
@@ -227,16 +230,21 @@ export class PloneClient {
 
 const PloneConfigureSchema = z.object({
   baseUrl: optionalNonEmpty(ENV_BASE_URL)
-    .refine(val => !val || isValidUrl(val), {
-      message: 'Must be a valid URL (e.g., https://example.com)'
+    .refine((val) => !val || isValidUrl(val), {
+      message: "Must be a valid URL (e.g., https://example.com)",
     })
-    .describe("Base URL of the Plone site. Can be set via PLONE_BASE_URL environment variable."),
-  username: optionalNonEmpty(ENV_USERNAME)
-    .describe("Username for authentication. Can be set via PLONE_USERNAME environment variable."),
-  password: optionalNonEmpty(ENV_PASSWORD)
-    .describe("Password for authentication. Can be set via PLONE_PASSWORD environment variable."),
-  token: optionalNonEmpty(ENV_TOKEN)
-    .describe("JWT token for authentication (alternative to username/password). Can be set via PLONE_TOKEN environment variable."),
+    .describe(
+      "Base URL of the Plone site. Can be set via PLONE_BASE_URL environment variable."
+    ),
+  username: optionalNonEmpty(ENV_USERNAME).describe(
+    "Username for authentication. Can be set via PLONE_USERNAME environment variable."
+  ),
+  password: optionalNonEmpty(ENV_PASSWORD).describe(
+    "Password for authentication. Can be set via PLONE_PASSWORD environment variable."
+  ),
+  token: optionalNonEmpty(ENV_TOKEN).describe(
+    "JWT token for authentication (alternative to username/password). Can be set via PLONE_TOKEN environment variable."
+  ),
 });
 
 const PloneGetContentSchema = z.object({
@@ -287,7 +295,7 @@ const PloneCreateContentSchema = z.object({
   additionalFields: z
     .record(z.any())
     .optional()
-    .describe("Additional fields specific to the content type"),
+    .describe("Additional fields to update. For preview images, include preview_image_link: { '@id': 'image-url' } in this object (if you get a 400 error, make sure the image URL is accessible)."),
 });
 
 const PloneUpdateContentSchema = z.object({
@@ -305,7 +313,7 @@ const PloneUpdateContentSchema = z.object({
   additionalFields: z
     .record(z.any())
     .optional()
-    .describe("Additional fields to update"),
+    .describe("Additional fields to update. For preview images, include preview_image_link: { '@id': 'image-url' } in this object (if you get a 400 error, make sure the image URL is accessible)."),
 });
 
 const PloneDeleteContentSchema = z.object({
@@ -1010,7 +1018,7 @@ class PloneMCPServer {
     try {
       const { blockType } = PloneGetBlockSchemasSchema.parse(args);
 
-      if (blockType) {
+      if (blockType && blockType !== '') {
         const spec = blockRegistry.getSpecification(blockType);
         if (!spec) {
           throw new Error(
