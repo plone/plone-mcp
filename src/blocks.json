@@ -1,27 +1,63 @@
 {
   "teaser": {
-    "description": "The teaser block is used to create a teaser for a content item. It can be used to link to any content item (target). By default, it uses the target's properties (title, description, preview image, etc.) but these can be overridden.",
+    "description": "The teaser block is used to create a teaser for a content item. It links to a target and displays its properties (title, description, preview image, etc.). In most cases, only 'href' should be provided - the teaser will automatically use the target's properties. To customize the display, set 'overwrite: true' and provide custom values.",
     "inputSchema": {
       "blockData": {
         "href": {
-          "type": "string",
-          "description": "Link target (URL or internal path)."
+          "type": "array",
+          "description": "Link target reference. In most cases, this is the ONLY field you need to provide.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "@id": {
+                "type": "string",
+                "description": "URL or internal path"
+              },
+              "title": {
+                "type": "string",
+                "description": "Title of the target content"
+              }
+            },
+            "required": ["@id", "title"]
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "overwrite": {
+          "type": "boolean",
+          "description": "Set to true only if using custom values instead of the target object's properties. It must be set to fale is only 'href' is provided."
         },
         "title": {
           "type": "string",
-          "description": "Custom teaser title"
+          "description": "Custom teaser title (only used when overwrite is true)"
         },
         "head_title": {
           "type": "string",
-          "description": "Custom kicker/head title shown above main title"
+          "description": "Custom kicker/head title shown above main title (only used when overwrite is true)"
         },
         "description": {
           "type": "string",
-          "description": "Custom teaser description"
+          "description": "Custom teaser description (only used when overwrite is true)"
         },
         "preview_image": {
-          "type": "string",
-          "description": "Custom preview image URL or path"
+          "type": "array",
+          "description": "Custom preview image reference (only used when overwrite is true)",
+          "items": {
+            "type": "object",
+            "properties": {
+              "@id": {
+                "type": "string",
+                "description": "URL or internal path to the image"
+              },
+              "image_field": {
+                "type": "string",
+                "description": "MUST be set to 'image' for internal Plone images. MUST omit this field for external URLs."
+              }
+            },
+            "required": ["@id"]
+          },
+          "minItems": 1,
+          "maxItems": 1
         },
         "theme": {
           "type": "string",
@@ -38,7 +74,7 @@
           }
         }
       },
-      "required": ["href", "title"]
+      "required": ["href"]
     }
   },
   "slate": {
@@ -64,8 +100,24 @@
     "inputSchema": {
       "blockData": {
         "href": {
-          "type": "string",
-          "description": "Link target (URL or internal path)."
+          "type": "array",
+          "description": "Link target reference",
+          "items": {
+            "type": "object",
+            "properties": {
+              "@id": {
+                "type": "string",
+                "description": "URL or internal path"
+              },
+              "title": {
+                "type": "string",
+                "description": "Title of the target content"
+              }
+            },
+            "required": ["@id", "title"]
+          },
+          "minItems": 1,
+          "maxItems": 1
         },
         "title": {
           "type": "string",
@@ -156,11 +208,11 @@
       "blockData": {
         "url": {
           "type": "string",
-          "description": "Internal or External image URL"
+          "description": "Internal or External image URL."
         },
         "title": {
           "type": "string",
-          "description": "Title for the image"
+          "description": "Title for the image."
         },
         "description": {
           "type": "string",
@@ -171,8 +223,24 @@
           "description": "Alternative text for the image, used for accessibility"
         },
         "href": {
-          "type": "string",
-          "description": "Link target (URL or internal path) when the image is clicked."
+          "type": "array",
+          "description": "Link target (URL or internal path) when the image is clicked.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "@id": {
+                "type": "string",
+                "description": "URL or internal path"
+              },
+              "title": {
+                "type": "string",
+                "description": "Title of the target content"
+              }
+            },
+            "required": ["@id", "title"]
+          },
+          "minItems": 1,
+          "maxItems": 1
         },
         "align": {
           "type": "string",

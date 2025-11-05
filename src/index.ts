@@ -42,10 +42,11 @@ const ENV_TOKEN = "PLONE_TOKEN";
 
 // Helper for optional non-empty strings with environment variable fallback
 const optionalNonEmpty = (envVar: string) =>
-  z.string()
+  z
+    .string()
     .optional()
-    .refine(val => !val || val.trim() !== '', {
-      message: `Cannot be empty string. Omit field to use ${envVar} environment variable.`
+    .refine((val) => !val || val.trim() !== "", {
+      message: `Cannot be empty string. Omit field to use ${envVar} environment variable.`,
     });
 
 // Helper to validate URL format
@@ -60,10 +61,12 @@ const isValidUrl = (url: string): boolean => {
 
 // Configuration schema - all fields are optional to allow environment variable fallback
 export const ConfigSchema = z.object({
-  baseUrl: optionalNonEmpty(ENV_BASE_URL)
-    .refine(val => !val || isValidUrl(val), {
-      message: 'Must be a valid URL (e.g., https://example.com)'
-    }),
+  baseUrl: optionalNonEmpty(ENV_BASE_URL).refine(
+    (val) => !val || isValidUrl(val),
+    {
+      message: "Must be a valid URL (e.g., https://example.com)",
+    }
+  ),
   username: optionalNonEmpty(ENV_USERNAME),
   password: optionalNonEmpty(ENV_PASSWORD),
   token: optionalNonEmpty(ENV_TOKEN),
@@ -88,7 +91,7 @@ function resolveConfig(config: Config): Config & { baseUrl: string } {
   const token = config.token || process.env[ENV_TOKEN];
 
   // Validate baseUrl exists and is not empty
-  if (!baseUrl || baseUrl.trim() === '') {
+  if (!baseUrl || baseUrl.trim() === "") {
     throw new Error(
       `Base URL is required. Provide it via config.baseUrl or ${ENV_BASE_URL} environment variable.`
     );
@@ -227,16 +230,21 @@ export class PloneClient {
 
 const PloneConfigureSchema = z.object({
   baseUrl: optionalNonEmpty(ENV_BASE_URL)
-    .refine(val => !val || isValidUrl(val), {
-      message: 'Must be a valid URL (e.g., https://example.com)'
+    .refine((val) => !val || isValidUrl(val), {
+      message: "Must be a valid URL (e.g., https://example.com)",
     })
-    .describe("Base URL of the Plone site. Can be set via PLONE_BASE_URL environment variable."),
-  username: optionalNonEmpty(ENV_USERNAME)
-    .describe("Username for authentication. Can be set via PLONE_USERNAME environment variable."),
-  password: optionalNonEmpty(ENV_PASSWORD)
-    .describe("Password for authentication. Can be set via PLONE_PASSWORD environment variable."),
-  token: optionalNonEmpty(ENV_TOKEN)
-    .describe("JWT token for authentication (alternative to username/password). Can be set via PLONE_TOKEN environment variable."),
+    .describe(
+      "Base URL of the Plone site. Can be set via PLONE_BASE_URL environment variable."
+    ),
+  username: optionalNonEmpty(ENV_USERNAME).describe(
+    "Username for authentication. Can be set via PLONE_USERNAME environment variable."
+  ),
+  password: optionalNonEmpty(ENV_PASSWORD).describe(
+    "Password for authentication. Can be set via PLONE_PASSWORD environment variable."
+  ),
+  token: optionalNonEmpty(ENV_TOKEN).describe(
+    "JWT token for authentication (alternative to username/password). Can be set via PLONE_TOKEN environment variable."
+  ),
 });
 
 const PloneGetContentSchema = z.object({
@@ -287,7 +295,7 @@ const PloneCreateContentSchema = z.object({
   additionalFields: z
     .record(z.any())
     .optional()
-    .describe("Additional fields specific to the content type"),
+    .describe("Additional fields to update. For preview images, include preview_image_link: { '@id': 'image-url' } in this object (if you get a 400 error, make sure the image URL is accessible)."),
 });
 
 const PloneUpdateContentSchema = z.object({
@@ -305,7 +313,7 @@ const PloneUpdateContentSchema = z.object({
   additionalFields: z
     .record(z.any())
     .optional()
-    .describe("Additional fields to update"),
+    .describe("Additional fields to update. For preview images, include preview_image_link: { '@id': 'image-url' } in this object (if you get a 400 error, make sure the image URL is accessible)."),
 });
 
 const PloneDeleteContentSchema = z.object({
@@ -399,7 +407,7 @@ const PloneCreateBlocksLayoutSchema = z.object({
       })
     )
     .describe(
-      "Array of block specifications to process. You MUST call plone_get_block_schemas first to see available block types and their required fields. You MUST follow the block specifications EXACTLY, DO NOT invent your own fields. The first block in the array should have @type 'title' to set the content title. DO NOT add the page title in a text block, use a title block instead. To change the title you must change the content object title field, NOT the title block."
+      "Array of block specifications to process. You MUST call plone_get_block_schemas first to see available block types and their required fields. You MUST follow the block specifications EXACTLY, DO NOT invent your own fields. DO NOT add the content object's title in a text block. To set the page title, use the 'title' field of the content object itself when calling plone_create_content or plone_update_content. A Title block will be automatically created by Plone."
     ),
 });
 
@@ -616,7 +624,7 @@ class PloneMCPServer {
       {
         title: "Prepare Blocks Layout",
         description:
-          "Prepares a complete block structure in memory (valid for 60 seconds). This structure is then used by the **next immediate call** to `plone_create_content` or `plone_update_content`. Use `plone_get_block_schemas` to learn what data each block type needs. Example: plone_create_blocks_layout({blocks: [{type: 'text', data: {text: 'Hello World'}}]})",
+          "Prepares a complete block structure in memory (valid for 60 seconds). This structure is then used by the **next immediate call** to `plone_create_content` or `plone_update_content`. Use `plone_get_block_schemas` to learn what data each block type needs. The text displayed by the Title block is automatically managed by Plone, DO NOT add it in the block's data. Example: plone_create_blocks_layout({blocks: [{type: 'title'},{type: 'slate', data: {text: 'Hello World'}}]})",
         inputSchema: PloneCreateBlocksLayoutSchema.shape,
       },
       async (args) => this.handleCreateBlocksLayout(args)
@@ -1010,7 +1018,7 @@ class PloneMCPServer {
     try {
       const { blockType } = PloneGetBlockSchemasSchema.parse(args);
 
-      if (blockType) {
+      if (blockType && blockType !== '') {
         const spec = blockRegistry.getSpecification(blockType);
         if (!spec) {
           throw new Error(
@@ -1077,6 +1085,17 @@ class PloneMCPServer {
 
       // Process each block in the array
       for (const blockSpec of blocks) {
+        // Validate image URLs asynchronously before processing
+        if (blockSpec.type === "image" && blockSpec.data?.url) {
+          const isValid = await this.validateImageURL(blockSpec.data.url);
+          if (!isValid) {
+            throw this.wrapError(
+              "CreateBlocksLayout",
+              `Invalid or inaccessible image URL: ${blockSpec.data.url}`
+            );
+          }
+        }
+
         const blockId = this.generateBlockId();
         const processedBlock = this.processBlock(
           blockSpec.type,
@@ -1102,7 +1121,7 @@ class PloneMCPServer {
             text: `Successfully prepared ${
               blocks.length
             } blocks for next create/update operation (valid for 60 seconds). Blocks ready: ${blockInfo
-              .map(block => `${block.type}:[${block.id}]`)
+              .map((block) => `${block.type}:[${block.id}]`)
               .join(", ")}`,
           },
         ],
@@ -1129,11 +1148,26 @@ class PloneMCPServer {
       // Generate new block ID
       const blockId = this.generateBlockId();
 
+      // Validate image URLs asynchronously before processing
+      if (blockType === "image" && blockData?.url) {
+        const isValid = await this.validateImageURL(blockData.url);
+        if (!isValid) {
+          throw this.wrapError(
+            "AddBlock",
+            `Invalid or inaccessible image URL: ${blockData.url}`
+          );
+        }
+      }
+
       // Process block using centralized logic
       try {
         blocks[blockId] = this.processBlock(blockType, blockData);
       } catch (error) {
-        throw new Error(`Error processing block data: ${error instanceof Error ? error.message : String(error)}`);
+        throw new Error(
+          `Error processing block data: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
       }
 
       // Insert at specified position or at the end
@@ -1259,11 +1293,33 @@ class PloneMCPServer {
   // SECTION 5: HELPER METHODS
   // =============================================================================
 
-  // Check if the url is an image address, to avoid creation of blank image blocks
-  private isImageURL(url: string): boolean {
-    return /\.(jpeg|jpg|gif|png|svg)(\?.*)?(#.*)?$/i.test(url);
-  }
+  // Validate if the url is an image address, to avoid creation of blank image blocks
+  private async validateImageURL(url: string): Promise<boolean> {
+    try {
+      // For data URLs, check MIME type
+      if (url.startsWith("data:")) {
+        return url.startsWith("data:image/");
+      }
 
+      // For external URLs
+      const response = await fetch(url, {
+        method: "HEAD",
+        headers: {
+          Accept: "image/*",
+        },
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const contentType = response.headers.get("Content-Type");
+      return contentType ? contentType.startsWith("image/") : false;
+    } catch (error) {
+      console.error(`Error validating image URL ${url}:`, error);
+      return false;
+    }
+  }
   // IMPROVEMENT: Check for expired prepared blocks
   private isExpiredPreparedBlocks(): boolean {
     if (!this.preparedBlocks) return true;
@@ -1361,18 +1417,46 @@ class PloneMCPServer {
         value: markdownParse(textContent),
         theme: blockData.theme || "default",
       };
-    }
-    else if (blockType === "image") {
-      //check if url received is an url for image
-      if (!this.isImageURL(blockData.url)) {
-        throw this.wrapError("ProcessBlock", `Invalid image URL: ${blockData.url}`);
+    } else if (blockType === "image") {
+      // Basic validation for required fields
+      if (
+        !blockData ||
+        typeof blockData.url !== "string" ||
+        blockData.url.trim() === ""
+      ) {
+        throw this.wrapError(
+          "ProcessBlock",
+          `Missing or invalid image URL: ${String(blockData?.url)}`
+        );
       }
       return {
         ...blockData,
         "@type": "image",
+      };
+    } else if (blockType === "teaser" || blockType === "__button") {
+      // Transform href to required array format if it's a string
+      const processedData: Record<string, any> = {
+        ...blockData,
+        "@type": blockType,
+      };
+
+      if (blockData.href) {
+        if (typeof blockData.href === "string") {
+          // Convert string href to required array format
+          processedData.href = [{ "@id": blockData.href }];
+        } else if (Array.isArray(blockData.href)) {
+          // Already in array format, keep as-is
+          processedData.href = blockData.href;
+        } else {
+          throw this.wrapError(
+            "ProcessBlock",
+            `Invalid href format for ${blockType} block. Expected string or array, got: ${typeof blockData.href}`
+          );
+        }
       }
-    }
-    else {
+
+      return processedData;
+    } else {
       return {
         ...blockData,
         "@type": blockType,
@@ -1386,11 +1470,21 @@ class PloneMCPServer {
   private getBlockExample(blockType: string): any {
     const examples: Record<string, any> = {
       teaser: {
-        href: "/news/latest-updates",
+        href: [
+          {
+            "@id": "https://example.com/news/latest-updates",
+          },
+        ],
+        overwrite: true,
         title: "Latest Company Updates",
         head_title: "News",
         description: "Read about our recent achievements and announcements",
-        preview_image: "/images/news-preview.jpg",
+        preview_image: [
+          {
+            "@id": "https://example.com/images/latest-updates-preview.jpg",
+            image_field: "image",
+          },
+        ],
         theme: "default",
         styles: {
           align: "left",
@@ -1401,7 +1495,7 @@ class PloneMCPServer {
         theme: "default",
       },
       __button: {
-        href: "/contact",
+        href: [{ "@id": "https://example.com/contact", title: "Contact Page" }],
         title: "Contact Us",
         theme: "default",
         styles: {
@@ -1424,6 +1518,10 @@ class PloneMCPServer {
           },
           shortLine: true,
         },
+      },
+      image: {
+        url: "https:/example.com/images/logo.png",
+        alt: "Logo",
       },
     };
 
@@ -1560,8 +1658,9 @@ class PloneMCPServer {
             role: "user",
             content: {
               type: "text" as const,
-              text: `My goal is to create a new ${contentType} page about "${purpose}"${audience ? ` for an audience of ${audience}` : ""
-                }. Perform the following steps:
+              text: `My goal is to create a new ${contentType} page about "${purpose}"${
+                audience ? ` for an audience of ${audience}` : ""
+              }. Perform the following steps:
 
 1.  Ensure the Plone connection is configured.
 2.  Determine the best parent path for this new content.
@@ -1606,8 +1705,9 @@ Begin with the first step.`,
             role: "user",
             content: {
               type: "text" as const,
-              text: `My goal is to create an example site with ${numberOfPages} pages of type ${contentTypes}, all centered around the theme of "${purpose}"${audience ? `, aimed at an audience of ${audience}` : ""
-                }. Follow this plan:
+              text: `My goal is to create an example site with ${numberOfPages} pages of type ${contentTypes}, all centered around the theme of "${purpose}"${
+                audience ? `, aimed at an audience of ${audience}` : ""
+              }. Follow this plan:
 
 1.  Ensure the Plone connection is configured.
 2.  Establish a logical folder (Document type objects can be used as folders) structure for the new pages.
