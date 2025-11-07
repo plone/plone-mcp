@@ -1118,11 +1118,10 @@ class PloneMCPServer {
         content: [
           {
             type: "text" as const,
-            text: `Successfully prepared ${
-              blocks.length
-            } blocks for next create/update operation (valid for 60 seconds). Blocks ready: ${blockInfo
-              .map((block) => `${block.type}:[${block.id}]`)
-              .join(", ")}`,
+            text: `Successfully prepared ${blocks.length
+              } blocks for next create/update operation (valid for 60 seconds). Blocks ready: ${blockInfo
+                .map((block) => `${block.type}:[${block.id}]`)
+                .join(", ")}`,
           },
         ],
       };
@@ -1164,8 +1163,7 @@ class PloneMCPServer {
         blocks[blockId] = this.processBlock(blockType, blockData);
       } catch (error) {
         throw new Error(
-          `Error processing block data: ${
-            error instanceof Error ? error.message : String(error)
+          `Error processing block data: ${error instanceof Error ? error.message : String(error)
           }`
         );
       }
@@ -1523,6 +1521,23 @@ class PloneMCPServer {
         url: "https:/example.com/images/logo.png",
         alt: "Logo",
       },
+      gridBlock: {
+        blocks: {
+          "grid-block-1": {
+            "@type": "slate",
+            text: "This is a paragraph of text content in the first column of grid Block.",
+          },
+          "grid-block-2": {
+            "@type": "slate",
+            text: "This is a paragraph of text content in the second column of grid Block.",
+          }
+        },
+        blocks_layout: {
+          items: ["grid-block-1", "grid-block-2"]
+        },
+        headline: "Example content",
+        theme: "default"
+      }
     };
 
     return examples[blockType] || {};
@@ -1658,9 +1673,8 @@ class PloneMCPServer {
             role: "user",
             content: {
               type: "text" as const,
-              text: `My goal is to create a new ${contentType} page about "${purpose}"${
-                audience ? ` for an audience of ${audience}` : ""
-              }. Perform the following steps:
+              text: `My goal is to create a new ${contentType} page about "${purpose}"${audience ? ` for an audience of ${audience}` : ""
+                }. Perform the following steps:
 
 1.  Ensure the Plone connection is configured.
 2.  Determine the best parent path for this new content.
@@ -1705,9 +1719,8 @@ Begin with the first step.`,
             role: "user",
             content: {
               type: "text" as const,
-              text: `My goal is to create an example site with ${numberOfPages} pages of type ${contentTypes}, all centered around the theme of "${purpose}"${
-                audience ? `, aimed at an audience of ${audience}` : ""
-              }. Follow this plan:
+              text: `My goal is to create an example site with ${numberOfPages} pages of type ${contentTypes}, all centered around the theme of "${purpose}"${audience ? `, aimed at an audience of ${audience}` : ""
+                }. Follow this plan:
 
 1.  Ensure the Plone connection is configured.
 2.  Establish a logical folder (Document type objects can be used as folders) structure for the new pages.

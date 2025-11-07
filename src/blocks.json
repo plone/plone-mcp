@@ -202,6 +202,7 @@
       "required": []
     }
   },
+
   "image": {
     "description": "The Image block is used to display an (internal or external) image  with title, description and alt text. It can also be linked to a URL or internal path. It can be aligned and size of the image can be adjusted.",
     "inputSchema": {
@@ -277,6 +278,38 @@
         }
       },
       "required": []
+    }
+  },
+  "gridBlock": {
+    "description": "The Grid Block is used to create a grid layout to organize multiple blocks (eg Teaser, Image, Listing, Text) in columns. Maximum number of blocks inside a grid block is 4",
+    "inputSchema": {
+      "blockData": {
+        "blocks": {
+          "type": "object",
+          "description": "Allowed inner blocks are teaser, image, listing ,slate. Maximum number of blocks allowed inside of a grid block is 4. After creating single blocks using plone_add_single_block tool, add them to the gridBlock:{'blocks': {<block1>, <block2>, ...}} "
+        },
+        "blocks_layout": {
+          "type": "object",
+          "description": "Contains the UUIDs of the blocks added to the grid block",
+          "properties": {
+            "items": {
+              "type": "array",
+              "description": "Add the blocks UUID to gridBlock:{'blocks_layout:{'items': [<block1-uuid>, <block2-uuid>, ...]}}, to maintain the order of blocks inside the grid"
+            }
+          }
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["default", "grey"],
+          "description": "Background theme for the block",
+          "default": "default"
+        },
+        "headline": {
+          "type": "string",
+          "description": "Optional headline for the grid block"
+        }
+      },
+      "required": ["blocks", "blocks_layout"]
     }
   }
 }
