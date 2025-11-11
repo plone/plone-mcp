@@ -1472,23 +1472,26 @@ class PloneMCPServer {
       teaser: {
         href: [
           {
-            "@id": "https://example.com/news/latest-updates",
-          },
+            "@id": "https://example.com/news/latest-updates"
+          }
         ],
-        overwrite: true,
+        // Do NOT set `overwrite` by default in examples. `overwrite` should only
+        // be present when the caller intentionally overrides the target object's
+        // properties (title, description, preview_image). Omitting `overwrite`
+        // makes the teaser fetch live data from the target by default.
         title: "Latest Company Updates",
         head_title: "News",
         description: "Read about our recent achievements and announcements",
         preview_image: [
           {
             "@id": "https://example.com/images/latest-updates-preview.jpg",
-            image_field: "image",
-          },
+            image_field: "image"
+          }
         ],
         theme: "default",
         styles: {
-          align: "left",
-        },
+          align: "left"
+        }
       },
       slate: {
         text: "This is a paragraph of text content that will be converted to Slate format.",
