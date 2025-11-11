@@ -25,7 +25,7 @@
         },
         "overwrite": {
           "type": "boolean",
-          "description": "Set to true only if using custom values instead of the target object's properties. It must be set to fale is only 'href' is provided."
+          "description": "Set to true only if using custom values instead of the target object's properties. When only 'href' is provided, omit this field or set it to false so the teaser will fetch the live target properties."
         },
         "title": {
           "type": "string",
