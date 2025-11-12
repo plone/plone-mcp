@@ -34,7 +34,8 @@ Add to Claude's configuration file:
       "env": {
         "PLONE_BASE_URL": "https://demo.plone.org",
         "PLONE_USERNAME": "admin",
-        "PLONE_PASSWORD": "admin"
+        "PLONE_PASSWORD": "admin",
+        "ENABLED_TOOLS": "plone_get_content,plone_create_content"
       }
     }
   }
@@ -86,17 +87,120 @@ plone_configure({
 - **Workflow**: Manage publication states and transitions
 - **Site Info**: Access content types, vocabularies, and site configuration
 
-## Essential Tools
+## Available Tools
 
-| Tool | Description | Example |
-|------|-------------|---------|
-| `plone_configure` | Connect to Plone (call once per session) | `plone_configure({baseUrl, username, password})` or `plone_configure({})` for env vars |
-| `plone_get_content` | Get content by path | `plone_get_content({path: "/news"})` |
-| `plone_create_content` | Create new content | `plone_create_content({parentPath: "/", type: "Document", title: "Page"})` |
-| `plone_update_content` | Update existing content | `plone_update_content({path: "/page", title: "New Title"})` |
-| `plone_delete_content` | Delete content | `plone_delete_content({path: "/old-page"})` |
-| `plone_search` | Search content | `plone_search({query: "news", portal_type: ["Document"]})` |
-| `plone_transition_workflow` | Change workflow state | `plone_transition_workflow({path: "/page", transition: "publish"})` |
+This section provides a comprehensive list of all tools available in the Plone MCP server, along with their descriptions and example usage.
+
+### Configuration
+
+*   **`plone_configure`**
+    *   **Description:** Establishes and authenticates the connection to a Plone CMS. **Must be called once per session** before other tools can be used. Configuration can be provided via arguments or environment variables (PLONE_BASE_URL, PLONE_USERNAME, PLONE_PASSWORD, PLONE_TOKEN). Arguments take precedence over environment variables. To use environment variables only, call with an empty object: `plone_configure({})`.
+    *   **Example:**
+        ```javascript
+        plone_configure({baseUrl: 'https://demo.plone.org', username: 'admin', password: 'secret'})
+        ```
+
+### Content Management
+
+*   **`plone_get_content`**
+    *   **Description:** Retrieves the full JSON data for a single content item from Plone using its path.
+    *   **Example:**
+        ```javascript
+        plone_get_content({path: '/news/latest-update'})
+        ```
+*   **`plone_create_content`**
+    *   **Description:** Creates a new content item (e.g., a page or news article) in Plone. To add complex block-based content, first prepare the structure with `plone_create_blocks_layout`, then call this tool.
+    *   **Example:**
+        ```javascript
+        plone_create_content({parentPath: '/', type: 'Document', title: 'My Page', description: 'A sample page'})
+        ```
+*   **`plone_update_content`**
+    *   **Description:** Modifies an existing content item in Plone. Can update metadata (like title) and/or replace the entire block structure. Use `plone_create_blocks_layout` to prepare complex block updates.
+    *   **Example:**
+        ```javascript
+        plone_update_content({path: '/my-page', title: 'Updated Title'})
+        ```
+*   **`plone_delete_content`**
+    *   **Description:** Permanently deletes a content item from Plone using its path.
+    *   **Example:**
+        ```javascript
+        plone_delete_content({path: '/old-content'})
+        ```
+
+### Search and Discovery
+
+*   **`plone_search`**
+    *   **Description:** Performs a detailed search for content items, allowing filters by text, content type, path, and workflow state.
+    *   **Example:**
+        ```javascript
+        plone_search({query: 'annual report', portal_type: ['Document'], review_state: ['published']})
+        ```
+*   **`plone_get_site_info`**
+    *   **Description:** Retrieves top-level information and metadata about the connected Plone site, such as available languages and Plone version.
+    *   **Example:**
+        ```javascript
+        plone_get_site_info({})
+        ```
+*   **`plone_get_types`**
+    *   **Description:** Lists all available content types that can be created in the Plone site (e.g., 'Document', 'Event').
+    *   **Example:**
+        ```javascript
+        plone_get_types({})
+        ```
+*   **`plone_get_vocabularies`**
+    *   **Description:** Fetches the allowed values for a specific field, such as a list of categories or tags. Useful for finding valid inputs for content fields.
+    *   **Example:**
+        ```javascript
+        plone_get_vocabularies({vocabulary: 'plone.app.vocabularies.Keywords'})
+        ```
+
+### Workflow Management
+
+*   **`plone_get_workflow_info`**
+    *   **Description:** Shows the current workflow state (e.g., 'Published', 'Private') and available transitions for a content item.
+    *   **Example:**
+        ```javascript
+        plone_get_workflow_info({path: '/my-document'})
+        ```
+*   **`plone_transition_workflow`**
+    *   **Description:** Changes the workflow state of a content item by executing a specific transition, like 'publish' or 'submit'.
+    *   **Example:**
+        ```javascript
+        plone_transition_workflow({path: '/my-document', transition: 'publish'})
+        ```
+
+### Block Management
+
+*   **`plone_get_block_schemas`**
+    *   **Description:** Lists all available Volto block types (e.g., 'slate', 'teaser', 'button') and their required data schemas. **Essential for understanding how to construct blocks.**
+    *   **Example:**
+        ```javascript
+        plone_get_block_schemas({blockType: 'teaser'})
+        ```
+*   **`plone_create_blocks_layout`**
+    *   **Description:** Prepares a complete block structure in memory (valid for 60 seconds). This structure is then used by the **next immediate call** to `plone_create_content` or `plone_update_content`. Use `plone_get_block_schemas` to learn what data each block type needs. The text displayed by the Title block is automatically managed by Plone, DO NOT add it in the block's data.
+    *   **Example:**
+        ```javascript
+        plone_create_blocks_layout({blocks: [{type: 'title'},{type: 'slate', data: {text: 'Hello World'}}]})
+        ```
+*   **`plone_add_single_block`**
+    *   **Description:** Adds a single new block to an existing content item without replacing other blocks. Specify the block type, data, and optional position.
+    *   **Example:**
+        ```javascript
+        plone_add_single_block({path: '/my-page', blockType: 'text', blockData: {text: 'New paragraph'}})
+        ```
+*   **`plone_update_single_block`**
+    *   **Description:** Modifies the data of a single, existing block within a content item, identified by its block ID.
+    *   **Example:**
+        ```javascript
+        plone_update_single_block({path: '/my-page', blockId: 'abc123', blockData: {text: 'Updated text'}})
+        ```
+*   **`plone_remove_single_block`**
+    *   **Description:** Deletes a single block from a content item, identified by its block ID.
+    *   **Example:**
+        ```javascript
+        plone_remove_single_block({path: '/my-page', blockId: 'abc123'})
+        ```
 
 ## Block Management
 
@@ -205,7 +309,17 @@ plone_search({
 
 ⚠️ **Prepared blocks expire after 60 seconds** - Always call `plone_create_blocks_layout` immediately before creating/updating content.
 
-⚠️ **Configure once per session** - Run `plone_configure` once at the start of each session before using other tools. Once configured, you can use all other tools without reconfiguring.
+⚠️ **Configure once per session** - Run `plone_configure` once at the start of each session before using other tools. Once configured, you can use all other tools without reconfiguring. The `plone_configure` tool is always enabled and does not require explicit enabling via `ENABLED_TOOLS`.
+
+## Environment Variables
+
+The following environment variables can be used to configure the Plone MCP server:
+
+*   **`PLONE_BASE_URL`**: The base URL of your Plone site (e.g., `https://demo.plone.org`).
+*   **`PLONE_USERNAME`**: The username for authenticating with the Plone site.
+*   **`PLONE_PASSWORD`**: The password for the specified username.
+*   **`PLONE_TOKEN`**: A JWT token for authentication (alternative to username/password).
+*   **`ENABLED_TOOLS`**: (Optional) A comma-separated list of tool names to explicitly enable (e.g., `plone_get_content,plone_create_content`). If this variable is not set, all tools (except `plone_configure`, which is always enabled) will be available by default.
 
 ## Development
 
