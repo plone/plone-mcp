@@ -39,6 +39,7 @@ const ENV_BASE_URL = "PLONE_BASE_URL";
 const ENV_USERNAME = "PLONE_USERNAME";
 const ENV_PASSWORD = "PLONE_PASSWORD";
 const ENV_TOKEN = "PLONE_TOKEN";
+const ENV_ENABLED_TOOLS = "ENABLED_TOOLS";
 
 // Helper for optional non-empty strings with environment variable fallback
 const optionalNonEmpty = (envVar: string) =>
@@ -65,7 +66,7 @@ export const ConfigSchema = z.object({
     (val) => !val || isValidUrl(val),
     {
       message: "Must be a valid URL (e.g., https://example.com)",
-    }
+    },
   ),
   username: optionalNonEmpty(ENV_USERNAME),
   password: optionalNonEmpty(ENV_PASSWORD),
@@ -93,7 +94,7 @@ function resolveConfig(config: Config): Config & { baseUrl: string } {
   // Validate baseUrl exists and is not empty
   if (!baseUrl || baseUrl.trim() === "") {
     throw new Error(
-      `Base URL is required. Provide it via config.baseUrl or ${ENV_BASE_URL} environment variable.`
+      `Base URL is required. Provide it via config.baseUrl or ${ENV_BASE_URL} environment variable.`,
     );
   }
 
@@ -177,9 +178,8 @@ export class PloneClient {
 
     // Set up authentication
     if (this.config.token) {
-      this.axios.defaults.headers.common[
-        "Authorization"
-      ] = `Bearer ${this.config.token}`;
+      this.axios.defaults.headers.common["Authorization"] =
+        `Bearer ${this.config.token}`;
     } else if (this.config.username && this.config.password) {
       this.axios.defaults.auth = {
         username: this.config.username,
@@ -234,16 +234,16 @@ const PloneConfigureSchema = z.object({
       message: "Must be a valid URL (e.g., https://example.com)",
     })
     .describe(
-      "Base URL of the Plone site. Can be set via PLONE_BASE_URL environment variable."
+      "Base URL of the Plone site. Can be set via PLONE_BASE_URL environment variable.",
     ),
   username: optionalNonEmpty(ENV_USERNAME).describe(
-    "Username for authentication. Can be set via PLONE_USERNAME environment variable."
+    "Username for authentication. Can be set via PLONE_USERNAME environment variable.",
   ),
   password: optionalNonEmpty(ENV_PASSWORD).describe(
-    "Password for authentication. Can be set via PLONE_PASSWORD environment variable."
+    "Password for authentication. Can be set via PLONE_PASSWORD environment variable.",
   ),
   token: optionalNonEmpty(ENV_TOKEN).describe(
-    "JWT token for authentication (alternative to username/password). Can be set via PLONE_TOKEN environment variable."
+    "JWT token for authentication (alternative to username/password). Can be set via PLONE_TOKEN environment variable.",
   ),
 });
 
@@ -251,13 +251,13 @@ const PloneGetContentSchema = z.object({
   path: z
     .string()
     .describe(
-      "Path to content (e.g., '/parentDocument/document' or just '/' for root level)"
+      "Path to content (e.g., '/parentDocument/document' or just '/' for root level)",
     ),
   expand: z
     .array(z.string())
     .optional()
     .describe(
-      "Components to expand (e.g., ['breadcrumbs', 'actions', 'workflow'])"
+      "Components to expand (e.g., ['breadcrumbs', 'actions', 'workflow'])",
     ),
 });
 
@@ -265,12 +265,12 @@ const PloneCreateContentSchema = z.object({
   parentPath: z
     .string()
     .describe(
-      "Path where to create the content (e.g., '/parentDocument' or '/' for root)"
+      "Path where to create the content (e.g., '/parentDocument' or '/' for root)",
     ),
   type: z
     .string()
     .describe(
-      "Content type to create (e.g., 'Document', 'Event', 'News Item')"
+      "Content type to create (e.g., 'Document', 'Event', 'News Item')",
     ),
   title: z.string().describe("Title of the new content"),
   description: z.string().optional().describe("Description of the new content"),
@@ -278,24 +278,26 @@ const PloneCreateContentSchema = z.object({
     .string()
     .optional()
     .describe(
-      "ID for the new content (optional, will be auto-generated if not provided)"
+      "ID for the new content (optional, will be auto-generated if not provided)",
     ),
   blocks: z
     .record(z.any())
     .optional()
     .describe(
-      "Volto blocks structure for the content, it specifies the blocks data and content"
+      "Volto blocks structure for the content, it specifies the blocks data and content",
     ),
   blocks_layout: z
     .record(z.any())
     .optional()
     .describe(
-      "Volto blocks layout configuration, it specifies the order of blocks"
+      "Volto blocks layout configuration, it specifies the order of blocks",
     ),
   additionalFields: z
     .record(z.any())
     .optional()
-    .describe("Additional fields to update. For preview images, include preview_image_link: { '@id': 'image-url' } in this object (if you get a 400 error, make sure the image URL is accessible)."),
+    .describe(
+      "Additional fields to update. For preview images, include preview_image_link: { '@id': 'image-url' } in this object (if you get a 400 error, make sure the image URL is accessible).",
+    ),
 });
 
 const PloneUpdateContentSchema = z.object({
@@ -313,7 +315,9 @@ const PloneUpdateContentSchema = z.object({
   additionalFields: z
     .record(z.any())
     .optional()
-    .describe("Additional fields to update. For preview images, include preview_image_link: { '@id': 'image-url' } in this object (if you get a 400 error, make sure the image URL is accessible)."),
+    .describe(
+      "Additional fields to update. For preview images, include preview_image_link: { '@id': 'image-url' } in this object (if you get a 400 error, make sure the image URL is accessible).",
+    ),
 });
 
 const PloneDeleteContentSchema = z.object({
@@ -335,7 +339,7 @@ const PloneSearchSchema = z.object({
     .string()
     .optional()
     .describe(
-      "Field to sort by (e.g., 'modified', 'created', 'sortable_title')"
+      "Field to sort by (e.g., 'modified', 'created', 'sortable_title')",
     ),
   sort_order: z
     .enum(["ascending", "descending"])
@@ -402,12 +406,12 @@ const PloneCreateBlocksLayoutSchema = z.object({
           .number()
           .optional()
           .describe(
-            "Position in the layout (optional, defaults to sequential order)"
+            "Position in the layout (optional, defaults to sequential order)",
           ),
-      })
+      }),
     )
     .describe(
-      "Array of block specifications to process. You MUST call plone_get_block_schemas first to see available block types and their required fields. You MUST follow the block specifications EXACTLY, DO NOT invent your own fields. DO NOT add the content object's title in a text block. To set the page title, use the 'title' field of the content object itself when calling plone_create_content or plone_update_content. A Title block will be automatically created by Plone."
+      "Array of block specifications to process. You MUST call plone_get_block_schemas first to see available block types and their required fields. You MUST follow the block specifications EXACTLY, DO NOT invent your own fields. DO NOT add the content object's title in a text block. To set the page title, use the 'title' field of the content object itself when calling plone_create_content or plone_update_content. A Title block will be automatically created by Plone.",
     ),
 });
 
@@ -416,7 +420,7 @@ const PloneGetBlockSchemasSchema = z.object({
     .enum(blockRegistry.getBlockTypesEnum())
     .optional()
     .describe(
-      "Specific block type to get schema for (optional, returns all if not specified)."
+      "Specific block type to get schema for (optional, returns all if not specified).",
     ),
 });
 
@@ -448,7 +452,7 @@ class PloneMCPServer {
           prompts: {},
           resources: {},
         },
-      }
+      },
     );
 
     this.setupToolHandlers();
@@ -473,7 +477,7 @@ class PloneMCPServer {
       return new Error(`[${operation}] Invalid parameters: ${error.message}`);
     }
     return new Error(
-      `[${operation}] ${error instanceof Error ? error.message : String(error)}`
+      `[${operation}] ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 
@@ -482,6 +486,18 @@ class PloneMCPServer {
   // =============================================================================
 
   private setupToolHandlers(): void {
+    const enabledToolsEnv = process.env[ENV_ENABLED_TOOLS];
+    const enabledTools = enabledToolsEnv
+      ? enabledToolsEnv.split(",").map((tool) => tool.trim())
+      : null; // If null, all tools are enabled
+
+    const isToolEnabled = (toolName: string): boolean => {
+      if (enabledTools === null) {
+        return true; // All tools enabled by default
+      }
+      return enabledTools.includes(toolName);
+    };
+
     // Configuration tools
     this.server.registerTool(
       "plone_configure",
@@ -491,179 +507,207 @@ class PloneMCPServer {
           "Establishes and authenticates the connection to a Plone CMS. **Must be called once per session** before other tools can be used. Configuration can be provided via arguments or environment variables (PLONE_BASE_URL, PLONE_USERNAME, PLONE_PASSWORD, PLONE_TOKEN). Arguments take precedence over environment variables. To use environment variables only, call with an empty object: plone_configure({}). Example with arguments: plone_configure({baseUrl: 'https://demo.plone.org', username: 'admin', password: 'secret'}).",
         inputSchema: PloneConfigureSchema.shape,
       },
-      async (args) => this.handleConfigure(args)
+      async (args) => this.handleConfigure(args),
     );
-
     // Content management tools
-    this.server.registerTool(
-      "plone_get_content",
-      {
-        title: "Get Plone Content",
-        description:
-          "Retrieves the full JSON data for a single content item from Plone using its path. Example: plone_get_content({path: '/news/latest-update'})",
-        inputSchema: PloneGetContentSchema.shape,
-      },
-      async (args) => this.handleGetContent(args)
-    );
+    if (isToolEnabled("plone_get_content")) {
+      this.server.registerTool(
+        "plone_get_content",
+        {
+          title: "Get Plone Content",
+          description:
+            "Retrieves the full JSON data for a single content item from Plone using its path. Example: plone_get_content({path: '/news/latest-update'})",
+          inputSchema: PloneGetContentSchema.shape,
+        },
+        async (args) => this.handleGetContent(args),
+      );
+    }
 
-    this.server.registerTool(
-      "plone_create_content",
-      {
-        title: "Create Plone Content",
-        description:
-          "Creates a new content item (e.g., a page or news article) in Plone. To add complex block-based content, first prepare the structure with `plone_create_blocks_layout`, then call this tool. Example: plone_create_content({parentPath: '/', type: 'Document', title: 'My Page', description: 'A sample page'})",
-        inputSchema: PloneCreateContentSchema.shape,
-      },
-      async (args) => this.handleCreateContent(args)
-    );
+    if (isToolEnabled("plone_create_content")) {
+      this.server.registerTool(
+        "plone_create_content",
+        {
+          title: "Create Plone Content",
+          description:
+            "Creates a new content item (e.g., a page or news article) in Plone. To add complex block-based content, first prepare the structure with `plone_create_blocks_layout`, then call this tool. Example: plone_create_content({parentPath: '/', type: 'Document', title: 'My Page', description: 'A sample page'})",
+          inputSchema: PloneCreateContentSchema.shape,
+        },
+        async (args) => this.handleCreateContent(args),
+      );
+    }
 
-    this.server.registerTool(
-      "plone_update_content",
-      {
-        title: "Update Plone Content",
-        description:
-          "Modifies an existing content item in Plone. Can update metadata (like title) and/or replace the entire block structure. Use `plone_create_blocks_layout` to prepare complex block updates. Example: plone_update_content({path: '/my-page', title: 'Updated Title'})",
-        inputSchema: PloneUpdateContentSchema.shape,
-      },
-      async (args) => this.handleUpdateContent(args)
-    );
+    if (isToolEnabled("plone_update_content")) {
+      this.server.registerTool(
+        "plone_update_content",
+        {
+          title: "Update Plone Content",
+          description:
+            "Modifies an existing content item in Plone. Can update metadata (like title) and/or replace the entire block structure. Use `plone_create_blocks_layout` to prepare complex block updates. Example: plone_update_content({path: '/my-page', title: 'Updated Title'})",
+          inputSchema: PloneUpdateContentSchema.shape,
+        },
+        async (args) => this.handleUpdateContent(args),
+      );
+    }
 
-    this.server.registerTool(
-      "plone_delete_content",
-      {
-        title: "Delete Plone Content",
-        description:
-          "Permanently deletes a content item from Plone using its path. Example: plone_delete_content({path: '/old-content'})",
-        inputSchema: PloneDeleteContentSchema.shape,
-      },
-      async (args) => this.handleDeleteContent(args)
-    );
+    if (isToolEnabled("plone_delete_content")) {
+      this.server.registerTool(
+        "plone_delete_content",
+        {
+          title: "Delete Plone Content",
+          description:
+            "Permanently deletes a content item from Plone using its path. Example: plone_delete_content({path: '/old-content'})",
+          inputSchema: PloneDeleteContentSchema.shape,
+        },
+        async (args) => this.handleDeleteContent(args),
+      );
+    }
 
     // Search and discovery tools
-    this.server.registerTool(
-      "plone_search",
-      {
-        title: "Search Plone Content",
-        description:
-          "Performs a detailed search for content items, allowing filters by text, content type, path, and workflow state. Example: plone_search({query: 'annual report', portal_type: ['Document'], review_state: ['published']})",
-        inputSchema: PloneSearchSchema.shape,
-      },
-      async (args) => this.handleSearch(args)
-    );
+    if (isToolEnabled("plone_search")) {
+      this.server.registerTool(
+        "plone_search",
+        {
+          title: "Search Plone Content",
+          description:
+            "Performs a detailed search for content items, allowing filters by text, content type, path, and workflow state. Example: plone_search({query: 'annual report', portal_type: ['Document'], review_state: ['published']})",
+          inputSchema: PloneSearchSchema.shape,
+        },
+        async (args) => this.handleSearch(args),
+      );
+    }
 
-    this.server.registerTool(
-      "plone_get_site_info",
-      {
-        title: "Get Site Information",
-        description:
-          "Retrieves top-level information and metadata about the connected Plone site, such as available languages and Plone version.",
-        inputSchema: {},
-      },
-      async (args) => this.handleGetSiteInfo(args)
-    );
+    if (isToolEnabled("plone_get_site_info")) {
+      this.server.registerTool(
+        "plone_get_site_info",
+        {
+          title: "Get Site Information",
+          description:
+            "Retrieves top-level information and metadata about the connected Plone site, such as available languages and Plone version.",
+          inputSchema: {},
+        },
+        async (args) => this.handleGetSiteInfo(args),
+      );
+    }
 
-    this.server.registerTool(
-      "plone_get_types",
-      {
-        title: "Get Content Types",
-        description:
-          "Lists all available content types that can be created in the Plone site (e.g., 'Document', 'Event').",
-        inputSchema: {},
-      },
-      async (args) => this.handleGetTypes(args)
-    );
+    if (isToolEnabled("plone_get_types")) {
+      this.server.registerTool(
+        "plone_get_types",
+        {
+          title: "Get Content Types",
+          description:
+            "Lists all available content types that can be created in the Plone site (e.g., 'Document', 'Event').",
+          inputSchema: {},
+        },
+        async (args) => this.handleGetTypes(args),
+      );
+    }
 
-    this.server.registerTool(
-      "plone_get_vocabularies",
-      {
-        title: "Get Vocabulary Values",
-        description:
-          "Fetches the allowed values for a specific field, such as a list of categories or tags. Useful for finding valid inputs for content fields. Example: plone_get_vocabularies({vocabulary: 'plone.app.vocabularies.Keywords'})",
-        inputSchema: PloneGetVocabulariesSchema.shape,
-      },
-      async (args) => this.handleGetVocabularies(args)
-    );
+    if (isToolEnabled("plone_get_vocabularies")) {
+      this.server.registerTool(
+        "plone_get_vocabularies",
+        {
+          title: "Get Vocabulary Values",
+          description:
+            "Fetches the allowed values for a specific field, such as a list of categories or tags. Useful for finding valid inputs for content fields. Example: plone_get_vocabularies({vocabulary: 'plone.app.vocabularies.Keywords'})",
+          inputSchema: PloneGetVocabulariesSchema.shape,
+        },
+        async (args) => this.handleGetVocabularies(args),
+      );
+    }
 
     // Workflow tools
-    this.server.registerTool(
-      "plone_get_workflow_info",
-      {
-        title: "Get Workflow Information",
-        description:
-          "Shows the current workflow state (e.g., 'Published', 'Private') and available transitions for a content item. Example: plone_get_workflow_info({path: '/my-document'})",
-        inputSchema: PloneGetWorkflowInfoSchema.shape,
-      },
-      async (args) => this.handleGetWorkflowInfo(args)
-    );
+    if (isToolEnabled("plone_get_workflow_info")) {
+      this.server.registerTool(
+        "plone_get_workflow_info",
+        {
+          title: "Get Workflow Information",
+          description:
+            "Shows the current workflow state (e.g., 'Published', 'Private') and available transitions for a content item. Example: plone_get_workflow_info({path: '/my-document'})",
+          inputSchema: PloneGetWorkflowInfoSchema.shape,
+        },
+        async (args) => this.handleGetWorkflowInfo(args),
+      );
+    }
 
-    this.server.registerTool(
-      "plone_transition_workflow",
-      {
-        title: "Execute Workflow Transition",
-        description:
-          "Changes the workflow state of a content item by executing a specific transition, like 'publish' or 'submit'. Example: plone_transition_workflow({path: '/my-document', transition: 'publish'})",
-        inputSchema: PloneTransitionWorkflowSchema.shape,
-      },
-      async (args) => this.handleTransitionWorkflow(args)
-    );
+    if (isToolEnabled("plone_transition_workflow")) {
+      this.server.registerTool(
+        "plone_transition_workflow",
+        {
+          title: "Execute Workflow Transition",
+          description:
+            "Changes the workflow state of a content item by executing a specific transition, like 'publish' or 'submit'. Example: plone_transition_workflow({path: '/my-document', transition: 'publish'})",
+          inputSchema: PloneTransitionWorkflowSchema.shape,
+        },
+        async (args) => this.handleTransitionWorkflow(args),
+      );
+    }
 
     // Block management tools
-    this.server.registerTool(
-      "plone_get_block_schemas",
-      {
-        title: "Get Block Schemas",
-        description:
-          "Lists all available Volto block types (e.g., 'slate', 'teaser', 'button') and their required data schemas. **Essential for understanding how to construct blocks.** Example: plone_get_block_schemas({blockType: 'teaser'})",
-        inputSchema: PloneGetBlockSchemasSchema.shape,
-      },
-      async (args) => this.handleGetBlockSchemas(args)
-    );
+    if (isToolEnabled("plone_get_block_schemas")) {
+      this.server.registerTool(
+        "plone_get_block_schemas",
+        {
+          title: "Get Block Schemas",
+          description:
+            "Lists all available Volto block types (e.g., 'slate', 'teaser', 'button') and their required data schemas. **Essential for understanding how to construct blocks.** Example: plone_get_block_schemas({blockType: 'teaser'})",
+          inputSchema: PloneGetBlockSchemasSchema.shape,
+        },
+        async (args) => this.handleGetBlockSchemas(args),
+      );
+    }
 
-    this.server.registerTool(
-      "plone_create_blocks_layout",
-      {
-        title: "Prepare Blocks Layout",
-        description:
-          "Prepares a complete block structure in memory (valid for 60 seconds). This structure is then used by the **next immediate call** to `plone_create_content` or `plone_update_content`. Use `plone_get_block_schemas` to learn what data each block type needs. The text displayed by the Title block is automatically managed by Plone, DO NOT add it in the block's data. Example: plone_create_blocks_layout({blocks: [{type: 'title'},{type: 'slate', data: {text: 'Hello World'}}]})",
-        inputSchema: PloneCreateBlocksLayoutSchema.shape,
-      },
-      async (args) => this.handleCreateBlocksLayout(args)
-    );
+    if (isToolEnabled("plone_create_blocks_layout")) {
+      this.server.registerTool(
+        "plone_create_blocks_layout",
+        {
+          title: "Prepare Blocks Layout",
+          description:
+            "Prepares a complete block structure in memory (valid for 60 seconds). This structure is then used by the **next immediate call** to `plone_create_content` or `plone_update_content`. Use `plone_get_block_schemas` to learn what data each block type needs. The text displayed by the Title block is automatically managed by Plone, DO NOT add it in the block's data. Example: plone_create_blocks_layout({blocks: [{type: 'title'},{type: 'slate', data: {text: 'Hello World'}}]})",
+          inputSchema: PloneCreateBlocksLayoutSchema.shape,
+        },
+        async (args) => this.handleCreateBlocksLayout(args),
+      );
+    }
 
-    this.server.registerTool(
-      "plone_add_single_block",
-      {
-        title: "Add Single Block",
-        description:
-          "Adds a single new block to an existing content item without replacing other blocks. Specify the block type, data, and optional position. Example: plone_add_single_block({path: '/my-page', blockType: 'text', blockData: {text: 'New paragraph'}})",
-        inputSchema: PloneAddBlockSchema.shape,
-      },
-      async (args) => this.handleAddBlock(args)
-    );
+    if (isToolEnabled("plone_add_single_block")) {
+      this.server.registerTool(
+        "plone_add_single_block",
+        {
+          title: "Add Single Block",
+          description:
+            "Adds a single new block to an existing content item without replacing other blocks. Specify the block type, data, and optional position. Example: plone_add_single_block({path: '/my-page', blockType: 'text', blockData: {text: 'New paragraph'}})",
+          inputSchema: PloneAddBlockSchema.shape,
+        },
+        async (args) => this.handleAddBlock(args),
+      );
+    }
 
-    this.server.registerTool(
-      "plone_update_single_block",
-      {
-        title: "Update Single Block",
-        description:
-          "Modifies the data of a single, existing block within a content item, identified by its block ID. Example: plone_update_single_block({path: '/my-page', blockId: 'abc123', blockData: {text: 'Updated text'}})",
-        inputSchema: PloneUpdateBlockSchema.shape,
-      },
-      async (args) => this.handleUpdateBlock(args)
-    );
+    if (isToolEnabled("plone_update_single_block")) {
+      this.server.registerTool(
+        "plone_update_single_block",
+        {
+          title: "Update Single Block",
+          description:
+            "Modifies the data of a single, existing block within a content item, identified by its block ID. Example: plone_update_single_block({path: '/my-page', blockId: 'abc123', blockData: {text: 'Updated text'}})",
+          inputSchema: PloneUpdateBlockSchema.shape,
+        },
+        async (args) => this.handleUpdateBlock(args),
+      );
+    }
 
-    this.server.registerTool(
-      "plone_remove_single_block",
-      {
-        title: "Remove Single Block",
-        description:
-          "Deletes a single block from a content item, identified by its block ID. Example: plone_remove_single_block({path: '/my-page', blockId: 'abc123'})",
-        inputSchema: PloneRemoveBlockSchema.shape,
-      },
-      async (args) => this.handleRemoveBlock(args)
-    );
+    if (isToolEnabled("plone_remove_single_block")) {
+      this.server.registerTool(
+        "plone_remove_single_block",
+        {
+          title: "Remove Single Block",
+          description:
+            "Deletes a single block from a content item, identified by its block ID. Example: plone_remove_single_block({path: '/my-page', blockId: 'abc123'})",
+          inputSchema: PloneRemoveBlockSchema.shape,
+        },
+        async (args) => this.handleRemoveBlock(args),
+      );
+    }
   }
-
   // =============================================================================
   // TOOL HANDLERS - Configuration and Content Management
   // =============================================================================
@@ -671,7 +715,7 @@ class PloneMCPServer {
   private requireClient(): PloneClient {
     if (!this.client) {
       throw new Error(
-        "Plone client not configured. Please run plone_configure first."
+        "Plone client not configured. Please run plone_configure first.",
       );
     }
     return this.client;
@@ -747,7 +791,7 @@ class PloneMCPServer {
       const blockData = this._handleBlockProcessing(
         blocks,
         blocks_layout,
-        false
+        false,
       );
       if (blockData) {
         data.blocks = blockData.blocks;
@@ -800,7 +844,7 @@ class PloneMCPServer {
       const blockData = this._handleBlockProcessing(
         blocks,
         blocks_layout,
-        true
+        true,
       );
       if (blockData) {
         data.blocks = blockData.blocks;
@@ -944,7 +988,7 @@ class PloneMCPServer {
 
       const vocabularies = await client.get(
         `/@vocabularies/${vocabulary}`,
-        params
+        params,
       );
 
       return {
@@ -985,7 +1029,7 @@ class PloneMCPServer {
   }
 
   private async handleTransitionWorkflow(
-    args: unknown
+    args: unknown,
   ): Promise<CallToolResult> {
     try {
       const { path, transition, comment } =
@@ -1018,13 +1062,13 @@ class PloneMCPServer {
     try {
       const { blockType } = PloneGetBlockSchemasSchema.parse(args);
 
-      if (blockType && blockType !== '') {
+      if (blockType && blockType !== "") {
         const spec = blockRegistry.getSpecification(blockType);
         if (!spec) {
           throw new Error(
             `Unknown block type: ${blockType}. Available types: ${blockRegistry
               .getBlockTypes()
-              .join(", ")}`
+              .join(", ")}`,
           );
         }
 
@@ -1039,7 +1083,7 @@ class PloneMCPServer {
                   example: this.getBlockExample(blockType),
                 },
                 null,
-                2
+                2,
               ),
             },
           ],
@@ -1063,7 +1107,7 @@ class PloneMCPServer {
                 examples: examples,
               },
               null,
-              2
+              2,
             ),
           },
         ],
@@ -1074,7 +1118,7 @@ class PloneMCPServer {
   }
 
   private async handleCreateBlocksLayout(
-    args: unknown
+    args: unknown,
   ): Promise<CallToolResult> {
     try {
       const { blocks } = PloneCreateBlocksLayoutSchema.parse(args);
@@ -1091,7 +1135,7 @@ class PloneMCPServer {
           if (!isValid) {
             throw this.wrapError(
               "CreateBlocksLayout",
-              `Invalid or inaccessible image URL: ${blockSpec.data.url}`
+              `Invalid or inaccessible image URL: ${blockSpec.data.url}`,
             );
           }
         }
@@ -1099,7 +1143,7 @@ class PloneMCPServer {
         const blockId = this.generateBlockId();
         const processedBlock = this.processBlock(
           blockSpec.type,
-          blockSpec.data
+          blockSpec.data,
         );
 
         processedBlocks[blockId] = processedBlock;
@@ -1154,7 +1198,7 @@ class PloneMCPServer {
         if (!isValid) {
           throw this.wrapError(
             "AddBlock",
-            `Invalid or inaccessible image URL: ${blockData.url}`
+            `Invalid or inaccessible image URL: ${blockData.url}`,
           );
         }
       }
@@ -1166,7 +1210,7 @@ class PloneMCPServer {
         throw new Error(
           `Error processing block data: ${
             error instanceof Error ? error.message : String(error)
-          }`
+          }`,
         );
       }
 
@@ -1214,8 +1258,8 @@ class PloneMCPServer {
         const availableBlockIds = Object.keys(blocks);
         throw new Error(
           `Block with ID '${blockId}' not found. Available block IDs: ${availableBlockIds.join(
-            ", "
-          )}`
+            ", ",
+          )}`,
         );
       }
 
@@ -1256,8 +1300,8 @@ class PloneMCPServer {
         const availableBlockIds = Object.keys(blocks);
         throw new Error(
           `Block with ID '${blockId}' not found. Available block IDs: ${availableBlockIds.join(
-            ", "
-          )}`
+            ", ",
+          )}`,
         );
       }
 
@@ -1340,7 +1384,7 @@ class PloneMCPServer {
   private _handleBlockProcessing(
     blocks: Record<string, any> | undefined,
     blocks_layout: Record<string, any> | undefined,
-    isUpdate: boolean = false
+    isUpdate: boolean = false,
   ): {
     blocks: Record<string, any>;
     blocks_layout: { items: string[] };
@@ -1375,7 +1419,7 @@ class PloneMCPServer {
 
     // Find the existing title block
     let titleBlockId = finalLayout.find(
-      (id: string) => finalBlocks[id]?.["@type"] === "title"
+      (id: string) => finalBlocks[id]?.["@type"] === "title",
     );
 
     if (!titleBlockId) {
@@ -1406,7 +1450,7 @@ class PloneMCPServer {
    */
   private processBlock(
     blockType: string,
-    blockData: Record<string, any>
+    blockData: Record<string, any>,
   ): Record<string, any> {
     if (blockType === "slate" || blockType === "text") {
       // Convert text block to Slate format
@@ -1426,7 +1470,7 @@ class PloneMCPServer {
       ) {
         throw this.wrapError(
           "ProcessBlock",
-          `Missing or invalid image URL: ${String(blockData?.url)}`
+          `Missing or invalid image URL: ${String(blockData?.url)}`,
         );
       }
       return {
@@ -1450,7 +1494,7 @@ class PloneMCPServer {
         } else {
           throw this.wrapError(
             "ProcessBlock",
-            `Invalid href format for ${blockType} block. Expected string or array, got: ${typeof blockData.href}`
+            `Invalid href format for ${blockType} block. Expected string or array, got: ${typeof blockData.href}`,
           );
         }
       }
@@ -1545,12 +1589,12 @@ class PloneMCPServer {
       async (uri, { path }) => {
         if (!this.client) {
           throw new Error(
-            "Plone client not configured. Please run plone_configure first."
+            "Plone client not configured. Please run plone_configure first.",
           );
         }
 
         const normalizedPath = this.client.normalizePath(
-          typeof path === "string" ? path : path[0] || ""
+          typeof path === "string" ? path : path[0] || "",
         );
         const content = await this.client.get(normalizedPath);
 
@@ -1563,7 +1607,7 @@ class PloneMCPServer {
             },
           ],
         };
-      }
+      },
     );
 
     // Plone site information resource
@@ -1578,7 +1622,7 @@ class PloneMCPServer {
       async (uri) => {
         if (!this.client) {
           throw new Error(
-            "Plone client not configured. Please run plone_configure first."
+            "Plone client not configured. Please run plone_configure first.",
           );
         }
 
@@ -1593,7 +1637,7 @@ class PloneMCPServer {
             },
           ],
         };
-      }
+      },
     );
 
     // Plone content types resource
@@ -1608,7 +1652,7 @@ class PloneMCPServer {
       async (uri) => {
         if (!this.client) {
           throw new Error(
-            "Plone client not configured. Please run plone_configure first."
+            "Plone client not configured. Please run plone_configure first.",
           );
         }
 
@@ -1623,7 +1667,7 @@ class PloneMCPServer {
             },
           ],
         };
-      }
+      },
     );
   }
 
@@ -1643,7 +1687,7 @@ class PloneMCPServer {
           contentType: z
             .string()
             .describe(
-              "Type of content to create (e.g., 'Document', 'News Item')"
+              "Type of content to create (e.g., 'Document', 'News Item')",
             ),
           purpose: z.string().describe("The purpose or topic of the page"),
           audience: z
@@ -1672,7 +1716,7 @@ Begin with the first step.`,
             },
           },
         ],
-      })
+      }),
     );
     this.server.registerPrompt(
       "create-example-site-workflow",
@@ -1684,7 +1728,7 @@ Begin with the first step.`,
           contentTypes: z
             .string()
             .describe(
-              "Types of content to create (e.g., 'Documents, News Items')"
+              "Types of content to create (e.g., 'Documents, News Items')",
             ),
           purpose: z
             .string()
@@ -1719,7 +1763,7 @@ Begin this process step-by-step.`,
             },
           },
         ],
-      })
+      }),
     );
   }
 

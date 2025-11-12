@@ -14,8 +14,8 @@ interface SlateNode {
 
 // Helper functions
 function getNodeProperty(node: Node, property: string): string {
-  return property in node && typeof node[property as keyof Node] === "string" 
-    ? (node[property as keyof Node] as string) 
+  return property in node && typeof node[property as keyof Node] === "string"
+    ? (node[property as keyof Node] as string)
     : "";
 }
 
@@ -49,7 +49,8 @@ function transform(node: Node): SlateNode | SlateNode[] | null {
       return children;
 
     case "heading":
-      const depth = "depth" in node && typeof node.depth === "number" ? node.depth : 2;
+      const depth =
+        "depth" in node && typeof node.depth === "number" ? node.depth : 2;
       return { type: `h${depth}`, children };
 
     case "paragraph":
@@ -148,7 +149,7 @@ export function markdownParse(markdownText: string): SlateNode[] {
     throw new Error(
       `Markdown parsing failed: ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 }
