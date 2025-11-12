@@ -15,8 +15,8 @@ This project is a Model Context Protocol (MCP) server designed to integrate MCP 
 
 ## Important Reminders
 
-- Tests are to be run whenever substantial changes are done to the code.
-- The formatting target should be executed before committing code.
+- Tests are to be run whenever substantial changes are done to the code. Use `make test`.
+- The formatting target should be executed before committing code. Use `make format`.
 
 @./README.md
 @./TESTING.md
