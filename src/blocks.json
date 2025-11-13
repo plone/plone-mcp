@@ -25,7 +25,7 @@
         },
         "overwrite": {
           "type": "boolean",
-          "description": "Set to true only if using custom values instead of the target object's properties. It must be set to fale is only 'href' is provided."
+          "description": "Set to true only if using custom values instead of the target object's properties. It must be set to false is only 'href' is provided."
         },
         "title": {
           "type": "string",
@@ -69,7 +69,7 @@
           "align": {
             "type": "string",
             "enum": ["left", "center", "right"],
-            "description": "Image alignment within the teaser",
+            "description": "Image alignment within the teaser. Do not use this field when nesting the image inside a parent block (e.g., gridBlock), as the parent block controls alignment.",
             "default": "left"
           }
         }
@@ -209,7 +209,7 @@
       "blockData": {
         "url": {
           "type": "string",
-          "description": "Internal or External image URL."
+          "description": "For EXTERNAL images: Direct image URL (e.g., https://example.com/image.jpg). For INTERNAL Plone images: URL to the Image content object (e.g., /content-types/my-image), NOT the @@images URL."
         },
         "title": {
           "type": "string",
@@ -243,16 +243,21 @@
           "minItems": 1,
           "maxItems": 1
         },
+        "image_field": {
+          "type": "string",
+          "description": "REQUIRED for internal Plone images, must be set to 'image'. MUST BE OMITTED for external URLs.",
+          "enum": ["image"]
+        },
         "align": {
           "type": "string",
           "enum": ["left", "center", "right"],
-          "description": "Image alignment within the block",
+          "description": "Image alignment within the block. Do not use this field when nesting the image inside a parent block (e.g., gridBlock), as the parent block controls alignment.",
           "default": "center"
         },
         "size": {
           "type": "string",
           "enum": ["s", "m", "l"],
-          "description": "Image size within the block",
+          "description": "Image size within the block. Do not use this field when nesting the image inside a parent block (e.g., gridBlock), as the parent block controls alignment.",
           "default": "l"
         },
         "theme": {
@@ -271,7 +276,7 @@
                 "var(--layout-container-width)",
                 "100%"
               ],
-              "description": "Width available for the block on the page layout, narrow-width is the smallest (used by text blocks for readibility), default-width is used for most blocks, layout-width is a wider width for visual impact, and 100% is the full width of the viewport. This setting is ONLY available when the align style is set to center.",
+              "description": "Width available for the block on the page layout, narrow-width is the smallest (used by text blocks for readibility), default-width is used for most blocks, layout-width is a wider width for visual impact, and 100% is the full width of the viewport. This setting is ONLY available when the align style is set to center. Do not use this field when nesting the image inside a parent block (e.g., gridBlock), as the parent block controls alignment.",
               "default": "var(--default-container-width)"
             }
           }
@@ -281,20 +286,20 @@
     }
   },
   "gridBlock": {
-    "description": "The Grid Block is used to create a grid layout to organize multiple blocks (eg Teaser, Image, Listing, Text) in columns. Maximum number of blocks inside a grid block is 4",
+    "description": "The Grid Block is used to create a grid layout to organize multiple blocks (eg Teaser, Image, Listing, Slate) in columns. Maximum number of blocks inside a grid block is 4",
     "inputSchema": {
       "blockData": {
         "blocks": {
           "type": "object",
-          "description": "Allowed inner blocks are teaser, image, listing ,slate. Maximum number of blocks allowed inside of a grid block is 4. After creating single blocks using plone_add_single_block tool, add them to the gridBlock:{'blocks': {<block1>, <block2>, ...}} "
+          "description": "Object containing child blocks (teaser, image, slate). Maximum 4 blocks allowed. Each child must have @type and required fields. Block IDs will be auto-generated as UUIDs."
         },
         "blocks_layout": {
           "type": "object",
-          "description": "Contains the UUIDs of the blocks added to the grid block",
+          "description": "Layout configuration with block order",
           "properties": {
             "items": {
               "type": "array",
-              "description": "Add the blocks UUID to gridBlock:{'blocks_layout:{'items': [<block1-uuid>, <block2-uuid>, ...]}}, to maintain the order of blocks inside the grid"
+              "description": "Array of block IDs. Auto-populated if not provided."
             }
           }
         },

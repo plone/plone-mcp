@@ -613,7 +613,7 @@ class PloneMCPServer {
       {
         title: "Get Block Schemas",
         description:
-          "Lists all available Volto block types (e.g., 'slate', 'teaser', 'button') and their required data schemas. **Essential for understanding how to construct blocks.** Example: plone_get_block_schemas({blockType: 'teaser'})",
+          "Lists all available Volto block types (e.g., 'slate', 'teaser', 'button') and their required data schemas. If no block type specified, the tool returns all blocks schemas. **Essential for understanding how to construct blocks.** Example: plone_get_block_schemas({blockType: 'teaser'})",
         inputSchema: PloneGetBlockSchemasSchema.shape,
       },
       async (args) => this.handleGetBlockSchemas(args)
@@ -1400,6 +1400,42 @@ class PloneMCPServer {
   }
 
   /**
+   * Normalize relative URLs to absolute URLs using the configured base URL
+   */
+  private normalizeUrl(url: string): string {
+    if (this.client && url.startsWith("/") && !url.startsWith("//")) {
+      return `${this.client.config.baseUrl}${url}`;
+    }
+    return url;
+  }
+
+  /**
+   * Normalize href values to the required array format and convert relative URLs to absolute
+   */
+  private normalizeHref(href: any, blockType: string): Array<{ "@id": string }> {
+    if (typeof href === "string") {
+      return [{ "@id": this.normalizeUrl(href) }];
+    }
+
+    if (Array.isArray(href)) {
+      if (href.length === 0) {
+        throw this.wrapError("ProcessBlock", `href cannot be empty for ${blockType} block`);
+      }
+
+      if (href[0]?.["@id"]) {
+        return [{ ...href[0], "@id": this.normalizeUrl(href[0]["@id"]) }];
+      }
+
+      return href;
+    }
+
+    throw this.wrapError(
+      "ProcessBlock",
+      `Invalid href format for ${blockType} block. Expected string or array, got: ${typeof href}`
+    );
+  }
+
+  /**
    * Process a block
    */
   private processBlock(
@@ -1408,13 +1444,23 @@ class PloneMCPServer {
   ): Record<string, any> {
     if (blockType === "slate" || blockType === "text") {
       // Convert text block to Slate format
-      const textContent = blockData.text || "";
-      return {
-        "@type": "slate",
-        plaintext: textContent,
-        value: markdownParse(textContent),
-        theme: blockData.theme || "default",
-      };
+      // If value already exists, preserve it; otherwise parse from text
+      if (blockData.value) {
+        // Block already has value array, preserve it
+        return {
+          "@type": "slate",
+          ...blockData,
+        };
+      } else {
+        // Parse text field into value
+        const textContent = blockData.text || "";
+        return {
+          "@type": "slate",
+          plaintext: textContent,
+          value: markdownParse(textContent),
+          theme: blockData.theme || "default",
+        };
+      }
     } else if (blockType === "image") {
       // Basic validation for required fields
       if (
@@ -1439,18 +1485,49 @@ class PloneMCPServer {
       };
 
       if (blockData.href) {
-        if (typeof blockData.href === "string") {
-          // Convert string href to required array format
-          processedData.href = [{ "@id": blockData.href }];
-        } else if (Array.isArray(blockData.href)) {
-          // Already in array format, keep as-is
-          processedData.href = blockData.href;
-        } else {
-          throw this.wrapError(
-            "ProcessBlock",
-            `Invalid href format for ${blockType} block. Expected string or array, got: ${typeof blockData.href}`
-          );
+        processedData.href = this.normalizeHref(blockData.href, blockType);
+      }
+
+      return processedData;
+    } else if (blockType === "gridBlock") {
+      // Process gridBlock with nested blocks
+      const processedData: Record<string, any> = {
+        ...blockData,
+        "@type": "gridBlock",
+        theme: blockData.theme || "default",
+      };
+
+      // Recursively process child blocks with proper UUID generation
+      if (blockData.blocks && typeof blockData.blocks === "object") {
+        const processedBlocks: Record<string, any> = {};
+        const newBlockIds: string[] = [];
+
+        for (const childBlock of Object.values(blockData.blocks)) {
+          const childBlockData = childBlock as Record<string, any>;
+          const childType = childBlockData["@type"];
+
+          if (!childType) {
+            throw this.wrapError(
+              "ProcessBlock",
+              "gridBlock child blocks must have an @type field"
+            );
+          }
+
+          // Generate a proper UUID for the child block
+          const newBlockId = this.generateBlockId();
+
+          // Recursively process each child block
+          processedBlocks[newBlockId] = this.processBlock(childType, childBlockData);
+          newBlockIds.push(newBlockId);
         }
+
+        processedData.blocks = processedBlocks;
+
+        // Ensure blocks_layout exists and update items with the new UUIDs
+        if (!processedData.blocks_layout) {
+          processedData.blocks_layout = {};
+        }
+        processedData.blocks_layout.items = newBlockIds;
       }
 
       return processedData;
@@ -1473,16 +1550,7 @@ class PloneMCPServer {
             "@id": "https://example.com/news/latest-updates",
           },
         ],
-        overwrite: true,
-        title: "Latest Company Updates",
-        head_title: "News",
-        description: "Read about our recent achievements and announcements",
-        preview_image: [
-          {
-            "@id": "https://example.com/images/latest-updates-preview.jpg",
-            image_field: "image",
-          },
-        ],
+        overwrite: false,
         theme: "default",
         styles: {
           align: "left",
@@ -1520,20 +1588,27 @@ class PloneMCPServer {
       image: {
         url: "https:/example.com/images/logo.png",
         alt: "Logo",
+        description:	"External image",
       },
       gridBlock: {
         blocks: {
+          // Block IDs can be any string, they will be regenerated as proper UUIDs
           "grid-block-1": {
             "@type": "slate",
             text: "This is a paragraph of text content in the first column of grid Block.",
           },
           "grid-block-2": {
-            "@type": "slate",
-            text: "This is a paragraph of text content in the second column of grid Block.",
+            "@type": "image",
+            url: "https://example.com/images/sample-image.jpg",
+            alt: "Sample image"
+          },
+          "grid-block-3": {
+            "@type": "teaser",
+            href: [{"@id": "https://example.com/target/page"}]
           }
         },
         blocks_layout: {
-          items: ["grid-block-1", "grid-block-2"]
+          items: ["grid-block-1", "grid-block-2", "grid-block-3"]
         },
         headline: "Example content",
         theme: "default"
