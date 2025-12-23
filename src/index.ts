@@ -15,7 +15,11 @@ import { v4 as uuidv4 } from "uuid";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { markdownParse } from "./markdown-parser.js";
+import {
+  BlockProcessingContext,
+  createBlockProcessorRegistry,
+  processDefaultBlock,
+} from "./block-processors.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -433,6 +437,7 @@ class PloneMCPServer {
     timestamp: number; // IMPROVEMENT: Add timestamp for expiration
   } | null = null;
   private readonly PREPARED_BLOCKS_TTL = 60000; // 60 seconds TTL
+  private blockProcessors = createBlockProcessorRegistry();
 
   constructor() {
     this.server = new McpServer(
@@ -1085,9 +1090,9 @@ class PloneMCPServer {
 
       // Process each block in the array
       for (const blockSpec of blocks) {
-        // Validate image URLs asynchronously before processing
+        // Validate image URL format before processing
         if (blockSpec.type === "image" && blockSpec.data?.url) {
-          const isValid = await this.validateImageURL(blockSpec.data.url);
+          const isValid = this.validateImageURL(blockSpec.data.url);
           if (!isValid) {
             throw this.wrapError(
               "CreateBlocksLayout",
@@ -1147,9 +1152,9 @@ class PloneMCPServer {
       // Generate new block ID
       const blockId = this.generateBlockId();
 
-      // Validate image URLs asynchronously before processing
+      // Validate image URL format before processing
       if (blockType === "image" && blockData?.url) {
-        const isValid = await this.validateImageURL(blockData.url);
+        const isValid = this.validateImageURL(blockData.url);
         if (!isValid) {
           throw this.wrapError(
             "AddBlock",
@@ -1292,29 +1297,17 @@ class PloneMCPServer {
   // =============================================================================
 
   // Validate if the url is an image address, to avoid creation of blank image blocks
-  private async validateImageURL(url: string): Promise<boolean> {
+  private validateImageURL(url: string): boolean {
+    // For data URLs, check MIME type
+    if (url.startsWith("data:")) {
+      return url.startsWith("data:image/");
+    }
+
+    // Validate URL format
     try {
-      // For data URLs, check MIME type
-      if (url.startsWith("data:")) {
-        return url.startsWith("data:image/");
-      }
-
-      // For external URLs
-      const response = await fetch(url, {
-        method: "HEAD",
-        headers: {
-          Accept: "image/*",
-        },
-      });
-
-      if (!response.ok) {
-        return false;
-      }
-
-      const contentType = response.headers.get("Content-Type");
-      return contentType ? contentType.startsWith("image/") : false;
-    } catch (error) {
-      console.error(`Error validating image URL ${url}:`, error);
+      new URL(url);
+      return true;
+    } catch {
       return false;
     }
   }
@@ -1436,107 +1429,24 @@ class PloneMCPServer {
   }
 
   /**
-   * Process a block
+   * Process a block using the registry-based processor pattern
    */
   private processBlock(
     blockType: string,
     blockData: Record<string, any>
   ): Record<string, any> {
-    if (blockType === "slate" || blockType === "text") {
-      // Convert text block to Slate format
-      // If value already exists, preserve it; otherwise parse from text
-      if (blockData.value) {
-        // Block already has value array, preserve it
-        return {
-          "@type": "slate",
-          ...blockData,
-        };
-      } else {
-        // Parse text field into value
-        const textContent = blockData.text || "";
-        return {
-          "@type": "slate",
-          plaintext: textContent,
-          value: markdownParse(textContent),
-          theme: blockData.theme || "default",
-        };
-      }
-    } else if (blockType === "image") {
-      // Basic validation for required fields
-      if (
-        !blockData ||
-        typeof blockData.url !== "string" ||
-        blockData.url.trim() === ""
-      ) {
-        throw this.wrapError(
-          "ProcessBlock",
-          `Missing or invalid image URL: ${String(blockData?.url)}`
-        );
-      }
-      return {
-        ...blockData,
-        "@type": "image",
-      };
-    } else if (blockType === "teaser" || blockType === "__button") {
-      // Transform href to required array format if it's a string
-      const processedData: Record<string, any> = {
-        ...blockData,
-        "@type": blockType,
-      };
+    const context: BlockProcessingContext = {
+      processBlock: this.processBlock.bind(this),
+      normalizeHref: this.normalizeHref.bind(this),
+      generateBlockId: this.generateBlockId.bind(this),
+      wrapError: this.wrapError.bind(this),
+    };
 
-      if (blockData.href) {
-        processedData.href = this.normalizeHref(blockData.href, blockType);
-      }
-
-      return processedData;
-    } else if (blockType === "gridBlock") {
-      // Process gridBlock with nested blocks
-      const processedData: Record<string, any> = {
-        ...blockData,
-        "@type": "gridBlock",
-        theme: blockData.theme || "default",
-      };
-
-      // Recursively process child blocks with proper UUID generation
-      if (blockData.blocks && typeof blockData.blocks === "object") {
-        const processedBlocks: Record<string, any> = {};
-        const newBlockIds: string[] = [];
-
-        for (const childBlock of Object.values(blockData.blocks)) {
-          const childBlockData = childBlock as Record<string, any>;
-          const childType = childBlockData["@type"];
-
-          if (!childType) {
-            throw this.wrapError(
-              "ProcessBlock",
-              "gridBlock child blocks must have an @type field"
-            );
-          }
-
-          // Generate a proper UUID for the child block
-          const newBlockId = this.generateBlockId();
-
-          // Recursively process each child block
-          processedBlocks[newBlockId] = this.processBlock(childType, childBlockData);
-          newBlockIds.push(newBlockId);
-        }
-
-        processedData.blocks = processedBlocks;
-
-        // Ensure blocks_layout exists and update items with the new UUIDs
-        if (!processedData.blocks_layout) {
-          processedData.blocks_layout = {};
-        }
-        processedData.blocks_layout.items = newBlockIds;
-      }
-
-      return processedData;
-    } else {
-      return {
-        ...blockData,
-        "@type": blockType,
-      };
+    const processor = this.blockProcessors[blockType];
+    if (processor) {
+      return processor(blockData, context);
     }
+    return processDefaultBlock(blockData, blockType);
   }
 
   /**
@@ -1586,9 +1496,9 @@ class PloneMCPServer {
         },
       },
       image: {
-        url: "https:/example.com/images/logo.png",
+        url: "https://example.com/images/logo.png",
         alt: "Logo",
-        description:	"External image",
+        description: "External image",
       },
       gridBlock: {
         blocks: {
