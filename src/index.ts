@@ -15,7 +15,11 @@ import { v4 as uuidv4 } from "uuid";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { markdownParse } from "./markdown-parser.js";
+import {
+  BlockProcessingContext,
+  createBlockProcessorRegistry,
+  processDefaultBlock,
+} from "./block-processors.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -433,6 +437,7 @@ class PloneMCPServer {
     timestamp: number; // IMPROVEMENT: Add timestamp for expiration
   } | null = null;
   private readonly PREPARED_BLOCKS_TTL = 60000; // 60 seconds TTL
+  private blockProcessors = createBlockProcessorRegistry();
 
   constructor() {
     this.server = new McpServer(
@@ -613,7 +618,7 @@ class PloneMCPServer {
       {
         title: "Get Block Schemas",
         description:
-          "Lists all available Volto block types (e.g., 'slate', 'teaser', 'button') and their required data schemas. **Essential for understanding how to construct blocks.** Example: plone_get_block_schemas({blockType: 'teaser'})",
+          "Lists all available Volto block types (e.g., 'slate', 'teaser', 'button') and their required data schemas. If no block type specified, the tool returns all blocks schemas. **Essential for understanding how to construct blocks.** Example: plone_get_block_schemas({blockType: 'teaser'})",
         inputSchema: PloneGetBlockSchemasSchema.shape,
       },
       async (args) => this.handleGetBlockSchemas(args)
@@ -1085,9 +1090,9 @@ class PloneMCPServer {
 
       // Process each block in the array
       for (const blockSpec of blocks) {
-        // Validate image URLs asynchronously before processing
+        // Validate image URL format before processing
         if (blockSpec.type === "image" && blockSpec.data?.url) {
-          const isValid = await this.validateImageURL(blockSpec.data.url);
+          const isValid = this.validateImageURL(blockSpec.data.url);
           if (!isValid) {
             throw this.wrapError(
               "CreateBlocksLayout",
@@ -1118,11 +1123,10 @@ class PloneMCPServer {
         content: [
           {
             type: "text" as const,
-            text: `Successfully prepared ${
-              blocks.length
-            } blocks for next create/update operation (valid for 60 seconds). Blocks ready: ${blockInfo
-              .map((block) => `${block.type}:[${block.id}]`)
-              .join(", ")}`,
+            text: `Successfully prepared ${blocks.length
+              } blocks for next create/update operation (valid for 60 seconds). Blocks ready: ${blockInfo
+                .map((block) => `${block.type}:[${block.id}]`)
+                .join(", ")}`,
           },
         ],
       };
@@ -1148,9 +1152,9 @@ class PloneMCPServer {
       // Generate new block ID
       const blockId = this.generateBlockId();
 
-      // Validate image URLs asynchronously before processing
+      // Validate image URL format before processing
       if (blockType === "image" && blockData?.url) {
-        const isValid = await this.validateImageURL(blockData.url);
+        const isValid = this.validateImageURL(blockData.url);
         if (!isValid) {
           throw this.wrapError(
             "AddBlock",
@@ -1164,8 +1168,7 @@ class PloneMCPServer {
         blocks[blockId] = this.processBlock(blockType, blockData);
       } catch (error) {
         throw new Error(
-          `Error processing block data: ${
-            error instanceof Error ? error.message : String(error)
+          `Error processing block data: ${error instanceof Error ? error.message : String(error)
           }`
         );
       }
@@ -1294,29 +1297,17 @@ class PloneMCPServer {
   // =============================================================================
 
   // Validate if the url is an image address, to avoid creation of blank image blocks
-  private async validateImageURL(url: string): Promise<boolean> {
+  private validateImageURL(url: string): boolean {
+    // For data URLs, check MIME type
+    if (url.startsWith("data:")) {
+      return url.startsWith("data:image/");
+    }
+
+    // Validate URL format
     try {
-      // For data URLs, check MIME type
-      if (url.startsWith("data:")) {
-        return url.startsWith("data:image/");
-      }
-
-      // For external URLs
-      const response = await fetch(url, {
-        method: "HEAD",
-        headers: {
-          Accept: "image/*",
-        },
-      });
-
-      if (!response.ok) {
-        return false;
-      }
-
-      const contentType = response.headers.get("Content-Type");
-      return contentType ? contentType.startsWith("image/") : false;
-    } catch (error) {
-      console.error(`Error validating image URL ${url}:`, error);
+      new URL(url);
+      return true;
+    } catch {
       return false;
     }
   }
@@ -1402,66 +1393,60 @@ class PloneMCPServer {
   }
 
   /**
-   * Process a block
+   * Normalize relative URLs to absolute URLs using the configured base URL
+   */
+  private normalizeUrl(url: string): string {
+    if (this.client && url.startsWith("/") && !url.startsWith("//")) {
+      return `${this.client.config.baseUrl}${url}`;
+    }
+    return url;
+  }
+
+  /**
+   * Normalize href values to the required array format and convert relative URLs to absolute
+   */
+  private normalizeHref(href: any, blockType: string): Array<{ "@id": string }> {
+    if (typeof href === "string") {
+      return [{ "@id": this.normalizeUrl(href) }];
+    }
+
+    if (Array.isArray(href)) {
+      if (href.length === 0) {
+        throw this.wrapError("ProcessBlock", `href cannot be empty for ${blockType} block`);
+      }
+
+      if (href[0]?.["@id"]) {
+        return [{ ...href[0], "@id": this.normalizeUrl(href[0]["@id"]) }];
+      }
+
+      return href;
+    }
+
+    throw this.wrapError(
+      "ProcessBlock",
+      `Invalid href format for ${blockType} block. Expected string or array, got: ${typeof href}`
+    );
+  }
+
+  /**
+   * Process a block using the registry-based processor pattern
    */
   private processBlock(
     blockType: string,
     blockData: Record<string, any>
   ): Record<string, any> {
-    if (blockType === "slate" || blockType === "text") {
-      // Convert text block to Slate format
-      const textContent = blockData.text || "";
-      return {
-        "@type": "slate",
-        plaintext: textContent,
-        value: markdownParse(textContent),
-        theme: blockData.theme || "default",
-      };
-    } else if (blockType === "image") {
-      // Basic validation for required fields
-      if (
-        !blockData ||
-        typeof blockData.url !== "string" ||
-        blockData.url.trim() === ""
-      ) {
-        throw this.wrapError(
-          "ProcessBlock",
-          `Missing or invalid image URL: ${String(blockData?.url)}`
-        );
-      }
-      return {
-        ...blockData,
-        "@type": "image",
-      };
-    } else if (blockType === "teaser" || blockType === "__button") {
-      // Transform href to required array format if it's a string
-      const processedData: Record<string, any> = {
-        ...blockData,
-        "@type": blockType,
-      };
+    const context: BlockProcessingContext = {
+      processBlock: this.processBlock.bind(this),
+      normalizeHref: this.normalizeHref.bind(this),
+      generateBlockId: this.generateBlockId.bind(this),
+      wrapError: this.wrapError.bind(this),
+    };
 
-      if (blockData.href) {
-        if (typeof blockData.href === "string") {
-          // Convert string href to required array format
-          processedData.href = [{ "@id": blockData.href }];
-        } else if (Array.isArray(blockData.href)) {
-          // Already in array format, keep as-is
-          processedData.href = blockData.href;
-        } else {
-          throw this.wrapError(
-            "ProcessBlock",
-            `Invalid href format for ${blockType} block. Expected string or array, got: ${typeof blockData.href}`
-          );
-        }
-      }
-
-      return processedData;
-    } else {
-      return {
-        ...blockData,
-        "@type": blockType,
-      };
+    const processor = this.blockProcessors[blockType];
+    if (processor) {
+      return processor(blockData, context);
     }
+    return processDefaultBlock(blockData, blockType);
   }
 
   /**
@@ -1475,16 +1460,7 @@ class PloneMCPServer {
             "@id": "https://example.com/news/latest-updates",
           },
         ],
-        overwrite: true,
-        title: "Latest Company Updates",
-        head_title: "News",
-        description: "Read about our recent achievements and announcements",
-        preview_image: [
-          {
-            "@id": "https://example.com/images/latest-updates-preview.jpg",
-            image_field: "image",
-          },
-        ],
+        overwrite: false,
         theme: "default",
         styles: {
           align: "left",
@@ -1520,9 +1496,33 @@ class PloneMCPServer {
         },
       },
       image: {
-        url: "https:/example.com/images/logo.png",
+        url: "https://example.com/images/logo.png",
         alt: "Logo",
+        description: "External image",
       },
+      gridBlock: {
+        blocks: {
+          // Block IDs can be any string, they will be regenerated as proper UUIDs
+          "grid-block-1": {
+            "@type": "slate",
+            text: "This is a paragraph of text content in the first column of grid Block.",
+          },
+          "grid-block-2": {
+            "@type": "image",
+            url: "https://example.com/images/sample-image.jpg",
+            alt: "Sample image"
+          },
+          "grid-block-3": {
+            "@type": "teaser",
+            href: [{"@id": "https://example.com/target/page"}]
+          }
+        },
+        blocks_layout: {
+          items: ["grid-block-1", "grid-block-2", "grid-block-3"]
+        },
+        headline: "Example content",
+        theme: "default"
+      }
     };
 
     return examples[blockType] || {};
@@ -1658,9 +1658,8 @@ class PloneMCPServer {
             role: "user",
             content: {
               type: "text" as const,
-              text: `My goal is to create a new ${contentType} page about "${purpose}"${
-                audience ? ` for an audience of ${audience}` : ""
-              }. Perform the following steps:
+              text: `My goal is to create a new ${contentType} page about "${purpose}"${audience ? ` for an audience of ${audience}` : ""
+                }. Perform the following steps:
 
 1.  Ensure the Plone connection is configured.
 2.  Determine the best parent path for this new content.
@@ -1705,9 +1704,8 @@ Begin with the first step.`,
             role: "user",
             content: {
               type: "text" as const,
-              text: `My goal is to create an example site with ${numberOfPages} pages of type ${contentTypes}, all centered around the theme of "${purpose}"${
-                audience ? `, aimed at an audience of ${audience}` : ""
-              }. Follow this plan:
+              text: `My goal is to create an example site with ${numberOfPages} pages of type ${contentTypes}, all centered around the theme of "${purpose}"${audience ? `, aimed at an audience of ${audience}` : ""
+                }. Follow this plan:
 
 1.  Ensure the Plone connection is configured.
 2.  Establish a logical folder (Document type objects can be used as folders) structure for the new pages.
