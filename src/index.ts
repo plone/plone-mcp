@@ -618,7 +618,7 @@ class PloneMCPServer {
       {
         title: "Get Block Schemas",
         description:
-          "Lists all available Volto block types (e.g., 'slate', 'teaser', 'button') and their required data schemas. If no block type specified, the tool returns all blocks schemas. **Essential for understanding how to construct blocks.** Example: plone_get_block_schemas({blockType: 'teaser'})",
+          "Lists all available Volto block types (e.g., 'slate', 'teaser', 'button') and their required data schemas. If no block type specified, the tool returns all blocks schemas at once. **Essential for understanding how to construct blocks.** Example: plone_get_block_schemas({blockType: 'teaser'})",
         inputSchema: PloneGetBlockSchemasSchema.shape,
       },
       async (args) => this.handleGetBlockSchemas(args)

@@ -1,6 +1,16 @@
 {
   "teaser": {
     "description": "The teaser block is used to create a teaser for a content item. It links to a target and displays its properties (title, description, preview image, etc.). In most cases, only 'href' should be provided - the teaser will automatically use the target's properties. To customize the display, set 'overwrite: true' and provide custom values.",
+    "llm_instructions": {
+      "priority": "CRITICAL",
+      "required_clarifications": [
+        {
+          "condition": "href is missing, or not provided by user",
+          "blocking": true,
+          "action": "STOP. Do NOT proceed without asking the user: Which content item should this teaser link to? The teaser will be blank without a target."
+        }
+      ]
+    },
     "inputSchema": {
       "blockData": {
         "href": {
