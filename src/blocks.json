@@ -7,7 +7,7 @@
         {
           "condition": "href is missing, or not provided by user",
           "blocking": true,
-          "action": "STOP. Do NOT proceed without asking the user: Which content item should this teaser link to? The teaser will be blank without a target."
+          "action": "STOP. Do NOT proceed without asking the user: Which content item should this teaser link to? If href is not already provided. DO NOT infer, assume or use the current page URL . The teaser will be blank without an explicit target."
         }
       ]
     },
