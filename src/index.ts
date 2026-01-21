@@ -362,6 +362,14 @@ const PloneTransitionWorkflowSchema = z.object({
   comment: z.string().optional().describe("Comment for the transition"),
 });
 
+const PloneGetTypeSchemaSchema = z.object({
+  contentType: z
+    .string()
+    .describe(
+      "The content type name to get the schema for (e.g., 'Document', 'Event', 'News Item')"
+    ),
+});
+
 const PloneGetVocabulariesSchema = z.object({
   vocabulary: z.string().describe("Vocabulary name"),
   title: z.string().optional().describe("Filter by title"),
@@ -576,6 +584,17 @@ class PloneMCPServer {
         inputSchema: {},
       },
       async (args) => this.handleGetTypes(args)
+    );
+
+    this.server.registerTool(
+      "plone_get_type_schema",
+      {
+        title: "Get Content Type Schema",
+        description:
+          "Gets the full JSON schema for a specific content type, including all fields, their types, required status, and validation rules. Use this to understand what fields are available when creating or updating content. Example: plone_get_type_schema({contentType: 'Document'})",
+        inputSchema: PloneGetTypeSchemaSchema.shape,
+      },
+      async (args) => this.handleGetTypeSchema(args)
     );
 
     this.server.registerTool(
@@ -934,6 +953,25 @@ class PloneMCPServer {
       };
     } catch (error) {
       throw this.wrapError("GetTypes", error);
+    }
+  }
+
+  private async handleGetTypeSchema(args: unknown): Promise<CallToolResult> {
+    try {
+      const { contentType } = PloneGetTypeSchemaSchema.parse(args);
+      const client = this.requireClient();
+      const typeSchema = await client.get(`/@types/${contentType}`);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(typeSchema, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      throw this.wrapError("GetTypeSchema", error);
     }
   }
 
@@ -1522,6 +1560,30 @@ class PloneMCPServer {
         },
         headline: "Example content",
         theme: "default"
+      },
+      listing: {
+        headline: "Latest News",
+        headlineTag: "h2",
+        variation: "grid",
+        querystring: {
+          query: [
+            {
+              i: "portal_type",
+              o: "plone.app.querystring.operation.selection.any",
+              v: ["News Item"]
+            },
+            {
+              i: "path",
+              o: "plone.app.querystring.operation.string.absolutePath",
+              v: "/news"
+            }
+          ],
+          sort_on: "effective",
+          sort_order: "descending",
+          b_size: "6"
+        },
+        theme: "default",
+        styles: {}
       }
     };
 
