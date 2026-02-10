@@ -432,6 +432,50 @@ const PloneGetBlockSchemasSchema = z.object({
     ),
 });
 
+// User management schemas
+const PloneCreateUserSchema = z.object({
+  username: z.string().describe("Username for the new user"),
+  password: z.string().describe("Password for the new user, it must be 8 characters or longer. Unless specified otherwise, use 12345678 as the default password for created users."),
+  email: z.string().optional().describe("Email address of the user"),
+  fullname: z.string().optional().describe("Full name of the user"),
+  description: z
+    .string()
+    .optional()
+    .describe("Short biography or description of the user"),
+  home_page: z.string().optional().describe("URL of the user's home page"),
+  location: z.string().optional().describe("Location of the user"),
+  roles: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Roles to assign to the user (e.g., ['Contributor', 'Editor'])"
+    ),
+  sendPasswordReset: z
+    .boolean()
+    .optional()
+    .describe(
+      "If true, send a password reset email to the user instead of setting the password directly"
+    ),
+});
+
+const PloneUpdateUserSchema = z.object({
+  userid: z.string().describe("The ID of the user to update"),
+  email: z.string().optional().describe("New email address"),
+  fullname: z.string().optional().describe("New full name"),
+  description: z
+    .string()
+    .optional()
+    .describe("New biography or description"),
+  home_page: z.string().optional().describe("New home page URL"),
+  location: z.string().optional().describe("New location"),
+  roles: z
+    .record(z.boolean())
+    .optional()
+    .describe(
+      "Roles to add or remove, as an object mapping role names to booleans (e.g., {Contributor: true, Editor: false})"
+    ),
+});
+
 // =============================================================================
 // SECTION 4: MAIN MCP SERVER CLASS
 // =============================================================================
@@ -686,6 +730,30 @@ class PloneMCPServer {
       },
       async (args) => this.handleRemoveBlock(args)
     );
+
+    // User management tools
+    this.server.registerTool(
+      "plone_create_user",
+      {
+        title: "Create Plone User",
+        description:
+          "Creates a new user in the Plone site. Requires Manager role or self-registration to be enabled. Example: plone_create_user({username: 'jdoe', password: 'secret', email: 'jdoe@example.com', fullname: 'John Doe', roles: ['Contributor']})",
+        inputSchema: PloneCreateUserSchema.shape,
+      },
+      async (args) => this.handleCreateUser(args)
+    );
+
+    this.server.registerTool(
+      "plone_update_user",
+      {
+        title: "Update Plone User",
+        description:
+          "Updates an existing user's properties in Plone. Requires Manager role or the user updating their own account. Roles are specified as an object mapping role names to booleans to add or remove them. Example: plone_update_user({userid: 'jdoe', fullname: 'Jane Doe', roles: {Editor: true, Contributor: false}})",
+        inputSchema: PloneUpdateUserSchema.shape,
+      },
+      async (args) => this.handleUpdateUser(args)
+    );
+
   }
 
   // =============================================================================
@@ -1050,6 +1118,87 @@ class PloneMCPServer {
       };
     } catch (error) {
       throw this.wrapError("TransitionWorkflow", error);
+    }
+  }
+
+  // =============================================================================
+  // TOOL HANDLERS - User Management
+  // =============================================================================
+
+  private async handleCreateUser(args: unknown): Promise<CallToolResult> {
+    try {
+      const parsedArgs = PloneCreateUserSchema.parse(args);
+      const client = this.requireClient();
+      const {
+        username,
+        password,
+        email,
+        fullname,
+        description,
+        home_page,
+        location,
+        roles,
+        sendPasswordReset,
+      } = parsedArgs;
+
+      const data: Record<string, any> = { username, password };
+
+      if (email !== undefined) data.email = email;
+      if (fullname !== undefined) data.fullname = fullname;
+      if (description !== undefined) data.description = description;
+      if (home_page !== undefined) data.home_page = home_page;
+      if (location !== undefined) data.location = location;
+      if (roles !== undefined) data.roles = roles;
+      if (sendPasswordReset !== undefined)
+        data.sendPasswordReset = sendPasswordReset;
+
+      const user = await client.post("/@users", data);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(user, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      throw this.wrapError("CreateUser", error);
+    }
+  }
+
+  private async handleUpdateUser(args: unknown): Promise<CallToolResult> {
+    try {
+      const parsedArgs = PloneUpdateUserSchema.parse(args);
+      const client = this.requireClient();
+      const { userid, ...fields } = parsedArgs;
+
+      const data: Record<string, any> = {};
+
+      if (fields.email !== undefined) data.email = fields.email;
+      if (fields.fullname !== undefined) data.fullname = fields.fullname;
+      if (fields.description !== undefined)
+        data.description = fields.description;
+      if (fields.home_page !== undefined) data.home_page = fields.home_page;
+      if (fields.location !== undefined) data.location = fields.location;
+      if (fields.roles !== undefined) data.roles = fields.roles;
+
+      if (Object.keys(data).length === 0) {
+        throw new Error("No changes specified for update");
+      }
+
+      await client.patch(`/@users/${userid}`, data);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Successfully updated user: ${userid}`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw this.wrapError("UpdateUser", error);
     }
   }
 
