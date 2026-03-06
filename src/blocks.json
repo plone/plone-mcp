@@ -315,5 +315,106 @@
       },
       "required": ["blocks", "blocks_layout"]
     }
+  },
+  "listing": {
+    "description": "The Listing block displays a list or grid of content items based on a query. It supports filtering by content type, path, title, description, creator, dates, tags, workflow state, text fields, and various sorting options. Different variations provide different visual layouts: default (simple list), summary (list with images), grid (card grid), and imageGallery (image slider).",
+    "inputSchema": {
+      "blockData": {
+        "headline": {
+          "type": "string",
+          "description": "Title displayed above the listing"
+        },
+        "headlineTag": {
+          "type": "string",
+          "enum": ["h2", "h3"],
+          "description": "HTML heading tag for the headline",
+          "default": "h2"
+        },
+        "variation": {
+          "type": "string",
+          "enum": ["default", "summary", "grid", "imageGallery"],
+          "description": "Visual layout variation: 'default' (simple list), 'summary' (list with preview images), 'grid' (card grid layout), 'imageGallery' (image slider/carousel)",
+          "default": "default"
+        },
+        "querystring": {
+          "type": "object",
+          "description": "Query configuration for filtering and sorting content",
+          "properties": {
+            "query": {
+              "type": "array",
+              "description": "Array of query criteria to filter content. Multiple criteria are combined with AND logic.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "i": {
+                    "type": "string",
+                    "enum": ["portal_type", "path", "Title", "Description", "SearchableText", "Creator", "getId", "review_state", "Subject", "created", "modified"],
+                    "description": "Index/field to query: 'portal_type' (content type), 'path' (location), 'Title' (title text), 'Description' (description text), 'SearchableText' (full-text search across all text fields), 'Creator' (content author username), 'getId' (short name/ID of the content), 'review_state' (workflow state), 'Subject' (tags/keywords), 'created' (creation date), 'modified' (modification date)"
+                  },
+                  "o": {
+                    "type": "string",
+                    "enum": [
+                      "plone.app.querystring.operation.selection.any",
+                      "plone.app.querystring.operation.selection.none",
+                      "plone.app.querystring.operation.selection.all",
+                      "plone.app.querystring.operation.string.absolutePath",
+                      "plone.app.querystring.operation.string.relativePath",
+                      "plone.app.querystring.operation.string.contains",
+                      "plone.app.querystring.operation.string.is",
+                      "plone.app.querystring.operation.string.isNot",
+                      "plone.app.querystring.operation.string.currentUser",
+                      "plone.app.querystring.operation.date.largerThan",
+                      "plone.app.querystring.operation.date.lessThan"
+                    ],
+                    "description": "Operation to apply. Selection operations: 'selection.any' (matches any of the values), 'selection.none' (excludes all of the values), 'selection.all' (must match all values). String operations: 'string.contains' (text contains substring), 'string.is' (exact match), 'string.isNot' (does not match). Path operations: 'string.absolutePath' (absolute path, value is 'UID::depth'), 'string.relativePath' (relative path, e.g. './' for current, '../' for parent). Special: 'string.currentUser' (matches the currently logged-in user, use with Creator index and empty string value). Date operations: 'date.largerThan' (after date), 'date.lessThan' (before date), values in 'YYYY-MM-DD' format."
+                  },
+                  "v": {
+                    "type": ["string", "array"],
+                    "description": "Query value(s). Use an array of strings for selection operations (portal_type, review_state, Subject, Creator with selection.any/none/all). Use a single string for string operations (Title, Description, SearchableText, getId, Creator with currentUser). For absolutePath, format is 'UID::depth' where UID is the target folder's UID and depth limits subfolder traversal. For relativePath, use './' (current location) or '../' (parent). For date operations, use 'YYYY-MM-DD' format. Common portal_type values: 'Document', 'News Item', 'Event', 'File', 'Image', 'Link', 'Collection', 'Discussion Item', 'Person'."
+                  }
+                },
+                "required": ["i", "o", "v"]
+              }
+            },
+            "sort_on": {
+              "type": "string",
+              "enum": ["sortable_title", "effective", "created", "modified", "getObjPositionInParent", "start", "end", "review_state"],
+              "description": "Field to sort results by: 'sortable_title' (alphabetical), 'effective' (publication date), 'created' (creation date), 'modified' (last modified), 'getObjPositionInParent' (manual folder order), 'start'/'end' (event dates), 'review_state' (workflow state)"
+            },
+            "sort_order": {
+              "type": "string",
+              "enum": ["ascending", "descending"],
+              "description": "Sort direction",
+              "default": "ascending"
+            },
+            "sort_order_boolean": {
+              "type": "boolean",
+              "description": "Set to true when sort_order is 'descending' to enable reverse sorting. Only needed when sort_order is 'descending'."
+            },
+            "b_size": {
+              "type": "string",
+              "description": "Batch/page size - number of items to display per page (e.g., '2', '4', '5'). Enables pagination when set."
+            },
+            "limit": {
+              "type": "string",
+              "description": "Maximum total number of items to return (e.g., '2', '4', '6'). Unlike b_size, this limits the total results, not just per page."
+            }
+          },
+          "required": ["query"]
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["default", "grey"],
+          "description": "Background theme for the listing block",
+          "default": "default"
+        },
+        "styles": {
+          "type": "object",
+          "description": "Style overrides (typically empty object)",
+          "default": {}
+        }
+      },
+      "required": ["querystring", "variation"]
+    }
   }
 }
