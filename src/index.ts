@@ -579,7 +579,7 @@ class PloneMCPServer {
       {
         title: "Update Plone Content",
         description:
-          "Modifies an existing content item in Plone. Can update metadata (like title) and/or replace the entire block structure. Use `plone_create_blocks_layout` to prepare complex block updates. Example: plone_update_content({path: '/my-page', title: 'Updated Title'})",
+          "Modifies an existing content item in Plone. Can update metadata (like title) and/or replace the entire block structure. Use `plone_create_blocks_layout` to prepare complex block updates or use the `plone_add_single_block` and `plone_update_single_block` tools for smaller changes. DO NOT edit the block structure directly. Example: plone_update_content({path: '/my-page', title: 'Updated Title'})",
         inputSchema: PloneUpdateContentSchema.shape,
       },
       async (args) => this.handleUpdateContent(args)
@@ -1409,11 +1409,28 @@ class PloneMCPServer {
         );
       }
 
-      // Update the specific block
-      blocks[blockId] = {
-        ...blocks[blockId],
-        ...blockData,
-      };
+      const existingBlock = blocks[blockId];
+      const blockType = blockData["@type"] || existingBlock["@type"];
+      const mergedData = { ...existingBlock, ...blockData };
+
+      // Validate image URL format before processing
+      if (blockType === "image" && mergedData?.url) {
+        const isValid = this.validateImageURL(mergedData.url);
+        if (!isValid) {
+          throw this.wrapError(
+            "UpdateBlock",
+            `Invalid or inaccessible image URL: ${mergedData.url}`
+          );
+        }
+      }
+      
+      try {
+        blocks[blockId] = this.processBlock(blockType, mergedData);
+      } catch (error) {
+        throw new Error(
+          `Error processing block data: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
 
       // Update the content
       const updatedContent = await client.patch(path, { blocks });

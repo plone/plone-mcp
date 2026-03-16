@@ -23,18 +23,26 @@ function processSlateBlock(
   blockData: Record<string, any>,
   _context: BlockProcessingContext
 ): Record<string, any> {
-  // If value already exists, preserve it (pre-parsed Slate format)
+  // If 'text' is provided, always derive value from it.
+  if (blockData.text !== undefined) {
+    const textContent = blockData.text || "";
+    return {
+      "@type": "slate",
+      ...blockData,
+      plaintext: textContent,
+      value: markdownParse(textContent),
+    };
+  }
+
+  // If only 'value' is provided, trust it as pre-parsed Slate format
   if (blockData.value) {
     return { "@type": "slate", ...blockData };
   }
 
-  // Parse text field into Slate format
-  const textContent = blockData.text || "";
   return {
     "@type": "slate",
-    plaintext: textContent,
-    value: markdownParse(textContent),
-    theme: blockData.theme || "default",
+    plaintext: "",
+    value: markdownParse(""),
   };
 }
 
@@ -142,7 +150,6 @@ function processGridBlock(
   const processedData: Record<string, any> = {
     ...blockData,
     "@type": "gridBlock",
-    theme: blockData.theme || "default",
   };
 
   if (!blockData.blocks || typeof blockData.blocks !== "object") {
