@@ -60,7 +60,8 @@ function processImageBlock(
   ) {
     throw context.wrapError(
       "ProcessBlock",
-      `Missing or invalid image URL: ${String(blockData?.url)}`
+      `Image blocks currently only support public image URLs. File attachments are not supported yet. Received: ${String(blockData?.url)}`
+
     );
   }
   return { ...blockData, "@type": "image" };
