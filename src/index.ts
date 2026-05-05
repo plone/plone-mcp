@@ -221,9 +221,9 @@ export class PloneClient {
     return response.data;
   }
 
-  async delete(path: string): Promise<any> {
+  async delete(path: string, data?: Record<string, any>): Promise<any> {
     const normalizedPath = this.normalizePath(path);
-    const response = await this.axios.delete(normalizedPath);
+    const response = await this.axios.delete(normalizedPath, { data });
     return response.data;
   }
 }
@@ -429,6 +429,28 @@ const PloneGetBlockSchemasSchema = z.object({
     .optional()
     .describe(
       "Specific block type to get schema for (optional, returns all if not specified)."
+    ),
+});
+
+// Translation schemas
+
+const PloneGetTranslationSchema = z.object({
+  path: z.string().describe("Path to the content item (e.g., '/en/my-page')"),
+});
+
+const PloneUnlinkTranslationSchema = z.object({
+  path: z.string().describe("Path to the content item to unlink a translation from"),
+  language: z
+    .string()
+    .describe("Language code of the translation to unlink (e.g., 'de', 'fr')"),
+});
+
+const PloneLinkTranslationSchema = z.object({
+  path: z.string().describe("Path to the source content item"),
+  id: z
+    .string()
+    .describe(
+      "The path of the content item to link as a translation (e.g., '/es/test-document')."
     ),
 });
 
@@ -729,6 +751,39 @@ class PloneMCPServer {
         inputSchema: PloneRemoveBlockSchema.shape,
       },
       async (args) => this.handleRemoveBlock(args)
+    );
+
+    // Translation tools
+
+    this.server.registerTool(
+      "plone_get_translation",
+      {
+        title: "Get Translations of a Content Item",
+        description: "Retrieves all available translations for a content item , identified by its '@id' (URL). Example: plone_get_translation({path: '/en/my-page'})",
+        inputSchema: PloneGetTranslationSchema.shape,
+
+      },
+      async (args) => this.handleGetTranslation(args)
+    );
+    this.server.registerTool(
+      "plone_link_translation",
+      {
+        title: "Link multilingual content items",
+        description:
+          "Links an existing content item as a translation of another. Both items must already exist. Passing the '@id' (full URL) of the existing content item. Example: plone_link_translation({path: '/en/my-page', id: 'https://example.com/de/meine-seite'})",
+        inputSchema: PloneLinkTranslationSchema.shape,
+      },
+      async (args) => this.handleLinkTranslation(args)
+    );
+    this.server.registerTool(
+      "plone_unlink_translation",
+      {
+        title: "Unlink Translation",
+        description:
+          "Removes the translation link between a content item and one of its translations, identified by language code. Example: plone_unlink_translation({path: '/en/my-page', language: 'de'})",
+        inputSchema: PloneUnlinkTranslationSchema.shape,
+      },
+      async (args) => this.handleUnlinkTranslation(args)
     );
 
     // User management tools
@@ -1122,6 +1177,74 @@ class PloneMCPServer {
   }
 
   // =============================================================================
+  // TOOL HANDLERS - Translations
+  // =============================================================================
+
+  private async handleGetTranslation(args: unknown): Promise<CallToolResult> {
+    try {
+      const { path } = PloneGetTranslationSchema.parse(args);
+      const client = this.requireClient();
+
+      const result = await client.get(`${path}/@translations`);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      throw this.wrapError("GetTranslations", error);
+    }
+  }
+
+  private async handleLinkTranslation(args: unknown): Promise<CallToolResult> {
+    try {
+      const { path, id } = PloneLinkTranslationSchema.parse(args);
+      const client = this.requireClient();
+
+      const result = await client.post(`${path}/@translations`, {
+        id,
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      throw this.wrapError("LinkTranslation", error);
+    }
+  }
+
+  private async handleUnlinkTranslation(
+    args: unknown
+  ): Promise<CallToolResult> {
+    try {
+      const { path, language } = PloneUnlinkTranslationSchema.parse(args);
+      const client = this.requireClient();
+
+      await client.delete(`${path}/@translations`, { language });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Successfully unlinked '${language}' translation from '${path}'.`,
+          },
+        ],
+      };
+    } catch (error) {
+      throw this.wrapError("UnlinkTranslation", error);
+    }
+  }
+
+  // =============================================================================
   // TOOL HANDLERS - User Management
   // =============================================================================
 
@@ -1423,7 +1546,7 @@ class PloneMCPServer {
           );
         }
       }
-      
+
       try {
         blocks[blockId] = this.processBlock(blockType, mergedData);
       } catch (error) {
@@ -1718,7 +1841,7 @@ class PloneMCPServer {
           },
           "grid-block-3": {
             "@type": "teaser",
-            href: [{"@id": "https://example.com/target/page"}]
+            href: [{ "@id": "https://example.com/target/page" }]
           }
         },
         blocks_layout: {
