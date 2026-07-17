@@ -1,11 +1,11 @@
 {
-  "name": "plone-mcp-server",
+  "name": "plone-mcp",
   "version": "1.0.0",
   "description": "Model Context Protocol server for Plone CMS REST API integration",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
-    "plone-mcp-server": "dist/index.js"
+    "plone-mcp": "dist/index.js"
   },
   "files": [
     "dist"
