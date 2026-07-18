@@ -1,0 +1,186 @@
+name: Acceptance Tests
+
+on:
+  # Run on pull requests and manual dispatch
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      plone_url:
+        description: 'Plone test site URL'
+        required: false
+        default: 'https://plone-intranet.kitconcept.com'
+      skip_cleanup:
+        description: 'Skip test page cleanup (for debugging)'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  acceptance-tests:
+    runs-on: ubuntu-latest
+    
+    # Only run if we have access to secrets (not on forks)
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'workflow_dispatch'
+    
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build project
+      run: npm run build
+
+    - name: Run unit and integration tests first
+      run: npm run test:ci
+
+    - name: Setup test environment variables
+      run: |
+        echo "PLONE_TEST_URL=${{ github.event.inputs.plone_url || secrets.PLONE_TEST_URL || 'https://plone-intranet.kitconcept.com' }}" >> $GITHUB_ENV
+        echo "PLONE_TEST_USER=${{ secrets.PLONE_TEST_USER || 'admin' }}" >> $GITHUB_ENV
+        echo "PLONE_TEST_PASS=${{ secrets.PLONE_TEST_PASS || 'admin' }}" >> $GITHUB_ENV
+        echo "CI_RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
+        echo "CI_ATTEMPT=${{ github.run_attempt }}" >> $GITHUB_ENV
+
+    - name: Wait for potential rate limiting
+      run: sleep 10
+
+    - name: Run Hello World acceptance test
+      id: hello_world_test
+      run: |
+        # Set cleanup preference
+        if [ "${{ github.event.inputs.skip_cleanup }}" = "true" ]; then
+          export SKIP_CLEANUP=true
+        fi
+        
+        # Run the test with timeout
+        timeout 300 npm run test:acceptance:hello-world-direct || {
+          echo "Test failed or timed out"
+          exit 1
+        }
+      env:
+        PLONE_TEST_URL: ${{ env.PLONE_TEST_URL }}
+        PLONE_TEST_USER: ${{ env.PLONE_TEST_USER }}
+        PLONE_TEST_PASS: ${{ env.PLONE_TEST_PASS }}
+
+    - name: Test summary
+      if: always()
+      run: |
+        echo "## Acceptance Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "- **Node.js version**: ${{ matrix.node-version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Test site**: ${{ env.PLONE_TEST_URL }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Test result**: ${{ steps.hello_world_test.outcome }}" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ steps.hello_world_test.outcome }}" = "success" ]; then
+          echo "- **Status**: ✅ All acceptance tests passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- **Status**: ❌ Acceptance tests failed" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Cleanup on failure
+      if: failure() && github.event.inputs.skip_cleanup != 'true'
+      run: |
+        echo "Attempting cleanup after test failure..."
+        # Add any specific cleanup commands here
+        # This could include deleting test pages that might have been left behind
+
+  acceptance-tests-with-docker:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    services:
+      plone:
+        image: plone/plone-backend:6.0
+        env:
+          SITE_ID: Plone
+          ADMIN_USER: admin
+          ADMIN_PASSWORD: admin
+          CORS_ALLOW_ORIGIN: "*"
+        ports:
+          - 8080:8080
+        options: >-
+          --health-cmd "curl -f http://localhost:8080/Plone || exit 1"
+          --health-interval 30s
+          --health-timeout 10s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build project
+      run: npm run build
+
+    - name: Wait for Plone to be ready
+      run: |
+        echo "Waiting for Plone to be ready..."
+        timeout 300 bash -c 'until curl -f http://localhost:8080/Plone; do sleep 5; done'
+        echo "Plone is ready!"
+
+    - name: Setup Plone test site
+      run: |
+        # Create test content or setup as needed
+        curl -X POST http://localhost:8080/Plone \
+          -H "Content-Type: application/json" \
+          -u admin:admin \
+          -d '{"@type": "Folder", "id": "test-area", "title": "Test Area"}'
+
+    - name: Run acceptance tests against Docker Plone
+      run: |
+        export PLONE_TEST_URL="http://localhost:8080/Plone"
+        export PLONE_TEST_USER="admin"
+        export PLONE_TEST_PASS="admin"
+        npm run test:acceptance:hello-world-direct
+
+    - name: Docker logs on failure
+      if: failure()
+      run: |
+        echo "=== Plone Docker Logs ==="
+        docker logs $(docker ps -q --filter ancestor=plone/plone-backend:6.0)
+
+  functional-tests:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build project
+      run: npm run build
+
+    - name: Run functional tests
+      run: npm run test:functional
+      env:
+        PLONE_TEST_URL: ${{ secrets.PLONE_TEST_URL || 'https://plone-intranet.kitconcept.com' }}
+        PLONE_TEST_USER: ${{ secrets.PLONE_TEST_USER || 'admin' }}
+        PLONE_TEST_PASS: ${{ secrets.PLONE_TEST_PASS || 'admin' }}
