@@ -5,20 +5,15 @@ A Model Context Protocol (MCP) server for integrating MCP clients with Plone CMS
 ## Prerequisites
 
 - **Node.js 18+** - Required to run the server (install: `brew install node` on macOS or from [nodejs.org](https://nodejs.org))
-- **pnpm 8+** - Package manager (install: `npm install -g pnpm` or `brew install pnpm` on macOS)
 - **Plone 6.0+** site with REST API - The CMS you'll be connecting to
+
+> `pnpm` is only needed if you want to clone the repo and develop locally (see [Local Development](#local-development)). The recommended setup below uses `npx` and doesn't require cloning anything.
 
 ## Quick Start using Claude Desktop as an example
 
-1. **Install**
-```bash
-git clone https://github.com/plone/plone-mcp.git
-cd plone-mcp
-pnpm install
-pnpm run build
-```
+The easiest way to run the server is directly from GitHub via `npx` — no cloning, no manual build step required.
 
-2. **Configure Claude Desktop**
+1. **Configure Claude Desktop**
 
 Add to Claude's configuration file:
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -29,8 +24,8 @@ Add to Claude's configuration file:
 {
   "mcpServers": {
     "plone": {
-      "command": "node",
-      "args": ["/absolute/path/to/plone-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["--yes", "github:plone/plone-mcp", "plone-mcp"],
       "env": {
         "PLONE_BASE_URL": "https://demo.plone.org",
         "PLONE_USERNAME": "admin",
@@ -41,21 +36,23 @@ Add to Claude's configuration file:
 }
 ```
 
-**Without environment variables:**
+**Without environment variables** (useful if you connect to different Plone sites and prefer to pass credentials per session via `plone_configure`):
 ```json
 {
   "mcpServers": {
     "plone": {
-      "command": "node",
-      "args": ["/absolute/path/to/plone-mcp/dist/index.js"]
+      "command": "npx",
+      "args": ["--yes", "github:plone/plone-mcp", "plone-mcp"]
     }
   }
 }
 ```
 
-3. **Restart Claude Desktop**
+On first launch, `npx` downloads the repository and builds it automatically (via the package's `prepare` script). Subsequent launches use the cached build, so startup is fast after the first run.
 
-4. **Connect to Plone**
+2. **Restart Claude Desktop**
+
+3. **Connect to Plone**
 
 Call `plone_configure` once per session:
 
@@ -77,6 +74,43 @@ plone_configure({
 ```
 
 **Note:** Arguments take precedence over environment variables.
+
+## Local Development
+
+Clone the repo if you want to modify the server, debug it, or run it with the MCP Inspector:
+
+```bash
+git clone https://github.com/plone/plone-mcp.git
+cd plone-mcp
+pnpm install
+pnpm run build
+```
+
+Point Claude Desktop at your local build instead of the `npx` command:
+
+```json
+{
+  "mcpServers": {
+    "plone": {
+      "command": "node",
+      "args": ["/absolute/path/to/plone-mcp/dist/index.js"]
+    }
+  }
+}
+```
+
+Development commands:
+
+```bash
+# Development mode with hot reload
+pnpm run dev
+
+# Test with MCP Inspector
+pnpm run inspector
+
+# Build for production
+pnpm run build
+```
 
 ## Core Features
 
@@ -207,28 +241,16 @@ plone_search({
 
 ⚠️ **Configure once per session** - Run `plone_configure` once at the start of each session before using other tools. Once configured, you can use all other tools without reconfiguring.
 
-## Development
-
-```bash
-# Development mode with hot reload
-pnpm run dev
-
-# Test with MCP Inspector
-pnpm run inspector
-
-# Build for production
-pnpm run build
-```
-
 ## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
+| `command not found` when using `npx` | Make sure the `args` in your config use `plone-mcp` as the binary name (not `plone-mcp-server`) — this was renamed in the package. |
 | "Plone client not configured" | Run `plone_configure` once at the start of your session |
 | "Block not found" | Use `plone_get_content` to get valid block IDs |
 | Connection errors | Verify Plone URL and credentials are correct |
 | Blocks not applied | Call `plone_create_blocks_layout` immediately before create/update (60s TTL) |
-| TypeScript errors during build | Run `pnpm install` to ensure all dependencies are installed |
+| TypeScript errors during local build | Run `pnpm install` to ensure all dependencies are installed |
 
 ## Resources
 
