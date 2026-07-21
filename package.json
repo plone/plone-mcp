@@ -16,7 +16,11 @@
     "type-check:src": "tsc --project tsconfig.json --noEmit",
     "type-check:tests": "tsc --project tsconfig.test.json --noEmit",
     "type-check": "pnpm run type-check:src && pnpm run type-check:tests",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:unit": "vitest run __tests__/unit",
+    "test:integration": "vitest run __tests__/integration",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "main": "dist/http-server.js",
   "bin": {

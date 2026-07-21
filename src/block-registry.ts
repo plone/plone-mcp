@@ -1,8 +1,14 @@
 /// <reference types="node" />
-import blocksJson from "./blocks.json" with { type: "json" };
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
-// Load block specifications from JSON
-export const blocksSpecification = blocksJson;
+// Load block specifications from JSON.
+// Read from disk instead of using an import attribute (`with { type: "json" }`),
+// which is not supported by all Node versions the MCP host may spawn.
+const blocksJsonPath = fileURLToPath(new URL("./blocks.json", import.meta.url));
+export const blocksSpecification = JSON.parse(
+  readFileSync(blocksJsonPath, "utf-8"),
+) as Record<string, unknown>;
 
 /**
  * BlockRegistry for centralizing block type management
