@@ -8,19 +8,21 @@ const inputSchema = z.object({
   root_path: z
     .string()
     .optional()
-    .describe("Starting point for navigation tree (defaults to portal root)"),
+    .describe(
+      "Path whose navigation root determines the tree (defaults to portal root). Note: the tree is rooted at the nearest navigation root of this path (e.g. the language folder on multilingual sites), not at the path itself.",
+    ),
   depth: z
     .number()
     .optional()
     .default(2)
-    .describe("How deep to traverse in the navigation tree"),
+    .describe("How many levels of the navigation tree to include"),
 });
 
 export const ploneGetNavigationTree = {
   config: {
     name: "plone_get_navigation_tree",
     description:
-      "Get hierarchical navigation tree from any point in the site. Essential for understanding content organization and relationships. Example: plone_get_navigation_tree({root_path: '/documentation', depth: 3})",
+      "Get the site navigation tree as seen from a given path. The tree is rooted at the nearest navigation root (the site root, or the language folder on multilingual sites) — use depth to include nested levels, then look up the relevant subtree in the result. Example: plone_get_navigation_tree({root_path: '/en/documentation', depth: 3})",
     inputSchema,
   },
   handler: async (
@@ -40,9 +42,10 @@ export const ploneGetNavigationTree = {
         ? `${normalizedRootPath}/@navigation`
         : "/@navigation";
 
-      // Build query parameters for navigation
+      // @navigation reads the depth from the expansion parameter, a bare
+      // `depth` query param is silently ignored
       const params: Record<string, unknown> = {
-        depth: typeof depth === "number" ? depth : 2,
+        "expand.navigation.depth": typeof depth === "number" ? depth : 2,
       };
 
       // Use the @navigation endpoint

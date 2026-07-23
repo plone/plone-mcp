@@ -30,10 +30,16 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run linting
-        run: pnpm run lint || echo "Linting not configured"
+        run: pnpm run lint
+
+      - name: Type-check sources and tests
+        run: pnpm run type-check
 
       - name: Build project
         run: pnpm run build
+
+      - name: Smoke-test built server
+        run: node dist/stdio-server.js < /dev/null
 
       - name: Run unit tests
         run: pnpm run test:unit

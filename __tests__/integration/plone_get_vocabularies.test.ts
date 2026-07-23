@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Nock , PloneMockServer } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneGetVocabularies } from "plone-mcp/tools/plone_get_vocabularies";
 import { PloneClient } from "plone-mcp/plone-client";
@@ -45,6 +45,25 @@ describe("plone_get_vocabularies", () => {
     const result = await ploneGetVocabularies.handler(args, mockExtra);
 
     expect(JSON.parse(result.content[0].text)).toEqual(mockVocabularyResponse);
+    expect(Nock.isDone()).toBe(true);
+  });
+
+  it("should list all vocabularies when no name is given", async () => {
+    const mockListResponse = {
+      "@id": `${testBaseUrl}/++api++/@vocabularies`,
+      items: [
+        { "@id": `${testBaseUrl}/++api++/@vocabularies/${testVocabulary}`, title: testVocabulary },
+        { "@id": `${testBaseUrl}/++api++/@vocabularies/plone.app.vocabularies.PortalTypes`, title: "plone.app.vocabularies.PortalTypes" },
+      ],
+    };
+    Nock(testBaseUrl)
+      .get("/++api++/@vocabularies")
+      .reply(200, mockListResponse);
+
+    const args = { vocabulary: undefined, title: undefined, token: undefined };
+    const result = await ploneGetVocabularies.handler(args, mockExtra);
+
+    expect(JSON.parse(result.content[0].text)).toEqual(mockListResponse);
     expect(Nock.isDone()).toBe(true);
   });
 

@@ -1,11 +1,11 @@
+import path from "node:path";
 import { defineConfig } from "vitest/config";
-import path from "path";
 
 export default defineConfig({
   test: {
     globals: true,
-    environment: "node", // Keeping 'node' as per Jest config
-    setupFiles: ["./__tests__/setup.ts"], // Vitest's equivalent of setupFilesAfterEnv
+    environment: "node",
+    setupFiles: ["./__tests__/setup.ts"],
     include: ["__tests__/**/*.{test,spec}.{ts,js}"], // Limit discovery to repo tests
     exclude: ["node_modules", "dist", ".idea", ".git", ".cache"], // Default excludes
     pool: "threads", // Forked workers were crashing in CI, stick to threads
@@ -15,16 +15,13 @@ export default defineConfig({
       include: ["src/**/*.ts"],
       exclude: [
         "src/**/*.d.ts",
-        "src/index.ts", // Exclude main entry point if it's just bootstrapping
-        "src/plone-mcp-server.ts", // Exclude specific server file
+        // Transport bootstrap files; exercised by the CI smoke test instead
+        "src/stdio-server.ts",
+        "src/http-server.ts",
       ],
     },
-    testTimeout: 10000, // 10 seconds, matching Jest's testTimeout
+    testTimeout: 10000,
     alias: {
-      "xmcp/headers": path.resolve(
-        __dirname,
-        "./__tests__/mocks/xmcp-headers.ts",
-      ),
       "plone-mcp/__tests__": path.resolve(__dirname, "./__tests__"),
       "plone-mcp": path.resolve(__dirname, "./src"),
     },

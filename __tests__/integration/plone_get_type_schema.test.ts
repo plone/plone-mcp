@@ -1,11 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { Nock, PloneMockServer } from "plone-mcp/__tests__/utils/test-helpers";
+import { Nock } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneGetTypeSchema } from "plone-mcp/tools/plone_get_type_schema";
 import { sessionManager } from "plone-mcp/session-manager";
 import { PloneClient } from "plone-mcp/plone-client";
 
 describe("plone_get_type_schema", () => {
-  let mockServer: PloneMockServer;
   const testBaseUrl = "http://localhost:8080/Plone";
   const sessionId = "test-session-id";
   const mockExtra = {
@@ -15,7 +14,6 @@ describe("plone_get_type_schema", () => {
   } as any;
 
   beforeEach(() => {
-    mockServer = new PloneMockServer(testBaseUrl);
     const service = sessionManager.getSession(sessionId);
     service.client = new PloneClient({ baseUrl: testBaseUrl });
   });

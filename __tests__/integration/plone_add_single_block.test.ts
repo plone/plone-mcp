@@ -152,6 +152,7 @@ describe("plone_add_single_block", () => {
     );
     expect(BlockUtils.validateImageURL).toHaveBeenCalledWith(
       "http://example.com/image.jpg",
+      "http://localhost:8080/Plone",
     );
     expect(Nock.isDone()).toBe(true);
   });
@@ -175,6 +176,7 @@ describe("plone_add_single_block", () => {
     );
     expect(BlockUtils.validateImageURL).toHaveBeenCalledWith(
       "http://invalid.com/image.jpg",
+      "http://localhost:8080/Plone",
     );
     expect(Nock.pendingMocks()).toHaveLength(0); // No patch request should have been made
   });

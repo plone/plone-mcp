@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
-import express, { Request, Response } from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import { createServer } from "./server.js";
 import { sessionManager } from "./session-manager.js";
+import type { Request, Response } from "express";
 
 /**
  * Entry point for the Plone MCP Server running over HTTP with stateful sessions.
@@ -113,11 +113,13 @@ app.listen(PORT, () => {
   console.log(`Plone MCP Server (HTTP) listening on port ${PORT}`);
 });
 
-// Graceful shutdown
-process.on("SIGINT", async () => {
-console.log("Shutting down...");
-for (const transport of transports.values()) {
-  await transport.close();
-}
-process.exit(0);
-});
+// Graceful shutdown (SIGINT for local runs, SIGTERM for containers)
+const shutdown = async () => {
+  console.log("Shutting down...");
+  for (const transport of transports.values()) {
+    await transport.close();
+  }
+  process.exit(0);
+};
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);

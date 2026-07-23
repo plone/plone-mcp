@@ -138,6 +138,7 @@ describe("plone_create_blocks_layout", () => {
     }
     expect(BlockUtils.validateImageURL).toHaveBeenCalledWith(
       "http://example.com/image.jpg",
+      undefined,
     );
   });
 
@@ -154,6 +155,7 @@ describe("plone_create_blocks_layout", () => {
     );
     expect(BlockUtils.validateImageURL).toHaveBeenCalledWith(
       "http://invalid.com/image.jpg",
+      undefined,
     );
     const service = sessionManager.getSession(sessionId);
     expect(service.getPreparedBlocks()).toBeNull(); // Should be cleared on error

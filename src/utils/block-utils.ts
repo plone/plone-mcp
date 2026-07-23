@@ -1,4 +1,3 @@
-import "isomorphic-fetch";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import { markdownParse } from "../markdown-parser.js";
@@ -78,32 +77,101 @@ export function normalizeHref(
   );
 }
 
-// Validate if the url is an image address, to avoid creation of blank image blocks
-export async function validateImageURL(url: string): Promise<boolean> {
-  try {
-    // For data URLs, check MIME type
-    if (url.startsWith("data:")) {
-      return url.startsWith("data:image/");
-    }
+const IMAGE_VALIDATION_TIMEOUT_MS = 5000;
 
-    // For external URLs
-    const response = await fetch(url, {
-      method: "HEAD",
+async function fetchImageProbe(
+  url: string,
+  method: "HEAD" | "GET",
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    IMAGE_VALIDATION_TIMEOUT_MS,
+  );
+  try {
+    return await fetch(url, {
+      method,
       headers: {
         Accept: "image/*",
+        // Only probe the first byte when we have to fall back to GET
+        ...(method === "GET" ? { Range: "bytes=0-0" } : {}),
       },
+      signal: controller.signal,
     });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
-    if (!response.ok) {
-      return false;
-    }
+/**
+ * Validate that a URL plausibly points to an image, to avoid creating blank
+ * image blocks.
+ *
+ * Internal references — relative paths, resolveuid/ links, and URLs on the
+ * configured Plone site itself — are always accepted without probing: they
+ * point at an Image *content object* (whose @id serves HTML, not image
+ * bytes), and Plone resolves them server-side.
+ */
+export async function validateImageURL(
+  url: string,
+  baseUrl?: string,
+): Promise<boolean> {
+  // For data URLs, check MIME type
+  if (url.startsWith("data:")) {
+    return url.startsWith("data:image/");
+  }
 
-    const contentType = response.headers.get("Content-Type");
-    return contentType ? contentType.startsWith("image/") : false;
-  } catch (error) {
-    console.error(`Error validating image URL ${url}:`, error);
+  // Internal content references are resolved by Plone itself
+  if (url.startsWith("/") || url.startsWith("resolveuid/")) {
+    return true;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
     return false;
   }
+
+  // URLs on the configured site are trusted: the @id of an Image object
+  // serves an HTML page, so a Content-Type probe would reject valid refs
+  if (baseUrl) {
+    try {
+      if (parsed.origin === new URL(baseUrl).origin) {
+        return true;
+      }
+    } catch {
+      // Unparseable baseUrl - fall through to the external probe
+    }
+  }
+
+  let response: Response;
+  try {
+    response = await fetchImageProbe(url, "HEAD");
+    if (response.status === 405 || response.status === 501) {
+      // Server does not support HEAD; retry with a ranged GET
+      response = await fetchImageProbe(url, "GET");
+    }
+  } catch {
+    // Unreachable from this process does not mean unreachable for Plone
+    return true;
+  }
+
+  if (response.status === 404 || response.status === 410) {
+    return false;
+  }
+  if (!response.ok) {
+    return true;
+  }
+
+  const contentType = response.headers.get("Content-Type");
+  if (!contentType) {
+    return true;
+  }
+  return (
+    contentType.startsWith("image/") ||
+    contentType.startsWith("application/octet-stream")
+  );
 }
 
 // =============================================================================
@@ -180,6 +248,7 @@ function processTeaserBlock(
   context: BlockProcessingContext,
 ): Record<string, unknown> {
   const processedData: Record<string, unknown> = {
+    overwrite: false,
     ...blockData,
     "@type": "teaser",
   };
@@ -335,24 +404,35 @@ export function processBlock(
 export function getBlockExample(blockType: string): unknown {
   const examples: Record<string, unknown> = {
     teaser: {
-      href: [
-        {
-          "@id": "https://example.com/news/latest-updates",
+      _usage:
+        "In most cases pass ONLY href - the teaser automatically mirrors the target's title, description and image (the tool stores overwrite: false for you). Set overwrite: true ONLY when also providing custom values to replace the target's own.",
+      default: {
+        href: [
+          {
+            "@id": "https://example.com/news/latest-updates",
+          },
+        ],
+      },
+      withCustomValues: {
+        href: [
+          {
+            "@id": "https://example.com/news/latest-updates",
+          },
+        ],
+        overwrite: true,
+        title: "Latest Company Updates",
+        head_title: "News",
+        description: "Read about our recent achievements and announcements",
+        preview_image: [
+          {
+            "@id": "https://example.com/images/latest-updates-preview.jpg",
+            image_field: "image",
+          },
+        ],
+        theme: "default",
+        styles: {
+          align: "left",
         },
-      ],
-      overwrite: true,
-      title: "Latest Company Updates",
-      head_title: "News",
-      description: "Read about our recent achievements and announcements",
-      preview_image: [
-        {
-          "@id": "https://example.com/images/latest-updates-preview.jpg",
-          image_field: "image",
-        },
-      ],
-      theme: "default",
-      styles: {
-        align: "left",
       },
     },
     slate: {
@@ -385,7 +465,7 @@ export function getBlockExample(blockType: string): unknown {
       },
     },
     image: {
-      url: "https:/example.com/images/logo.png",
+      url: "https://example.com/images/logo.png",
       alt: "Logo",
     },
     gridBlock: {

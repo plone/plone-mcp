@@ -17,9 +17,9 @@ export const isValidUrl = (url: string): boolean => {
   }
 };
 
-// Configuration schema - all fields are optional to allow environment variable fallback
-// Note: Using simple optional() without refine() to avoid Zod version compatibility issues
-// with xmcp's bundled Zod. Validation is done in resolveConfig() instead.
+// Configuration schema - all fields are optional to allow environment variable
+// fallback. Non-empty-string validation is done in resolveConfig() so the
+// error messages can point at the matching environment variable.
 export const ConfigSchema = z.object({
   baseUrl: z.string().optional(),
   username: z.string().optional(),
@@ -116,6 +116,9 @@ export class PloneClient {
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
+        // Plone REST API answers PATCH with 204 No Content unless asked to
+        // return the updated object, which the update tools echo back.
+        Prefer: "return=representation",
       },
     });
 

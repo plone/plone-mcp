@@ -121,6 +121,7 @@ describe("plone-client", () => {
           headers: {
             Accept: "application/json",
             "Content-Type": "application/json",
+            Prefer: "return=representation",
           },
         })
       );
@@ -146,7 +147,7 @@ describe("plone-client", () => {
 
       it("should handle empty or null paths", () => {
         expect(client.normalizePath("")).toBe("");
-        // @ts-ignore - testing runtime behavior
+        // @ts-expect-error - testing runtime behavior with a non-string path
         expect(client.normalizePath(null)).toBe("");
       });
 

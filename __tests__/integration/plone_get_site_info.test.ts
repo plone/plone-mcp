@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Nock , PloneMockServer } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneGetSiteInfo } from "plone-mcp/tools/plone_get_site_info";
 import { PloneClient } from "plone-mcp/plone-client";

@@ -4,9 +4,16 @@ A Model Context Protocol (MCP) server for integrating MCP clients with Plone CMS
 
 ## Prerequisites
 
-- **Node.js 18+** - Required to run the server (install: `brew install node` on macOS or from [nodejs.org](https://nodejs.org))
-- **pnpm 8+** - Package manager (install: `npm install -g pnpm` or `brew install pnpm` on macOS)
+- **Node.js 22+** - Required to run the server and its tooling (`^20.19.0 || >=22.12.0`; install: `brew install node` on macOS or from [nodejs.org](https://nodejs.org))
+- **pnpm 10+** - Package manager (install: `npm install -g pnpm` or `brew install pnpm` on macOS)
 - **Plone 6.0+** site with REST API - The CMS you'll be connecting to
+
+## Transports
+
+The server ships two entry points:
+
+- **STDIO** (`dist/stdio-server.js`) - for local MCP clients such as Claude Desktop.
+- **HTTP** (`dist/http-server.js`) - a streamable-HTTP server with per-session state, listening on `PORT` (default `3001`) at `/mcp`. Start it with `pnpm start`.
 
 ## Quick Start using Claude Desktop as an example
 
@@ -30,7 +37,7 @@ Add to Claude's configuration file:
   "mcpServers": {
     "plone": {
       "command": "node",
-      "args": ["/absolute/path/to/plone-mcp/dist/index.js"],
+      "args": ["/absolute/path/to/plone-mcp/dist/stdio-server.js"],
       "env": {
         "PLONE_BASE_URL": "https://demo.plone.org",
         "PLONE_USERNAME": "admin",
@@ -47,7 +54,7 @@ Add to Claude's configuration file:
   "mcpServers": {
     "plone": {
       "command": "node",
-      "args": ["/absolute/path/to/plone-mcp/dist/index.js"]
+      "args": ["/absolute/path/to/plone-mcp/dist/stdio-server.js"]
     }
   }
 }
@@ -97,6 +104,10 @@ plone_configure({
 | `plone_delete_content` | Delete content | `plone_delete_content({path: "/old-page"})` |
 | `plone_search` | Search content | `plone_search({query: "news", portal_type: ["Document"]})` |
 | `plone_transition_workflow` | Change workflow state | `plone_transition_workflow({path: "/page", transition: "publish"})` |
+| `plone_get_navigation_tree` | Get hierarchical site structure | `plone_get_navigation_tree({root_path: "/", depth: 2})` |
+| `plone_get_translation` | List translations of a content item | `plone_get_translation({path: "/en/my-page"})` |
+| `plone_link_translation` | Link existing content as a translation | `plone_link_translation({path: "/en/my-page", id: "/de/meine-seite"})` |
+| `plone_unlink_translation` | Remove a translation link | `plone_unlink_translation({path: "/en/my-page", language: "de"})` |
 
 ## Block Management
 
@@ -210,14 +221,24 @@ plone_search({
 ## Development
 
 ```bash
-# Development mode with hot reload
-pnpm run dev
+# Build for production (compiles TypeScript and copies blocks.json)
+pnpm run build
+
+# Run the HTTP server / the STDIO server from the build
+pnpm start
+pnpm run stdio
+
+# Tests (Vitest)
+pnpm test              # everything
+pnpm run test:unit     # unit tests only
+pnpm run test:coverage # with coverage
+
+# Static checks
+pnpm run lint          # ESLint over src/ and __tests__/
+pnpm run type-check    # tsc over sources and tests
 
 # Test with MCP Inspector
-pnpm run inspector
-
-# Build for production
-pnpm run build
+npx @modelcontextprotocol/inspector node dist/stdio-server.js
 ```
 
 ## Troubleshooting
