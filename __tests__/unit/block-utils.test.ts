@@ -1,9 +1,10 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   generateBlockId,
   normalizeUrl,
   normalizeHref,
   processBlock,
+  validateImageURL,
 } from "../../src/utils/block-utils";
 import { markdownParse } from "../../src/markdown-parser";
 
@@ -11,9 +12,6 @@ import { markdownParse } from "../../src/markdown-parser";
 vi.mock("../../src/markdown-parser", () => ({
   markdownParse: vi.fn((text) => [{ type: "p", children: [{ text }] }]),
 }));
-
-// Mock fetch for validateImageURL if needed
-// global.fetch = vi.fn();
 
 describe("block-utils", () => {
   describe("generateBlockId", () => {
@@ -81,7 +79,8 @@ describe("block-utils", () => {
       const result = processBlock("teaser", blockData, "https://plone.com");
       expect(result).toEqual({
         "@type": "teaser",
-        href: [{ "@id": "https://plone.com/news" }]
+        href: [{ "@id": "https://plone.com/news" }],
+        overwrite: false
       });
     });
 
@@ -100,7 +99,8 @@ describe("block-utils", () => {
       expect(innerLayout).toHaveLength(1);
       const innerBlockId = innerLayout[0];
       expect(innerBlockId).not.toBe("b1"); // Should be a new ID
-      expect(result.blocks[innerBlockId]).toEqual(expect.objectContaining({
+      const innerBlocks = result.blocks as Record<string, unknown>;
+      expect(innerBlocks[innerBlockId]).toEqual(expect.objectContaining({
         "@type": "slate",
         plaintext: "Grid item"
       }));
@@ -109,6 +109,136 @@ describe("block-utils", () => {
     it("should use default processor for unknown block types", () => {
       const result = processBlock("unknown", { some: "data" });
       expect(result).toEqual({ "@type": "unknown", some: "data" });
+    });
+
+    it("should default overwrite to false on a bare-href teaser", () => {
+      // Plone's own deserializer treats a missing overwrite as true, so the
+      // processor must pin the documented default explicitly.
+      const result = processBlock("teaser", { href: "/my-page" }, "https://plone.com");
+      expect(result).toEqual({
+        "@type": "teaser",
+        href: [{ "@id": "https://plone.com/my-page" }],
+        overwrite: false,
+      });
+    });
+
+    it("should preserve an explicit overwrite on teasers, including grid-nested ones", () => {
+      const top = processBlock("teaser", { href: "/a", overwrite: true, title: "Custom" });
+      expect(top.overwrite).toBe(true);
+
+      const grid = processBlock("gridBlock", {
+        blocks: { t: { "@type": "teaser", href: "/a" } },
+        blocks_layout: { items: ["t"] },
+      });
+      const nested = Object.values(
+        grid.blocks as Record<string, Record<string, unknown>>,
+      )[0];
+      expect(nested.overwrite).toBe(false);
+    });
+  });
+
+  describe("validateImageURL", () => {
+    const mockFetchResponse = (
+      status: number,
+      contentType?: string,
+    ): Response =>
+      ({
+        ok: status >= 200 && status < 300,
+        status,
+        headers: {
+          get: (name: string) =>
+            name.toLowerCase() === "content-type" ? (contentType ?? null) : null,
+        },
+      }) as unknown as Response;
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it("should accept image data URLs and reject non-image data URLs", async () => {
+      await expect(validateImageURL("data:image/png;base64,abc")).resolves.toBe(true);
+      await expect(validateImageURL("data:text/html,<h1>hi</h1>")).resolves.toBe(false);
+    });
+
+    it("should reject malformed URLs without fetching", async () => {
+      const fetchSpy = vi.fn();
+      vi.stubGlobal("fetch", fetchSpy);
+      await expect(validateImageURL("not a url")).resolves.toBe(false);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("should accept internal references without fetching", async () => {
+      const fetchSpy = vi.fn();
+      vi.stubGlobal("fetch", fetchSpy);
+
+      await expect(validateImageURL("/en/my-image")).resolves.toBe(true);
+      await expect(validateImageURL("resolveuid/abc123")).resolves.toBe(true);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("should accept same-site absolute URLs without fetching", async () => {
+      const fetchSpy = vi.fn();
+      vi.stubGlobal("fetch", fetchSpy);
+
+      await expect(
+        validateImageURL(
+          "http://localhost:3000/en/my-image",
+          "http://localhost:3000",
+        ),
+      ).resolves.toBe(true);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("should still probe absolute URLs on other hosts when baseUrl is set", async () => {
+      const fetchSpy = vi
+        .fn()
+        .mockResolvedValue(mockFetchResponse(200, "text/html"));
+      vi.stubGlobal("fetch", fetchSpy);
+
+      await expect(
+        validateImageURL("https://other.example.com/page", "http://localhost:3000"),
+      ).resolves.toBe(false);
+      expect(fetchSpy).toHaveBeenCalled();
+    });
+
+    it("should accept URLs with an image Content-Type", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockFetchResponse(200, "image/png")));
+      await expect(validateImageURL("https://example.com/a.png")).resolves.toBe(true);
+    });
+
+    it("should reject URLs that definitively serve non-image content", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockFetchResponse(200, "text/html")));
+      await expect(validateImageURL("https://example.com/page")).resolves.toBe(false);
+    });
+
+    it("should reject URLs that return 404", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockFetchResponse(404)));
+      await expect(validateImageURL("https://example.com/missing.png")).resolves.toBe(false);
+    });
+
+    it("should fail open on network errors", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("ECONNREFUSED")));
+      await expect(validateImageURL("https://example.com/a.png")).resolves.toBe(true);
+    });
+
+    it("should fail open on auth/bot blocks (403)", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockFetchResponse(403)));
+      await expect(validateImageURL("https://example.com/a.png")).resolves.toBe(true);
+    });
+
+    it("should fall back to a ranged GET when HEAD is not supported", async () => {
+      const fetchSpy = vi
+        .fn()
+        .mockResolvedValueOnce(mockFetchResponse(405))
+        .mockResolvedValueOnce(mockFetchResponse(200, "image/jpeg"));
+      vi.stubGlobal("fetch", fetchSpy);
+
+      await expect(validateImageURL("https://example.com/a.jpg")).resolves.toBe(true);
+
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      expect(fetchSpy.mock.calls[0][1].method).toBe("HEAD");
+      expect(fetchSpy.mock.calls[1][1].method).toBe("GET");
+      expect(fetchSpy.mock.calls[1][1].headers.Range).toBe("bytes=0-0");
     });
   });
 });

@@ -21,12 +21,6 @@ const inputSchema = z.object({
         data: z
           .record(z.string(), z.unknown())
           .describe("Block-specific data following the block specification"),
-        position: z
-          .number()
-          .optional()
-          .describe(
-            "Position in the layout (optional, defaults to sequential order)",
-          ),
       }),
     )
     .describe(
@@ -38,7 +32,7 @@ export const ploneCreateBlocksLayout = {
   config: {
     name: "plone_create_blocks_layout",
     description:
-      "Prepares a complete block structure in memory (valid for 60 seconds). This structure is then used by the **next immediate call** to `plone_create_content` or `plone_update_content`. Use `plone_get_block_schemas` to learn what data each block type needs. The text displayed by the Title block is automatically managed by Plone, DO NOT add it in the block's data. Example: plone_create_blocks_layout({blocks: [{type: 'title'},{type: 'slate', data: {text: 'Hello World'}}]})",
+      "Prepares a complete block structure in memory (valid for 60 seconds). This structure is then used by the **next immediate call** to `plone_create_content` or `plone_update_content`. Use `plone_get_block_schemas` to learn what data each block type needs. The text displayed by the Title block is automatically managed by Plone, DO NOT add it in the block's data. Example: plone_create_blocks_layout({blocks: [{type: 'slate', data: {text: 'Hello World'}}]})",
     inputSchema,
   },
   handler: async (
@@ -54,6 +48,8 @@ export const ploneCreateBlocksLayout = {
       const blockIds: string[] = [];
       const blockInfo: { id: string; type: string }[] = [];
 
+      const baseUrl = service.client?.config.baseUrl;
+
       // Process each block in the array
       for (const blockSpec of blocks) {
         // Validate image URLs asynchronously before processing
@@ -62,7 +58,7 @@ export const ploneCreateBlocksLayout = {
           typeof blockSpec.data.url === "string" &&
           blockSpec.data.url
         ) {
-          const isValid = await validateImageURL(blockSpec.data.url);
+          const isValid = await validateImageURL(blockSpec.data.url, baseUrl);
           if (!isValid) {
             throw wrapError(
               "CreateBlocksLayout",
@@ -72,7 +68,6 @@ export const ploneCreateBlocksLayout = {
         }
 
         const blockId = generateBlockId();
-        const baseUrl = service.client?.config.baseUrl;
         const processedBlock = processBlock(
           blockSpec.type,
           blockSpec.data,

@@ -21,13 +21,10 @@ class SessionManager {
 
   private cleanupTimer?: NodeJS.Timeout;
 
-  constructor() {
-    // Cleanup is now explicit. Call startCleanup() to enable it.
-  }
-
   /**
    * Starts a background interval to purge sessions that have been inactive
-   * for more than the configured TTL. Recommended for HTTP servers.
+   * for more than the configured TTL. Cleanup does not run until this is
+   * called; the HTTP server does so on startup, STDIO does not need it.
    */
   public startCleanup(): void {
     if (this.cleanupTimer) return;

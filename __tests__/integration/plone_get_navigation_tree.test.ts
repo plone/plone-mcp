@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Nock } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneGetNavigationTree } from "plone-mcp/tools/plone_get_navigation_tree";
 import { PloneClient } from "plone-mcp/plone-client";
@@ -45,7 +45,7 @@ describe("plone_get_navigation_tree", () => {
   it("should successfully retrieve navigation tree from root with default depth", async () => {
     Nock(testBaseUrl)
       .get("/++api++/@navigation")
-      .query({ depth: 2 })
+      .query({ "expand.navigation.depth": 2 })
       .reply(200, mockNavigationTree);
 
     const args = { root_path: undefined, depth: 2 }; // Explicitly set depth to its default
@@ -60,7 +60,7 @@ describe("plone_get_navigation_tree", () => {
     const customDepth = 3;
     Nock(testBaseUrl)
       .get(`/++api++${customPath}/@navigation`)
-      .query({ depth: customDepth })
+      .query({ "expand.navigation.depth": customDepth })
       .reply(200, mockNavigationTree);
 
     const args = {
@@ -77,7 +77,7 @@ describe("plone_get_navigation_tree", () => {
     const customPath = "/non-existent";
     Nock(testBaseUrl)
       .get(`/++api++${customPath}/@navigation`)
-      .query({ depth: 2 })
+      .query({ "expand.navigation.depth": 2 })
       .reply(500, "Server Error");
 
     const args = {

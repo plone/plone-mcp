@@ -113,6 +113,35 @@ describe("PloneService", () => {
       expect(service.getPreparedBlocks()).toBeNull(); // Should be cleared
     });
 
+    it("should append provided blocks that are missing from the layout", () => {
+      const blocks = {
+        listed: { "@type": "text", text: "in layout" },
+        unlisted: { "@type": "text", text: "not in layout" },
+        title: { "@type": "title" },
+      };
+      const layout = { items: ["title", "listed"] };
+
+      const result = service.processBlocksForContent(blocks, layout);
+
+      expect(result?.blocks_layout.items).toEqual(["title", "listed", "unlisted"]);
+      expect(result?.blocks["unlisted"]).toEqual(
+        expect.objectContaining({ "@type": "text", processed: true }),
+      );
+    });
+
+    it("should drop layout ids that have no matching block", () => {
+      const blocks = {
+        real: { "@type": "text", text: "exists" },
+      };
+      const layout = { items: ["ghost", "real"] };
+
+      const result = service.processBlocksForContent(blocks, layout);
+
+      expect(result?.blocks_layout.items).not.toContain("ghost");
+      expect(result?.blocks_layout.items).toContain("real");
+      expect(result?.blocks["ghost"]).toBeUndefined();
+    });
+
     it("should prioritize inline blocks over prepared blocks", () => {
       const prepared = {
         blocks: { "p1": { "@type": "text", content: "prepared" } },

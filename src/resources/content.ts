@@ -7,7 +7,7 @@ import { wrapError } from "../utils/block-utils.js";
 
 export const ploneContentResource = {
   config: {
-    uriTemplate: new ResourceTemplate("plone://content{path}", {
+    uriTemplate: new ResourceTemplate("plone://content{+path}", {
       list: undefined,
     }),
     name: "plone-content",

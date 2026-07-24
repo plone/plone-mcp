@@ -6,6 +6,9 @@ import tseslint from "typescript-eslint";
 import importPlugin from "eslint-plugin-import";
 
 export default defineConfig(
+  {
+    ignores: ["dist/**", "dist-test/**", "coverage/**", "node_modules/**"],
+  },
   tseslint.configs.strict,
   tseslint.configs.stylistic,
   tseslint.configs.recommended,
@@ -18,15 +21,18 @@ export default defineConfig(
     settings: {
       "import/resolver": {
         typescript: {
-          project: [
-            "./tsconfig.json",
-            "./tsconfig.test.json",
-            "./tsconfig.eslint.json",
-          ],
+          project: "./tsconfig.json",
         },
       },
     },
     rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+      // Module resolution is owned by `tsc` (pnpm type-check); the eslint
+      // resolver cannot follow the SDK's package `exports` subpaths.
+      "import/no-unresolved": "off",
       "import/order": [
         "error",
         {
@@ -59,6 +65,14 @@ export default defineConfig(
           ],
         },
       ],
+    },
+  },
+  {
+    files: ["__tests__/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-non-null-assertion": "off",
+      "@typescript-eslint/no-dynamic-delete": "off",
     },
   },
 );

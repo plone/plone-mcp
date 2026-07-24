@@ -89,16 +89,25 @@ export class PloneService {
       finalBlocks = {};
       const layoutItems = (blocks_layout as { items?: string[] } | undefined)
         ?.items;
-      finalLayout = layoutItems ? [...layoutItems] : Object.keys(rawBlocks);
+      const requestedLayout = layoutItems
+        ? [...layoutItems]
+        : Object.keys(rawBlocks);
+
+      // Keep only layout ids that reference an actual block, then append any
+      // blocks that were omitted from the layout so nothing is silently lost.
+      finalLayout = requestedLayout.filter((id) => rawBlocks[id]);
+      for (const id of Object.keys(rawBlocks)) {
+        if (!finalLayout.includes(id)) {
+          finalLayout.push(id);
+        }
+      }
 
       // Process each provided block
       const baseUrl = this.client?.config.baseUrl;
       for (const id of finalLayout) {
-        if (rawBlocks[id]) {
-          const blockData = rawBlocks[id] as Record<string, unknown>;
-          const blockType = (blockData["@type"] as string) || "text";
-          finalBlocks[id] = processBlock(blockType, blockData, baseUrl);
-        }
+        const blockData = rawBlocks[id] as Record<string, unknown>;
+        const blockType = (blockData["@type"] as string) || "text";
+        finalBlocks[id] = processBlock(blockType, blockData, baseUrl);
       }
     } else if (hasPreparedBlocks && preparedBlocks) {
       finalBlocks = { ...preparedBlocks.blocks };
@@ -132,9 +141,4 @@ export class PloneService {
       blocks_layout: { items: finalLayout },
     };
   }
-
-  // --- Start of removed handle* methods ---
-  // All handle* methods (handleConfigure, handleGetContent, etc.) have been removed.
-  // These will be moved to their respective tool files.
-  // --- End of removed handle* methods ---
 }

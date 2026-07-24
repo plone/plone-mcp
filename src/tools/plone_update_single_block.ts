@@ -2,7 +2,11 @@ import { z } from "zod";
 import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
 import { sessionManager } from "../session-manager.js";
-import { wrapError, processBlock } from "../utils/block-utils.js";
+import {
+  wrapError,
+  processBlock,
+  validateImageURL,
+} from "../utils/block-utils.js";
 import { PloneContent } from "../plone-client.js";
 
 const inputSchema = z.object({
@@ -48,6 +52,24 @@ export const ploneUpdateSingleBlock = {
       const blockType =
         (blockData["@type"] as string) || (existingBlock["@type"] as string);
       const mergedData = { ...existingBlock, ...blockData };
+
+      // Validate image URLs before processing
+      if (
+        blockType === "image" &&
+        typeof mergedData.url === "string" &&
+        mergedData.url
+      ) {
+        const isValid = await validateImageURL(
+          mergedData.url,
+          client.config.baseUrl,
+        );
+        if (!isValid) {
+          throw wrapError(
+            "UpdateBlock",
+            `Invalid or inaccessible image URL: ${mergedData.url}`,
+          );
+        }
+      }
 
       blocks[blockId] = processBlock(
         blockType,

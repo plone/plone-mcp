@@ -27,7 +27,7 @@ export const ploneAddSingleBlock = {
   config: {
     name: "plone_add_single_block",
     description:
-      "Adds a single new block to an existing content item without replacing other blocks. Specify the block type, data, and optional position. Example: plone_add_single_block({path: '/my-page', blockType: 'text', blockData: {text: 'New paragraph'}})",
+      "Adds a single new block to an existing content item without replacing other blocks. Specify the block type, data, and optional position. Example: plone_add_single_block({path: '/my-page', blockType: 'slate', blockData: {text: 'New paragraph'}})",
     inputSchema,
   },
   handler: async (
@@ -57,7 +57,10 @@ export const ploneAddSingleBlock = {
         typeof blockData.url === "string" &&
         blockData.url
       ) {
-        const isValid = await validateImageURL(blockData.url);
+        const isValid = await validateImageURL(
+          blockData.url,
+          client.config.baseUrl,
+        );
         if (!isValid) {
           throw wrapError(
             "AddBlock",
@@ -68,7 +71,11 @@ export const ploneAddSingleBlock = {
 
       // Process block using centralized logic
       try {
-        blocks[blockId] = processBlock(blockType, blockData);
+        blocks[blockId] = processBlock(
+          blockType,
+          blockData,
+          client.config.baseUrl,
+        );
       } catch (error) {
         throw new Error(
           `Error processing block data: ${
