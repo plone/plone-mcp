@@ -1,5 +1,5 @@
 {
-  "name": "plone-mcp-server",
+  "name": "plone-mcp",
   "version": "1.0.0",
   "description": "Model Context Protocol server for Plone CMS REST API integration",
   "keywords": [
@@ -10,6 +10,7 @@
   ],
   "type": "module",
   "scripts": {
+    "prepare": "npm run build",
     "build": "tsc --project tsconfig.build.json && copyfiles -u 1 src/blocks.json dist/ && chmod 755 dist/stdio-server.js",
     "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
     "build:clean": "pnpm run clean && pnpm run build",
@@ -28,7 +29,7 @@
   },
   "main": "dist/http-server.js",
   "bin": {
-    "plone-mcp-server": "dist/stdio-server.js"
+    "plone-mcp": "dist/stdio-server.js"
   },
   "files": [
     "dist"
