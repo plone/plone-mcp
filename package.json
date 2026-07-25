@@ -14,7 +14,7 @@
     "build": "tsc --project tsconfig.build.json && copyfiles -u 1 src/blocks.json dist/ && chmod 755 dist/stdio-server.js",
     "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
     "build:clean": "pnpm run clean && pnpm run build",
-"start": "node dist/http-server.js",
+    "start": "node dist/http-server.js",
     "stdio": "node dist/stdio-server.js",
     "lint": "eslint src __tests__",
     "lint:fix": "eslint src __tests__ --fix",
