@@ -35,7 +35,7 @@
         },
         "overwrite": {
           "type": "boolean",
-          "description": "Set to true only if using custom values instead of the target object's properties. It must be set to false is only 'href' is provided."
+          "description": "Set to true ONLY when providing custom values (title, description, preview_image) to replace the target's own properties. When omitted, the tool automatically stores 'overwrite: false' so the teaser mirrors its target."
         },
         "title": {
           "type": "string",

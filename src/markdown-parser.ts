@@ -14,8 +14,8 @@ interface SlateNode {
 
 // Helper functions
 function getNodeProperty(node: Node, property: string): string {
-  return property in node && typeof node[property as keyof Node] === "string" 
-    ? (node[property as keyof Node] as string) 
+  return property in node && typeof node[property as keyof Node] === "string"
+    ? (node[property as keyof Node] as string)
     : "";
 }
 
@@ -48,9 +48,11 @@ function transform(node: Node): SlateNode | SlateNode[] | null {
       // The root node's children are the top-level block elements.
       return children;
 
-    case "heading":
-      const depth = "depth" in node && typeof node.depth === "number" ? node.depth : 2;
+    case "heading": {
+      const depth =
+        "depth" in node && typeof node.depth === "number" ? node.depth : 2;
       return { type: `h${depth}`, children };
+    }
 
     case "paragraph":
       // Ensure paragraphs always have children, even if it's just an empty text node.
@@ -62,12 +64,13 @@ function transform(node: Node): SlateNode | SlateNode[] | null {
     case "blockquote":
       return { type: "blockquote", children };
 
-    case "list":
+    case "list": {
       const isOrdered = "ordered" in node && node.ordered === true;
       return {
         type: isOrdered ? "ol" : "ul",
         children,
       };
+    }
 
     case "listItem":
       // Remark wraps list item content in paragraphs, which we unwrap to match the original output format.
@@ -91,7 +94,7 @@ function transform(node: Node): SlateNode | SlateNode[] | null {
     case "subscript":
       return { type: "sub", children };
 
-    case "link":
+    case "link": {
       const url = getNodeProperty(node, "url");
       const title = getNodeProperty(node, "title");
       return {
@@ -99,6 +102,7 @@ function transform(node: Node): SlateNode | SlateNode[] | null {
         data: { url },
         children: children.length > 0 ? children : [{ text: title }],
       };
+    }
 
     case "text":
       const value = getNodeProperty(node, "value");
@@ -108,8 +112,6 @@ function transform(node: Node): SlateNode | SlateNode[] | null {
       return null;
 
     default:
-      // For any unhandled node types, we return their children. This effectively
-      // flattens them in the final structure.
       return children;
   }
 }
@@ -148,7 +150,7 @@ export function markdownParse(markdownText: string): SlateNode[] {
     throw new Error(
       `Markdown parsing failed: ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 }

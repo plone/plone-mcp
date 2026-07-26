@@ -1,23 +1,30 @@
 # Testing Guide for Plone MCP Server
 
-This document describes the comprehensive testing strategy for the Plone MCP server.
+This document describes the testing strategy for the Plone MCP server. Tests run
+on [Vitest](https://vitest.dev/) with [nock](https://github.com/nock/nock) for
+HTTP mocking.
 
 ## Test Structure
 
 ```
-tests/
-├── setup.ts                    # Global test configuration
+__tests__/
+├── setup.ts                       # Global test configuration
 ├── utils/
-│   └── test-helpers.ts         # Test utilities and mocks
-├── unit/                       # Unit tests
-│   ├── plone-client.test.ts    # PloneClient class tests
-│   └── blocks.test.ts          # Block creation logic tests
-├── integration/                # Integration tests with mocked APIs
-│   └── mcp-server.test.ts      # Full MCP server integration tests
-├── functional/                 # Tests against live Plone instances
-│   └── live-plone.test.ts      # Real Plone integration tests
-└── performance/                # Performance and load tests
-    └── load-test.test.ts       # Memory and performance benchmarks
+│   └── test-helpers.ts            # PloneMockServer + nock helpers
+├── unit/                          # Unit tests (isolated logic)
+│   ├── block-registry.test.ts
+│   ├── block-utils.test.ts
+│   ├── markdown-parser.test.ts
+│   ├── plone-client.test.ts
+│   ├── plone-service.test.ts
+│   ├── plone_delete_content.test.ts
+│   ├── session.test.ts
+│   └── session-manager.test.ts
+└── integration/                   # Integration tests (mocked Plone API)
+    ├── plone_configure.test.ts
+    ├── plone_create_content.test.ts
+    ├── plone_search.test.ts
+    └── ...                         # one file per tool
 ```
 
 ## Running Tests
@@ -29,110 +36,72 @@ npm test
 
 ### By Category
 ```bash
-npm run test:unit          # Unit tests only
-npm run test:integration   # Integration tests only
-npm run test:functional    # Functional tests only
+npm run test:unit          # Unit tests only (__tests__/unit)
+npm run test:integration   # Integration tests only (__tests__/integration)
 ```
 
-### Development
+### Coverage
 ```bash
-npm run test:watch         # Watch mode for development
-npm run test:coverage      # Run with coverage report
+npx vitest run --coverage
+```
+
+### Watch Mode
+```bash
+npx vitest
 ```
 
 ## Test Types
 
 ### 1. Unit Tests
-- Test individual functions and methods in isolation
+- Test individual functions and modules in isolation
 - Mock external dependencies
-- Fast execution (< 100ms per test)
-- High code coverage
-
-**Example:**
-```typescript
-describe('generateBlockId', () => {
-  it('should generate unique block IDs', () => {
-    const server = new PloneMCPServer();
-    const id1 = server['generateBlockId']();
-    const id2 = server['generateBlockId']();
-    
-    expect(id1).toMatch(/^block-[a-z0-9]{9}$/);
-    expect(id2).not.toBe(id1);
-  });
-});
-```
+- Fast execution
+- Cover parsing, block logic, session handling, and the Plone client
 
 ### 2. Integration Tests
-- Test component interactions with mocked Plone API
-- Verify request/response handling
-- Test error scenarios
-
-**Example:**
-```typescript
-it('should create blocks content successfully', async () => {
-  const mockServer = new PloneMockServer();
-  mockServer.mockContentCreate('/', expect.any(Object), mockResponse);
-  
-  const result = await server['handleCreateBlocksContent'](testData);
-  expect(result.content[0].text).toContain('Test Document');
-});
-```
-
-### 3. Functional Tests
-- Test against real Plone instances
-- End-to-end workflow validation
-- Requires live Plone environment
-
-**Setup:**
-```bash
-export PLONE_TEST_URL="https://your-plone-site.com"
-export PLONE_TEST_USER="admin"
-export PLONE_TEST_PASS="password"
-```
-
-### 4. Performance Tests
-- Memory usage validation
-- Response time benchmarks
-- Concurrent operation testing
+- Exercise each MCP tool end-to-end against a mocked Plone API
+- Verify request payloads and response handling
+- Cover error scenarios
+- One file per tool (`plone_create_content`, `plone_search`, ...)
 
 ## Mock Helpers
 
-The `PloneMockServer` class provides easy mocking of Plone API responses:
+The `PloneMockServer` class (`__tests__/utils/test-helpers.ts`) wraps nock to
+mock Plone REST API responses:
 
 ```typescript
-const mockServer = new PloneMockServer('https://test.plone.com');
+import { PloneMockServer } from "../utils/test-helpers";
 
-// Mock different endpoints
+const mockServer = new PloneMockServer("https://test.plone.com");
 mockServer.mockSiteRoot();
-mockServer.mockContentGet('/document', sampleDocument);
-mockServer.mockSearch({ query: 'test' }, sampleSearchResults);
+mockServer.mockContentGet("/document", sampleDocument);
+mockServer.mockSearch({ query: "test" }, sampleSearchResults);
+```
+
+Cleanup helpers are also exported:
+
+```typescript
+import { cleanupNock, isNockDone } from "../utils/test-helpers";
 ```
 
 ## Test Configuration
 
-### Environment Variables
-- `PLONE_TEST_URL`: URL for functional tests
-- `PLONE_TEST_USER`: Username for functional tests  
-- `PLONE_TEST_PASS`: Password for functional tests
-- `NODE_ENV=test`: Automatically set during test runs
-
-### Jest Configuration
-- TypeScript support with ts-jest
-- ESM module support
-- Coverage collection from `src/` directory
-- 30-second timeout for integration tests
+- Vitest config lives in `vitest.config.ts` / `vitest.config.mts`.
+- Type-checking for tests uses `tsconfig.test.json` (`npm run type-check:tests`).
+- Global setup runs from `__tests__/setup.ts`.
 
 ## Continuous Integration
 
-Tests run automatically on:
-- Every push to `main` and `develop` branches
-- All pull requests to `main`
-- Multiple Node.js versions (18, 20, 22)
+CI is defined in `.github/workflows/test.yml`. On every push to `main` and every
+pull request it:
 
-### Coverage Reports
-- Minimum 80% code coverage required
-- Reports uploaded to Codecov
-- HTML reports generated in `coverage/` directory
+1. Installs dependencies (`npm ci`)
+2. Builds the project (`npm run build`)
+3. Runs unit tests (`npm run test:unit`)
+4. Runs all tests with coverage (`npm run test:coverage`)
+5. Uploads coverage to Codecov
+
+Node version: 22.x.
 
 ## Writing New Tests
 
@@ -143,63 +112,57 @@ Tests run automatically on:
 - [ ] Verify input validation
 - [ ] Check return values
 
-### Integration Test Checklist  
-- [ ] Mock HTTP responses
+### Integration Test Checklist
+- [ ] Mock HTTP responses with `PloneMockServer`
 - [ ] Test authentication scenarios
 - [ ] Verify request payloads
 - [ ] Test error handling
-- [ ] Clean up mocks after tests
-
-### Functional Test Checklist
-- [ ] Check environment variables
-- [ ] Create and cleanup test data
-- [ ] Test real workflows
-- [ ] Handle network failures gracefully
+- [ ] Clean up mocks after each test
 
 ## Common Patterns
 
 ### Testing Async Methods
 ```typescript
-it('should handle async operations', async () => {
-  const result = await server['handleAsyncMethod'](args);
+it("handles async operations", async () => {
+  const result = await someAsyncCall(args);
   expect(result).toBeDefined();
 });
 ```
 
 ### Testing Error Scenarios
-```typescript  
-it('should throw error for invalid input', async () => {
-  await expect(server['method'](invalidArgs))
-    .rejects.toThrow('Expected error message');
+```typescript
+it("throws for invalid input", async () => {
+  await expect(someCall(invalidArgs)).rejects.toThrow("Expected error message");
 });
 ```
 
 ### Mocking HTTP Requests
 ```typescript
-nock('https://test.plone.com')
-  .post('/++api++/folder', expectedPayload)
+import { Nock } from "../utils/test-helpers";
+
+Nock("https://test.plone.com")
+  .post("/++api++/folder", expectedPayload)
   .reply(201, mockResponse);
 ```
 
 ## Best Practices
 
 1. **Isolation**: Each test should be independent
-2. **Descriptive Names**: Test names should clearly describe what is being tested
-3. **Arrange-Act-Assert**: Structure tests with clear setup, execution, and verification
-4. **Mock External Dependencies**: Don't make real HTTP requests in unit/integration tests
-5. **Clean Up**: Always clean up test data and mocks
-6. **Performance Awareness**: Keep tests fast and efficient
+2. **Descriptive Names**: Test names should clearly describe what is verified
+3. **Arrange-Act-Assert**: Clear setup, execution, and verification
+4. **Mock External Dependencies**: No real HTTP requests in tests
+5. **Clean Up**: Always clean up mocks (`cleanupNock`) after tests
 
 ## Debugging Tests
 
-### Debug Single Test
+### Run a Single File
 ```bash
-npm test -- --testNamePattern="specific test name"
+npx vitest run __tests__/unit/plone-client.test.ts
 ```
 
-### Debug with Logging
+### Filter by Test Name
 ```bash
-DEBUG=* npm test
+npx vitest run -t "specific test name"
 ```
 
 ### VS Code Debug Configuration
@@ -207,10 +170,10 @@ Add to `.vscode/launch.json`:
 ```json
 {
   "type": "node",
-  "request": "launch", 
+  "request": "launch",
   "name": "Debug Tests",
-  "program": "${workspaceFolder}/node_modules/.bin/jest",
-  "args": ["--runInBand"],
+  "program": "${workspaceFolder}/node_modules/vitest/vitest.mjs",
+  "args": ["run"],
   "console": "integratedTerminal"
 }
 ```

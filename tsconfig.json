@@ -1,22 +1,28 @@
 {
+  // Editor-facing config: covers sources AND tests so the IDE resolves the
+  // `plone-mcp/*` aliases the same way Vitest does. Emitting is done by
+  // tsconfig.build.json (strict NodeNext, src only).
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "allowJs": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
     "strict": true,
     "noImplicitAny": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true
+    "isolatedModules": true,
+    "noEmit": true,
+    "types": ["vitest/globals", "vitest", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "plone-mcp/__tests__/*": ["./__tests__/*"],
+      "plone-mcp/*": ["./src/*"]
+    }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*.ts", "__tests__/**/*.ts", "vitest.config.ts"],
   "exclude": ["node_modules", "dist"]
 }
