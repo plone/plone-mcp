@@ -1,6 +1,6 @@
 {
-  "name": "plone-mcp",
-  "version": "1.0.0",
+  "name": "@plone/mcp",
+  "version": "1.0.0-alpha.0",
   "description": "Model Context Protocol server for Plone CMS REST API integration",
   "keywords": [
     "mcp",
@@ -8,6 +8,25 @@
     "cms",
     "rest-api"
   ],
+  "author": "Plone Foundation",
+  "maintainers": [
+    {
+      "name": "Plone Foundation",
+      "url": "https://plone.org"
+    }
+  ],
+  "funding": "https://github.com/sponsors/plone",
+  "homepage": "https://github.com/plone/plone-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/plone/plone-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/plone/plone-mcp/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "scripts": {
     "prepare": "npm run build",
@@ -25,19 +44,23 @@
     "test:unit": "vitest run __tests__/unit",
     "test:integration": "vitest run __tests__/integration",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "dry-release": "release-it --dry-run",
+    "release": "release-it",
+    "release-alpha": "release-it --preRelease=alpha",
+    "release-major-alpha": "release-it major --preRelease=alpha"
   },
   "main": "dist/http-server.js",
   "bin": {
     "plone-mcp": "dist/stdio-server.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
-  "author": "",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
@@ -70,7 +93,8 @@
     "tsx": "^4.0.0",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.47.0",
-    "vitest": "^4.0.8"
+    "vitest": "^4.0.8",
+    "release-it": "^20.2.1"
   },
   "packageManager": "pnpm@10.32.1"
 }

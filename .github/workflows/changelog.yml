@@ -1,0 +1,34 @@
+name: "Changelog"
+on:
+  pull_request:
+    types: [assigned, opened, synchronize, reopened, labeled, unlabeled]
+    branches:
+      - main
+
+env:
+  PYTHON_VERSION: '3.14'
+  BASE_BRANCH: main
+
+jobs:
+
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Fetch all history
+          fetch-depth: '0'
+
+      - name: Setup uv
+        uses: plone/meta/.github/actions/setup_uv@2.x
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          working-directory: '.'
+
+      - name: Check for presence of a Change Log fragment (only pull requests)
+        run: |
+          # Fetch the pull request' base branch so towncrier will be able to
+          # compare the current branch with the base branch.
+          # Source: https://github.com/actions/checkout/#fetch-all-branches.
+          git fetch --no-tags origin ${BASE_BRANCH}
+          uvx towncrier check --compare-with origin/${{ env.BASE_BRANCH }} --config towncrier.toml --dir .
