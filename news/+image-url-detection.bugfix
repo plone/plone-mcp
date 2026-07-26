@@ -1,1 +1,0 @@
-Detect image URLs more reliably, checking the MIME type of data URLs and the Content-Type header of external ones. @Tishasoumya-02

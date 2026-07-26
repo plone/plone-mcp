@@ -1,1 +1,0 @@
-Fix bugs found during live end-to-end testing, including empty PATCH responses and navigation handling. @danalvrz
