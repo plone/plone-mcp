@@ -8,6 +8,25 @@
     "cms",
     "rest-api"
   ],
+  "author": "Plone Foundation",
+  "maintainers": [
+    {
+      "name": "Plone Foundation",
+      "url": "https://plone.org"
+    }
+  ],
+  "funding": "https://github.com/sponsors/plone",
+  "homepage": "https://github.com/plone/plone-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/plone/plone-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/plone/plone-mcp/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "scripts": {
     "prepare": "npm run build",
@@ -31,20 +50,17 @@
     "release-alpha": "release-it --preRelease=alpha",
     "release-major-alpha": "release-it major --preRelease=alpha"
   },
-  "publishConfig": {
-    "access": "public"
-  },
   "main": "dist/http-server.js",
   "bin": {
     "plone-mcp": "dist/stdio-server.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
-  "author": "",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
