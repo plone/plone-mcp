@@ -1,0 +1,1 @@
+Document the local development workflow with the `make` targets instead of the raw `pnpm` commands, and add the missing `stdio`, `inspector` and `test-all` targets to the Makefile. @ericof

@@ -36,7 +36,7 @@ Now ask Claude to connect to your Plone site, e.g. *"Connect to https://demo.plo
 The server ships two entry points:
 
 - **STDIO** (`plone-mcp` bin / `dist/stdio-server.js`) - for local MCP clients such as Claude Desktop.
-- **HTTP** (`dist/http-server.js`) - a streamable-HTTP server with per-session state, listening on `PORT` (default `3001`) at `/mcp`. Start it with `pnpm start`.
+- **HTTP** (`dist/http-server.js`) - a streamable-HTTP server with per-session state, listening on `PORT` (default `3001`) at `/mcp`. Start it with `make start`.
 
 ## Quick Start using Claude Desktop as an example
 
@@ -112,8 +112,8 @@ Clone the repo if you want to modify the server, debug it, or run it with the MC
 ```bash
 git clone https://github.com/plone/plone-mcp.git
 cd plone-mcp
-pnpm install
-pnpm run build
+make install
+make build
 ```
 
 Point Claude Desktop at your local build instead of the `npx` command:
@@ -132,31 +132,31 @@ Point Claude Desktop at your local build instead of the `npx` command:
 Development commands:
 
 ```bash
-# Development mode with hot reload
-pnpm run dev
+# Install the dependencies
+make install
 
 # Build for production (compiles TypeScript and copies blocks.json)
-pnpm run build
+make build
 
 # Run the HTTP server / the STDIO server from the build
-pnpm start
-pnpm run stdio
+make start
+make stdio
 
-# Test with MCP Inspector
-pnpm run inspector
+# Debug with the MCP Inspector
+make inspector
 
 # Tests (Vitest)
-pnpm test              # everything
-pnpm run test:unit     # unit tests only
-pnpm run test:coverage # with coverage
+make test-all       # everything
+make test           # unit tests only
+make test-coverage  # with coverage
 
 # Static checks
-pnpm run lint          # ESLint over src/ and __tests__/
-pnpm run type-check    # tsc over sources and tests
-
-# Test with MCP Inspector
-npx @modelcontextprotocol/inspector node dist/stdio-server.js
+make lint           # ESLint over src/ and __tests__/
+make format         # ESLint with --fix
+make type-check     # tsc over sources and tests
 ```
+
+Run `make help` to list every available target.
 
 ## Core Features
 
@@ -304,7 +304,7 @@ plone_search({
 | "Block not found"                    | Use `plone_get_content` to get valid block IDs                                                                                     |
 | Connection errors                    | Verify Plone URL and credentials are correct                                                                                       |
 | Blocks not applied                   | Call `plone_create_blocks_layout` immediately before create/update (60s TTL)                                                       |
-| TypeScript errors during local build | Run `pnpm install` to ensure all dependencies are installed                                                                        |
+| TypeScript errors during local build | Run `make install` to ensure all dependencies are installed                                                                        |
 
 ## Resources
 
