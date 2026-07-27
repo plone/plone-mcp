@@ -2,6 +2,17 @@
 
 <!-- towncrier release notes start -->
 
+## 1.0.0-alpha.2 (2026-07-27)
+
+### Internal
+
+- Update Readme.md files @Tishasoumya-02
+
+### Documentation
+
+- Rewrite the README for the first alpha release: install instructions now use the published `@plone/mcp` package via `npx`, and a new introduction and quickstart section explain the server for non-developers. @tisto [#53](https://github.com/plone/plone-mcp/issues/53)
+- Document the local development workflow with the `make` targets instead of the raw `pnpm` commands, and add the missing `stdio`, `inspector` and `test-all` targets to the Makefile. @ericof
+
 ## 1.0.0-alpha.1 (2026-07-26)
 
 ### Feature
