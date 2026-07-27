@@ -1,0 +1,1 @@
+Rewrite the README for the first alpha release: install instructions now use the published `@plone/mcp` package via `npx`, and a new introduction and quickstart section explain the server for non-developers. @tisto
