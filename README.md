@@ -4,28 +4,21 @@ A Model Context Protocol (MCP) server for integrating MCP clients with Plone CMS
 
 ## Prerequisites
 
-- **Node.js 22+** - Required to run the server and its tooling (`^20.19.0 || >=22.12.0`; install: `brew install node` on macOS or from [nodejs.org](https://nodejs.org))
-- **pnpm 10+** - Package manager (install: `npm install -g pnpm` or `brew install pnpm` on macOS)
+- **Node.js 22+** - Required to run the server (`^20.19.0 || >=22.12.0`; install: `brew install node` on macOS or from [nodejs.org](https://nodejs.org))
 - **Plone 6.0+** site with REST API - The CMS you'll be connecting to
 
 ## Transports
 
 The server ships two entry points:
 
-- **STDIO** (`dist/stdio-server.js`) - for local MCP clients such as Claude Desktop.
+- **STDIO** (`plone-mcp` bin / `dist/stdio-server.js`) - for local MCP clients such as Claude Desktop.
 - **HTTP** (`dist/http-server.js`) - a streamable-HTTP server with per-session state, listening on `PORT` (default `3001`) at `/mcp`. Start it with `pnpm start`.
 
 ## Quick Start using Claude Desktop as an example
 
-1. **Install**
-```bash
-git clone https://github.com/plone/plone-mcp.git
-cd plone-mcp
-pnpm install
-pnpm run build
-```
+The [`@plone/mcp`](https://www.npmjs.com/package/@plone/mcp) package is published on npm, so there's nothing to install or build - `npx` fetches and runs it on demand.
 
-2. **Configure Claude Desktop**
+1. **Configure Claude Desktop**
 
 Add to Claude's configuration file:
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -36,8 +29,8 @@ Add to Claude's configuration file:
 {
   "mcpServers": {
     "plone": {
-      "command": "node",
-      "args": ["/absolute/path/to/plone-mcp/dist/stdio-server.js"],
+      "command": "npx",
+      "args": ["-y", "@plone/mcp"],
       "env": {
         "PLONE_BASE_URL": "https://demo.plone.org",
         "PLONE_USERNAME": "admin",
@@ -53,16 +46,16 @@ Add to Claude's configuration file:
 {
   "mcpServers": {
     "plone": {
-      "command": "node",
-      "args": ["/absolute/path/to/plone-mcp/dist/stdio-server.js"]
+      "command": "npx",
+      "args": ["-y", "@plone/mcp"]
     }
   }
 }
 ```
 
-3. **Restart Claude Desktop**
+2. **Restart Claude Desktop**
 
-4. **Connect to Plone**
+3. **Connect to Plone**
 
 Call `plone_configure` once per session:
 
