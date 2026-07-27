@@ -19,7 +19,7 @@
     "requireUpstream": false,
     "requireCleanWorkingDir": false,
     "commitMessage": "Release @plone/mcp ${version}",
-    "tagName": "plone-mcp-${version}",
+    "tagName": "${version}",
     "tagAnnotation": "Release @plone/mcp ${version}"
   },
   "github": {
