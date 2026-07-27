@@ -53,6 +53,16 @@ start: ## Start the MCP HTTP server from dist/ (run `make build` first)
 	echo "$(GREEN)==> Starting the MCP HTTP server$(RESET)"
 	pnpm start
 
+.PHONY: stdio
+stdio: ## Start the MCP STDIO server from dist/ (run `make build` first)
+	echo "$(GREEN)==> Starting the MCP STDIO server$(RESET)"
+	pnpm run stdio
+
+.PHONY: inspector
+inspector: ## Debug the STDIO server with the MCP Inspector (run `make build` first)
+	echo "$(GREEN)==> Starting the MCP Inspector$(RESET)"
+	npx @modelcontextprotocol/inspector node dist/stdio-server.js
+
 .PHONY: format
 format: ## Format the codebase, fixing every auto-fixable lint problem
 	echo "$(GREEN)==> Formatting the codebase$(RESET)"
@@ -74,6 +84,11 @@ type-check: ## Type-check the sources and the tests without emitting output
 test: ## Run the unit tests
 	echo "$(GREEN)==> Running the unit tests$(RESET)"
 	pnpm run test:unit
+
+.PHONY: test-all
+test-all: ## Run the whole test suite (unit and integration)
+	echo "$(GREEN)==> Running the whole test suite$(RESET)"
+	pnpm test
 
 .PHONY: test-integration
 test-integration: ## Run the integration tests
