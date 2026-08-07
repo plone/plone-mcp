@@ -9,6 +9,7 @@ import {
   processBlock,
   validateImageURL,
 } from "../utils/block-utils.js";
+import { withContentPathQueue } from "../utils/concurrency-queue.js";
 import { PloneContent } from "../plone-client.js";
 
 const inputSchema = z.object({
@@ -40,65 +41,67 @@ export const ploneAddSingleBlock = {
       const { path, blockType, position, blockData } = args;
       const client = service.getClient();
 
-      // First get the current content
-      const content = (await client.get(path)) as PloneContent;
+      const updatedContent = await withContentPathQueue(path, async () => {
+        // First get the current content
+        const content = (await client.get(path)) as PloneContent;
 
-      const blocks = content.blocks || {};
-      const blocks_layout = (content.blocks_layout as { items: string[] }) || {
-        items: [],
-      };
+        const blocks = content.blocks || {};
+        const blocks_layout = (content.blocks_layout as { items: string[] }) || {
+          items: [],
+        };
 
-      // Generate new block ID
-      const blockId = generateBlockId();
+        // Generate new block ID
+        const blockId = generateBlockId();
 
-      // Validate image URLs asynchronously before processing
-      if (
-        blockType === "image" &&
-        typeof blockData.url === "string" &&
-        blockData.url
-      ) {
-        const isValid = await validateImageURL(
-          blockData.url,
-          client.config.baseUrl,
-        );
-        if (!isValid) {
-          throw wrapError(
-            "AddBlock",
-            `Invalid or inaccessible image URL: ${blockData.url} `,
+        // Validate image URLs asynchronously before processing
+        if (
+          blockType === "image" &&
+          typeof blockData.url === "string" &&
+          blockData.url
+        ) {
+          const isValid = await validateImageURL(
+            blockData.url,
+            client.config.baseUrl,
+          );
+          if (!isValid) {
+            throw wrapError(
+              "AddBlock",
+              `Invalid or inaccessible image URL: ${blockData.url} `,
+            );
+          }
+        }
+
+        // Process block using centralized logic
+        try {
+          blocks[blockId] = processBlock(
+            blockType,
+            blockData,
+            client.config.baseUrl,
+          );
+        } catch (error) {
+          throw new Error(
+            `Error processing block data: ${
+              error instanceof Error ? error.message : String(error)
+            } `,
           );
         }
-      }
 
-      // Process block using centralized logic
-      try {
-        blocks[blockId] = processBlock(
-          blockType,
-          blockData,
-          client.config.baseUrl,
-        );
-      } catch (error) {
-        throw new Error(
-          `Error processing block data: ${
-            error instanceof Error ? error.message : String(error)
-          } `,
-        );
-      }
+        // Insert at specified position or at the end
+        if (
+          position !== undefined &&
+          position >= 0 &&
+          position <= blocks_layout.items.length
+        ) {
+          blocks_layout.items.splice(position, 0, blockId);
+        } else {
+          blocks_layout.items.push(blockId);
+        }
 
-      // Insert at specified position or at the end
-      if (
-        position !== undefined &&
-        position >= 0 &&
-        position <= blocks_layout.items.length
-      ) {
-        blocks_layout.items.splice(position, 0, blockId);
-      } else {
-        blocks_layout.items.push(blockId);
-      }
-
-      // Update the content
-      const updatedContent = await client.patch(path, {
-        blocks,
-        blocks_layout,
+        // Update the content
+        return await client.patch(path, {
+          blocks,
+          blocks_layout,
+        });
       });
 
       return {

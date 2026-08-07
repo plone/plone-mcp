@@ -1,0 +1,5 @@
+Fix read-modify-write race in single-block tools. Concurrent calls to
+`plone_add_single_block`, `plone_remove_single_block`, or
+`plone_update_single_block` on the same content path now serialize through a
+module-level per-path queue, preventing lost updates when two callers read the
+same snapshot and the last PATCH overwrites the earlier change.
