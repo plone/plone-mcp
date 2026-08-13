@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+.git
+.github
+__tests__
+news
+artifacts
+*.md
+!README.md

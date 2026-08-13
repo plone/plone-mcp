@@ -1,0 +1,63 @@
+name: Docker
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "src/**"
+      - ".github/workflows/docker.yml"
+
+jobs:
+  build-and-smoke-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Build the Docker image
+        run: docker build -t plone-mcp:ci .
+
+      - name: Start the HTTP server in the background
+        run: |
+          docker run --rm -d --name plone-mcp-ci -p 3001:3001 \
+            -e PLONE_BASE_URL=https://demo.plone.org \
+            plone-mcp:ci
+
+      - name: Wait for the server to accept connections
+        run: |
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/mcp | grep -qE "200|400|405"; then
+              echo "Server is responding"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server did not respond in time"
+          docker logs plone-mcp-ci
+          exit 1
+
+      - name: Smoke-test MCP initialize handshake
+        run: |
+          RESPONSE=$(curl -s -X POST http://localhost:3001/mcp \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"docker-smoke","version":"1.0"}}}' \
+            -D headers.txt)
+          echo "$RESPONSE"
+          echo "---"
+          cat headers.txt
+          echo "$RESPONSE" | grep -q '"result"' || (echo "initialize did not return a result" && exit 1)
+
+      - name: Dump container logs on failure
+        if: failure()
+        run: docker logs plone-mcp-ci
+
+      - name: Stop the container
+        if: always()
+        run: docker stop plone-mcp-ci || true
