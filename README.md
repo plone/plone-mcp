@@ -181,6 +181,10 @@ Run `make help` to list every available target.
 | `plone_get_translation`     | List translations of a content item      | `plone_get_translation({path: "/en/my-page"})`                                         |
 | `plone_link_translation`    | Link existing content as a translation   | `plone_link_translation({path: "/en/my-page", id: "/de/meine-seite"})`                 |
 | `plone_unlink_translation`  | Remove a translation link                | `plone_unlink_translation({path: "/en/my-page", language: "de"})`                      |
+| `plone_create_working_copy` | Check out content into a working copy    | `plone_create_working_copy({path: "/my-document"})`                                    |
+| `plone_get_working_copy`    | Show working copy relationship and lock  | `plone_get_working_copy({path: "/my-document"})`                                       |
+| `plone_checkin_working_copy`| Check in a working copy                  | `plone_checkin_working_copy({path: "/copy_of_my-document"})`                           |
+| `plone_cancel_working_copy` | Discard a working copy                   | `plone_cancel_working_copy({path: "/copy_of_my-document"})`                            |
 
 ## Block Management
 

@@ -1,9 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ploneConfigure } from "./plone_configure.js";
 import { ploneAddSingleBlock } from "./plone_add_single_block.js";
+import { ploneCancelWorkingCopy } from "./plone_cancel_working_copy.js";
+import { ploneCheckinWorkingCopy } from "./plone_checkin_working_copy.js";
 import { ploneCreateBlocksLayout } from "./plone_create_blocks_layout.js";
 import { ploneCreateContent } from "./plone_create_content.js";
 import { ploneCreateUser } from "./plone_create_user.js";
+import { ploneCreateWorkingCopy } from "./plone_create_working_copy.js";
 import { ploneDeleteContent } from "./plone_delete_content.js";
 import { ploneGetBlockSchemas } from "./plone_get_block_schemas.js";
 import { ploneGetContent } from "./plone_get_content.js";
@@ -14,6 +17,7 @@ import { ploneGetTranslation } from "./plone_get_translation.js";
 import { ploneGetTypes } from "./plone_get_types.js";
 import { ploneGetVocabularies } from "./plone_get_vocabularies.js";
 import { ploneGetWorkflowInfo } from "./plone_get_workflow_info.js";
+import { ploneGetWorkingCopy } from "./plone_get_working_copy.js";
 import { ploneLinkTranslation } from "./plone_link_translation.js";
 import { ploneRemoveSingleBlock } from "./plone_remove_single_block.js";
 import { ploneSearch } from "./plone_search.js";
@@ -36,9 +40,12 @@ export function registerTools(server: McpServer) {
   const tools = [
     ploneConfigure,
     ploneAddSingleBlock,
+    ploneCancelWorkingCopy,
+    ploneCheckinWorkingCopy,
     ploneCreateBlocksLayout,
     ploneCreateContent,
     ploneCreateUser,
+    ploneCreateWorkingCopy,
     ploneDeleteContent,
     ploneGetBlockSchemas,
     ploneGetContent,
@@ -49,6 +56,7 @@ export function registerTools(server: McpServer) {
     ploneGetTypes,
     ploneGetVocabularies,
     ploneGetWorkflowInfo,
+    ploneGetWorkingCopy,
     ploneLinkTranslation,
     ploneRemoveSingleBlock,
     ploneSearch,
