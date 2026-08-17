@@ -32,7 +32,10 @@ jobs:
       - name: Wait for the server to accept connections
         run: |
           for i in $(seq 1 30); do
-            if curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/mcp | grep -qE "200|400|405"; then
+            # GET /mcp requires Accept: text/event-stream per the MCP Streamable
+            # HTTP spec; an uninitialized server replies 400 (missing session),
+            # which still proves the server is up.
+            if curl -s -o /dev/null -w "%{http_code}" -H "Accept: text/event-stream" http://localhost:3001/mcp | grep -qE "200|400|405"; then
               echo "Server is responding"
               exit 0
             fi
@@ -44,9 +47,11 @@ jobs:
 
       - name: Smoke-test MCP initialize handshake
         run: |
+          # POST /mcp requires Accept listing both application/json and
+          # text/event-stream; otherwise the SDK rejects with 406.
           RESPONSE=$(curl -s -X POST http://localhost:3001/mcp \
             -H "Content-Type: application/json" \
-            -H "Accept: application/json" \
+            -H "Accept: application/json, text/event-stream" \
             -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"docker-smoke","version":"1.0"}}}' \
             -D headers.txt)
           echo "$RESPONSE"
