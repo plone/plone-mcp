@@ -7,7 +7,7 @@ import { sessionManager } from "plone-mcp/session-manager";
 describe("plone_checkin_working_copy", () => {
   let mockServer: PloneMockServer;
   const testBaseUrl = "http://localhost:8080/Plone";
-  const testPath = "/copy_of_my-document";
+  const testPath = "/working_copy_of_my-document";
 
   const sessionId = "test-session-id";
   const mockExtra = {

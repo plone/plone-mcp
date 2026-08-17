@@ -16,7 +16,7 @@ export const ploneCancelWorkingCopy = {
   config: {
     name: "plone_cancel_working_copy",
     description:
-      "Cancels a checkout, discarding the working copy and its edits. The original content is left unchanged and unlocked. Example: plone_cancel_working_copy({path: '/copy_of_my-document'})",
+      "Cancels a checkout, discarding the working copy and its edits. The original content is left unchanged and unlocked. Example: plone_cancel_working_copy({path: '/working_copy_of_my-document'})",
     inputSchema,
   },
   handler: async (

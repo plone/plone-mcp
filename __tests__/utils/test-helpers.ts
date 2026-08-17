@@ -239,7 +239,7 @@ export const sampleSearchResults = {
 
 export const sampleWorkingCopyInfo = {
   working_copy: {
-    "@id": "https://test.plone.com/copy_of_test-document",
+    "@id": "https://test.plone.com/working_copy_of_test-document",
     created: "1995-07-31T13:45:00+00:00",
     creator_name: "admin",
     title: "Test Document",

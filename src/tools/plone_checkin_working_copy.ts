@@ -16,7 +16,7 @@ export const ploneCheckinWorkingCopy = {
   config: {
     name: "plone_checkin_working_copy",
     description:
-      "Checks in a working copy, replacing the original content with the edits made on the copy. The working copy is deleted and the original is unlocked. Example: plone_checkin_working_copy({path: '/copy_of_my-document'})",
+      "Checks in a working copy, replacing the original content with the edits made on the copy. The working copy is deleted and the original is unlocked. Example: plone_checkin_working_copy({path: '/working_copy_of_my-document'})",
     inputSchema,
   },
   handler: async (

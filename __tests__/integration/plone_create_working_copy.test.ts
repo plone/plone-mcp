@@ -29,7 +29,7 @@ describe("plone_create_working_copy", () => {
 
   it("should check out the content and return the working copy id", async () => {
     const response = {
-      "@id": "http://localhost:8080/Plone/copy_of_my-document",
+      "@id": "http://localhost:8080/Plone/working_copy_of_my-document",
     };
     mockServer.mockWorkingCopyCreate(testPath, response);
 
