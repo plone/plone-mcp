@@ -38,6 +38,18 @@ The server ships two entry points:
 - **STDIO** (`plone-mcp` bin / `dist/stdio-server.js`) - for local MCP clients such as Claude Desktop.
 - **HTTP** (`dist/http-server.js`) - a streamable-HTTP server with per-session state, listening on `PORT` (default `3001`) at `/mcp`. Start it with `make start`.
 
+## Docker
+
+A pre-built image of the HTTP server is published to Docker Hub as [`plone/plone-mcp`](https://hub.docker.com/r/plone/plone-mcp) for both `linux/amd64` and `linux/arm64`:
+
+```bash
+docker run -d --name plone-mcp -p 3001:3001 \
+  -e PLONE_BASE_URL=https://demo.plone.org \
+  plone/plone-mcp
+```
+
+The server listens on port `3001` (override with `PORT`) and serves the MCP endpoint at `/mcp`. Connect any MCP client that speaks the Streamable HTTP transport to `http://localhost:3001/mcp`. Set `PLONE_BASE_URL`, `PLONE_USERNAME`, and `PLONE_PASSWORD` (or a token via `PLONE_TOKEN`) to configure the Plone site the server connects to.
+
 ## Quick Start using Claude Desktop as an example
 
 The [`@plone/mcp`](https://www.npmjs.com/package/@plone/mcp) package is published on npm, so there's nothing to install or build - `npx` fetches and runs it on demand.

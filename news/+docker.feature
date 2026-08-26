@@ -1,0 +1,1 @@
+Add a Docker image for the HTTP server and publish it to Docker Hub as `plone/plone-mcp` on release.

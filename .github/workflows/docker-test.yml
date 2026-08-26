@@ -10,7 +10,8 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "src/**"
-      - ".github/workflows/docker.yml"
+      - ".github/workflows/docker-test.yml"
+      - ".github/workflows/docker-release.yml"
 
 jobs:
   build-and-smoke-test:
