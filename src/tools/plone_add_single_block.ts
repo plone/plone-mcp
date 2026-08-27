@@ -21,13 +21,19 @@ const inputSchema = z.object({
     .number()
     .optional()
     .describe("Position to insert the block (optional, defaults to end)"),
+  afterBlockId: z
+    .string()
+    .optional()
+    .describe(
+      "ID of an existing block to insert the new block directly after. Get block IDs from plone_get_content: every key in the 'blocks' object is a block ID, and 'blocks_layout.items' lists them in rendering order. Cannot be combined with 'position'. Optional; if omitted, 'position' or append-to-end is used.",
+    ),
 });
 
 export const ploneAddSingleBlock = {
   config: {
     name: "plone_add_single_block",
     description:
-      "Adds a single new block to an existing content item without replacing other blocks. Specify the block type, data, and optional position. Example: plone_add_single_block({path: '/my-page', blockType: 'slate', blockData: {text: 'New paragraph'}})",
+      "Adds a single new block to an existing content item without replacing other blocks. Specify the block type, data, and either position or afterBlockId (insert directly after an existing block; block IDs are returned by plone_get_content). Example: plone_add_single_block({path: '/my-page', blockType: 'slate', blockData: {text: 'New paragraph'}})",
     inputSchema,
   },
   handler: async (
@@ -37,7 +43,7 @@ export const ploneAddSingleBlock = {
     try {
       const sessionId = extra.sessionId || "default";
       const service = sessionManager.getSession(sessionId);
-      const { path, blockType, position, blockData } = args;
+      const { path, blockType, position, afterBlockId, blockData } = args;
       const client = service.getClient();
 
       // First get the current content
@@ -84,8 +90,21 @@ export const ploneAddSingleBlock = {
         );
       }
 
-      // Insert at specified position or at the end
-      if (
+      // Insert relative to an existing block, at a specified position, or at the end
+      if (afterBlockId !== undefined) {
+        if (position !== undefined) {
+          throw new Error(
+            "Provide either 'position' or 'afterBlockId', not both",
+          );
+        }
+        const anchorIndex = blocks_layout.items.indexOf(afterBlockId);
+        if (anchorIndex === -1) {
+          throw new Error(
+            `Block ID not found in the page layout: ${afterBlockId}. Get existing block IDs from plone_get_content.`,
+          );
+        }
+        blocks_layout.items.splice(anchorIndex + 1, 0, blockId);
+      } else if (
         position !== undefined &&
         position >= 0 &&
         position <= blocks_layout.items.length

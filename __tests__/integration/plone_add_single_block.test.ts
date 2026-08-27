@@ -218,6 +218,166 @@ describe("plone_add_single_block", () => {
     expect(Nock.isDone()).toBe(true);
   });
 
+  it("should add a block directly after a specified block using afterBlockId", async () => {
+    mockServer.mockContentGet(testPath, mockContent);
+
+    const mockContentAfterAnchor = {
+      ...mockContent,
+      message: "Block added after existing block",
+    };
+    mockServer.mockContentUpdate(
+      testPath,
+      (body: { blocks: Blocks; blocks_layout: { items: string[] } }) => {
+        const newBlockId = body.blocks_layout.items[1]; // Inserted after existing-1
+        expect(newBlockId).toBeDefined();
+        if (newBlockId !== undefined) {
+          expect(body.blocks[newBlockId]["@type"]).toBe("slate");
+          expect(body.blocks[newBlockId].plaintext).toBe("After anchor");
+        }
+        expect(body.blocks_layout.items[0]).toBe("block-existing-1");
+        expect(body.blocks_layout.items[1]).toBe(newBlockId);
+        expect(body.blocks_layout.items[2]).toBe("block-existing-2");
+        return true;
+      },
+      mockContentAfterAnchor,
+    );
+
+    const args = {
+      path: testPath,
+      blockType: "text",
+      blockData: { text: "After anchor" },
+      afterBlockId: "block-existing-1",
+    };
+
+    const result = await ploneAddSingleBlock.handler(args, mockExtra);
+    expect(result.content[0].text).toEqual(
+      JSON.stringify(mockContentAfterAnchor, null, 2),
+    );
+    expect(Nock.isDone()).toBe(true);
+  });
+
+  it("should append at the end when afterBlockId is the last block in the layout", async () => {
+    mockServer.mockContentGet(testPath, mockContent);
+
+    const mockContentAfterAppend = {
+      ...mockContent,
+      message: "Block appended after last block",
+    };
+    mockServer.mockContentUpdate(
+      testPath,
+      (body: { blocks: Blocks; blocks_layout: { items: string[] } }) => {
+        const newBlockId = body.blocks_layout.items[2];
+        expect(newBlockId).toBeDefined();
+        expect(body.blocks_layout.items).toEqual([
+          "block-existing-1",
+          "block-existing-2",
+          newBlockId,
+        ]);
+        return true;
+      },
+      mockContentAfterAppend,
+    );
+
+    const args = {
+      path: testPath,
+      blockType: "text",
+      blockData: { text: "Append after last" },
+      afterBlockId: "block-existing-2",
+    };
+
+    const result = await ploneAddSingleBlock.handler(args, mockExtra);
+    expect(result.content[0].text).toEqual(
+      JSON.stringify(mockContentAfterAppend, null, 2),
+    );
+    expect(Nock.isDone()).toBe(true);
+  });
+
+  it("should insert a block directly after the title block using afterBlockId", async () => {
+    const contentWithTitle = {
+      ...mockContent,
+      blocks: {
+        "block-title": { "@type": "title" },
+        "block-existing-1": { "@type": "text", plaintext: "Existing block 1" },
+        "block-existing-2": { "@type": "text", plaintext: "Existing block 2" },
+      },
+      blocks_layout: {
+        items: ["block-title", "block-existing-1", "block-existing-2"],
+      },
+    };
+    mockServer.mockContentGet(testPath, contentWithTitle);
+
+    const mockContentAfterTitle = {
+      ...contentWithTitle,
+      message: "Block added after title",
+    };
+    mockServer.mockContentUpdate(
+      testPath,
+      (body: { blocks: Blocks; blocks_layout: { items: string[] } }) => {
+        const newBlockId = body.blocks_layout.items[1];
+        expect(newBlockId).toBeDefined();
+        if (newBlockId !== undefined) {
+          expect(body.blocks[newBlockId].plaintext).toBe("Right after title");
+        }
+        expect(body.blocks_layout.items).toEqual([
+          "block-title",
+          newBlockId,
+          "block-existing-1",
+          "block-existing-2",
+        ]);
+        return true;
+      },
+      mockContentAfterTitle,
+    );
+
+    const args = {
+      path: testPath,
+      blockType: "text",
+      blockData: { text: "Right after title" },
+      afterBlockId: "block-title",
+    };
+
+    const result = await ploneAddSingleBlock.handler(args, mockExtra);
+    expect(result.content[0].text).toEqual(
+      JSON.stringify(mockContentAfterTitle, null, 2),
+    );
+    expect(Nock.isDone()).toBe(true);
+  });
+
+  it("should throw an error if afterBlockId does not exist in the layout", async () => {
+    mockServer.mockContentGet(testPath, mockContent);
+
+    const args = {
+      path: testPath,
+      blockType: "text",
+      blockData: { text: "Some text" },
+      afterBlockId: "block-does-not-exist",
+    };
+
+    await expect(
+      ploneAddSingleBlock.handler(args, mockExtra),
+    ).rejects.toThrow("[AddBlock] Block ID not found in the page layout");
+    expect(Nock.pendingMocks()).toHaveLength(0); // No patch request should be made
+  });
+
+  it("should throw an error if both position and afterBlockId are provided", async () => {
+    mockServer.mockContentGet(testPath, mockContent);
+
+    const args = {
+      path: testPath,
+      blockType: "text",
+      blockData: { text: "Some text" },
+      position: 1,
+      afterBlockId: "block-existing-1",
+    };
+
+    await expect(
+      ploneAddSingleBlock.handler(args, mockExtra),
+    ).rejects.toThrow(
+      "[AddBlock] Provide either 'position' or 'afterBlockId', not both",
+    );
+    expect(Nock.pendingMocks()).toHaveLength(0); // No patch request should be made
+  });
+
   it("should throw an error if Plone client is not configured", async () => {
     const service = sessionManager.getSession(sessionId);
     service.client = null; // Ensure client is not configured
