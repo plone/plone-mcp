@@ -147,6 +147,36 @@ export class PloneMockServer {
       .reply(200, response as nock.ReplyBody);
   }
 
+  mockWorkingCopyGet(path: string, response: Record<string, unknown>) {
+    return nock(this.baseUrl, { reqheaders: this.defaultReqHeaders })
+      .get(`/++api++${path}/@workingcopy`)
+      .reply(200, response as nock.ReplyBody);
+  }
+
+  mockLockGet(path: string, response: Record<string, unknown>) {
+    return nock(this.baseUrl, { reqheaders: this.defaultReqHeaders })
+      .get(`/++api++${path}/@lock`)
+      .reply(200, response as nock.ReplyBody);
+  }
+
+  mockWorkingCopyCreate(path: string, response: Record<string, unknown>) {
+    return nock(this.baseUrl, { reqheaders: this.defaultReqHeaders })
+      .post(`/++api++${path}/@workingcopy`)
+      .reply(201, response as nock.ReplyBody);
+  }
+
+  mockWorkingCopyCheckin(path: string, status = 204) {
+    return nock(this.baseUrl, { reqheaders: this.defaultReqHeaders })
+      .patch(`/++api++${path}/@workingcopy`)
+      .reply(status);
+  }
+
+  mockWorkingCopyCancel(path: string, status = 204) {
+    return nock(this.baseUrl, { reqheaders: this.defaultReqHeaders })
+      .delete(`/++api++${path}/@workingcopy`)
+      .reply(status);
+  }
+
   mockTypes(response: Record<string, unknown>) {
     return nock(this.baseUrl, { reqheaders: this.defaultReqHeaders })
       .get("/++api++/@types")
@@ -205,6 +235,26 @@ export const sampleSearchResults = {
     first: "https://test.plone.com/++api++/@search?b_start=0",
     last: "https://test.plone.com/++api++/@search?b_start=0",
   },
+};
+
+export const sampleWorkingCopyInfo = {
+  working_copy: {
+    "@id": "https://test.plone.com/working_copy_of_test-document",
+    created: "1995-07-31T13:45:00+00:00",
+    creator_name: "admin",
+    title: "Test Document",
+  },
+  working_copy_of: null,
+};
+
+export const sampleLockInfo = {
+  locked: true,
+  stealable: true,
+  creator: "admin",
+  created: "1995-07-31T13:45:00+00:00",
+  timeout: 600,
+  token: "cef6a5f0-d1b5-4a2c-9e1c-9c9ae1c1a1b1",
+  name: "plone.locking.stealable",
 };
 
 export const sampleWorkflowInfo = {
