@@ -3,6 +3,7 @@ import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.j
 import { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
 import { sessionManager } from "../session-manager.js";
 import { wrapError } from "../utils/block-utils.js";
+import { withContentPathQueue } from "../utils/concurrency-queue.js";
 import { PloneContent } from "../plone-client.js";
 
 const inputSchema = z.object({
@@ -28,36 +29,38 @@ export const ploneRemoveSingleBlock = {
       const { path, blockId } = args;
       const client = service.getClient();
 
-      // First get the current content
-      const content = (await client.get(path)) as PloneContent;
+      const updatedContent = await withContentPathQueue(path, async () => {
+        // First get the current content
+        const content = (await client.get(path)) as PloneContent;
 
-      const blocks = content.blocks || {};
-      const blocks_layout = content.blocks_layout || { items: [] };
+        const blocks = content.blocks || {};
+        const blocks_layout = content.blocks_layout || { items: [] };
 
-      if (!blocks[blockId]) {
-        const availableBlockIds = Object.keys(blocks);
-        throw new Error(
-          `Block with ID '${blockId}' not found. Available block IDs: ${availableBlockIds.join(
-            ", ",
-          )}`,
+        if (!blocks[blockId]) {
+          const availableBlockIds = Object.keys(blocks);
+          throw new Error(
+            `Block with ID '${blockId}' not found. Available block IDs: ${availableBlockIds.join(
+              ", ",
+            )}`,
+          );
+        }
+
+        // Remove the block
+        const updatedBlocks = Object.fromEntries(
+          Object.entries(blocks).filter(([key]) => key !== blockId),
         );
-      }
 
-      // Remove the block
-      const updatedBlocks = Object.fromEntries(
-        Object.entries(blocks).filter(([key]) => key !== blockId),
-      );
+        // Remove from layout
+        const updatedLayoutItems = blocks_layout.items.filter(
+          (id: string) => id !== blockId,
+        );
 
-      // Remove from layout
-      const updatedLayoutItems = blocks_layout.items.filter(
-        (id: string) => id !== blockId,
-      );
-
-      // Update the content
-      const updatedContent = (await client.patch(path, {
-        blocks: updatedBlocks,
-        blocks_layout: { items: updatedLayoutItems },
-      })) as PloneContent;
+        // Update the content
+        return (await client.patch(path, {
+          blocks: updatedBlocks,
+          blocks_layout: { items: updatedLayoutItems },
+        })) as PloneContent;
+      });
 
       return {
         content: [

@@ -7,6 +7,7 @@ import {
   processBlock,
   validateImageURL,
 } from "../utils/block-utils.js";
+import { withContentPathQueue } from "../utils/concurrency-queue.js";
 import { PloneContent } from "../plone-client.js";
 
 const inputSchema = z.object({
@@ -33,54 +34,56 @@ export const ploneUpdateSingleBlock = {
       const { path, blockId, blockData } = args;
       const client = service.getClient();
 
-      // First get the current content
-      const content = (await client.get(path)) as PloneContent;
+      const updatedContent = await withContentPathQueue(path, async () => {
+        // First get the current content
+        const content = (await client.get(path)) as PloneContent;
 
-      const blocks = content.blocks || {};
+        const blocks = content.blocks || {};
 
-      if (!blocks[blockId]) {
-        const availableBlockIds = Object.keys(blocks);
-        throw new Error(
-          `Block with ID '${blockId}' not found. Available block IDs: ${availableBlockIds.join(
-            ", ",
-          )}`,
-        );
-      }
-
-      // Update the specific block
-      const existingBlock = blocks[blockId] as Record<string, unknown>;
-      const blockType =
-        (blockData["@type"] as string) || (existingBlock["@type"] as string);
-      const mergedData = { ...existingBlock, ...blockData };
-
-      // Validate image URLs before processing
-      if (
-        blockType === "image" &&
-        typeof mergedData.url === "string" &&
-        mergedData.url
-      ) {
-        const isValid = await validateImageURL(
-          mergedData.url,
-          client.config.baseUrl,
-        );
-        if (!isValid) {
-          throw wrapError(
-            "UpdateBlock",
-            `Invalid or inaccessible image URL: ${mergedData.url}`,
+        if (!blocks[blockId]) {
+          const availableBlockIds = Object.keys(blocks);
+          throw new Error(
+            `Block with ID '${blockId}' not found. Available block IDs: ${availableBlockIds.join(
+              ", ",
+            )}`,
           );
         }
-      }
 
-      blocks[blockId] = processBlock(
-        blockType,
-        mergedData,
-        client.config.baseUrl,
-      );
+        // Update the specific block
+        const existingBlock = blocks[blockId] as Record<string, unknown>;
+        const blockType =
+          (blockData["@type"] as string) || (existingBlock["@type"] as string);
+        const mergedData = { ...existingBlock, ...blockData };
 
-      // Update the content
-      const updatedContent = (await client.patch(path, {
-        blocks,
-      })) as PloneContent;
+        // Validate image URLs before processing
+        if (
+          blockType === "image" &&
+          typeof mergedData.url === "string" &&
+          mergedData.url
+        ) {
+          const isValid = await validateImageURL(
+            mergedData.url,
+            client.config.baseUrl,
+          );
+          if (!isValid) {
+            throw wrapError(
+              "UpdateBlock",
+              `Invalid or inaccessible image URL: ${mergedData.url}`,
+            );
+          }
+        }
+
+        blocks[blockId] = processBlock(
+          blockType,
+          mergedData,
+          client.config.baseUrl,
+        );
+
+        // Update the content
+        return (await client.patch(path, {
+          blocks,
+        })) as PloneContent;
+      });
 
       return {
         content: [
