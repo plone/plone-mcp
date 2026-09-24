@@ -175,6 +175,8 @@ Run `make help` to list every available target.
 | `plone_create_content`      | Create new content                       | `plone_create_content({parentPath: "/", type: "Document", title: "Page"})`             |
 | `plone_update_content`      | Update existing content                  | `plone_update_content({path: "/page", title: "New Title"})`                            |
 | `plone_delete_content`      | Delete content                           | `plone_delete_content({path: "/old-page"})`                                            |
+| `plone_copy_content`        | Copy content into a container            | `plone_copy_content({parentPath: "/archive", source: "/news"})`                        |
+| `plone_move_content`        | Move content into a container            | `plone_move_content({parentPath: "/archive", source: "/old-page"})`                    |
 | `plone_search`              | Search content                           | `plone_search({query: "news", portal_type: ["Document"]})`                             |
 | `plone_transition_workflow` | Change workflow state                    | `plone_transition_workflow({path: "/page", transition: "publish"})`                    |
 | `plone_get_navigation_tree` | Get hierarchical site structure          | `plone_get_navigation_tree({root_path: "/", depth: 2})`                                |
@@ -277,6 +279,22 @@ plone_create_content({
 plone_transition_workflow({
   path: "/news/breaking-news",
   transition: "publish",
+});
+```
+
+### Copy and Move Content
+
+```javascript
+// Copy one or more items into another folder (originals stay in place)
+plone_copy_content({
+  parentPath: "/archive",
+  source: ["/news/breaking-news", "/news/annual-report"],
+});
+
+// Move an item, removing it from its current location
+plone_move_content({
+  parentPath: "/archive",
+  source: "/old-page",
 });
 ```
 
