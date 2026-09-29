@@ -48,6 +48,26 @@ describe("plone_copy_content", () => {
     expect(Nock.isDone()).toBe(true);
   });
 
+  it("should copy into the site root (parentPath: '/')", async () => {
+    const response = [
+      {
+        source: `${testBaseUrl}${sourcePath}`,
+        target: `${testBaseUrl}/copy_of_front-page`,
+      },
+    ];
+    Nock(testBaseUrl)
+      .post(`/++api++/@copy`, { source: sourcePath })
+      .reply(200, response);
+
+    const result = await ploneCopyContent.handler(
+      { parentPath: "/", source: sourcePath },
+      mockExtra,
+    );
+
+    expect(JSON.parse(result.content[0].text)).toEqual(response);
+    expect(Nock.isDone()).toBe(true);
+  });
+
   it("should copy multiple sources given as an array", async () => {
     const sources = ["/front-page", "/newsitem"];
     const response = [

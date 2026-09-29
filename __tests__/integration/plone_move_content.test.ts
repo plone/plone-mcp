@@ -48,6 +48,26 @@ describe("plone_move_content", () => {
     expect(Nock.isDone()).toBe(true);
   });
 
+  it("should move into the site root (parentPath: '/')", async () => {
+    const response = [
+      {
+        source: `${testBaseUrl}${sourcePath}`,
+        target: `${testBaseUrl}/front-page`,
+      },
+    ];
+    Nock(testBaseUrl)
+      .post(`/++api++/@move`, { source: sourcePath })
+      .reply(200, response);
+
+    const result = await ploneMoveContent.handler(
+      { parentPath: "/", source: sourcePath },
+      mockExtra,
+    );
+
+    expect(JSON.parse(result.content[0].text)).toEqual(response);
+    expect(Nock.isDone()).toBe(true);
+  });
+
   it("should move multiple sources given as an array", async () => {
     const sources = ["/front-page", "/newsitem"];
     const response = [
