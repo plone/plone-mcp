@@ -1,0 +1,1 @@
+Add `plone_copy_content` and `plone_move_content` tools covering the `@copy` and `@move` endpoints, including support for copying or moving multiple sources and a warning when the API skips unresolved sources. @ilizarazu

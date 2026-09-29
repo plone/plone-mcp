@@ -143,8 +143,12 @@ export class PloneClient {
       throw new Error("Path traversal not allowed");
     }
 
+    // Collapse repeated slashes so a root destination like "//@copy" is not
+    // mistaken for a protocol-relative URL by axios (which drops baseURL).
+    let normalized = path.replace(/\/{2,}/g, "/");
+
     // Remove trailing slash, ensure leading slash
-    let normalized = path.replace(/\/$/, "");
+    normalized = normalized.replace(/\/$/, "");
     if (!normalized.startsWith("/") && normalized !== "") {
       normalized = `/${normalized}`;
     }

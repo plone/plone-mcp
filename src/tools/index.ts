@@ -3,6 +3,7 @@ import { ploneConfigure } from "./plone_configure.js";
 import { ploneAddSingleBlock } from "./plone_add_single_block.js";
 import { ploneCancelWorkingCopy } from "./plone_cancel_working_copy.js";
 import { ploneCheckinWorkingCopy } from "./plone_checkin_working_copy.js";
+import { ploneCopyContent } from "./plone_copy_content.js";
 import { ploneCreateBlocksLayout } from "./plone_create_blocks_layout.js";
 import { ploneCreateContent } from "./plone_create_content.js";
 import { ploneCreateUser } from "./plone_create_user.js";
@@ -19,6 +20,7 @@ import { ploneGetVocabularies } from "./plone_get_vocabularies.js";
 import { ploneGetWorkflowInfo } from "./plone_get_workflow_info.js";
 import { ploneGetWorkingCopy } from "./plone_get_working_copy.js";
 import { ploneLinkTranslation } from "./plone_link_translation.js";
+import { ploneMoveContent } from "./plone_move_content.js";
 import { ploneRemoveSingleBlock } from "./plone_remove_single_block.js";
 import { ploneSearch } from "./plone_search.js";
 import { ploneTransitionWorkflow } from "./plone_transition_workflow.js";
@@ -42,6 +44,7 @@ export function registerTools(server: McpServer) {
     ploneAddSingleBlock,
     ploneCancelWorkingCopy,
     ploneCheckinWorkingCopy,
+    ploneCopyContent,
     ploneCreateBlocksLayout,
     ploneCreateContent,
     ploneCreateUser,
@@ -58,6 +61,7 @@ export function registerTools(server: McpServer) {
     ploneGetWorkflowInfo,
     ploneGetWorkingCopy,
     ploneLinkTranslation,
+    ploneMoveContent,
     ploneRemoveSingleBlock,
     ploneSearch,
     ploneTransitionWorkflow,

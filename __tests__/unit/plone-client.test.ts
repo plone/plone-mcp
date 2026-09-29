@@ -160,6 +160,14 @@ describe("plone-client", () => {
       it("should return empty string for /", () => {
         expect(client.normalizePath("/")).toBe("");
       });
+
+      it("should collapse repeated slashes so root endpoints are not protocol-relative", () => {
+        expect(client.normalizePath("//@copy")).toBe("/@copy");
+        expect(client.normalizePath("///@copy")).toBe("/@copy");
+        expect(client.normalizePath("/folder//sub")).toBe("/folder/sub");
+        expect(client.normalizePath("//folder//@move")).toBe("/folder/@move");
+        expect(client.normalizePath("//")).toBe("");
+      });
     });
 
     describe("HTTP methods", () => {
