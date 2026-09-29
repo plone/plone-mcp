@@ -48,6 +48,20 @@ describe("plone_copy_content", () => {
       expect(schema.shape.parentPath).toBeDefined();
       expect(schema.shape.source).toBeDefined();
     });
+
+    it("should reject an empty source array", () => {
+      const schema = ploneCopyContent.config.inputSchema as any;
+      expect(schema.safeParse({ parentPath: "/", source: [] }).success).toBe(
+        false,
+      );
+    });
+
+    it("should reject an empty source string", () => {
+      const schema = ploneCopyContent.config.inputSchema as any;
+      expect(schema.safeParse({ parentPath: "/", source: "" }).success).toBe(
+        false,
+      );
+    });
   });
 
   describe("handler", () => {

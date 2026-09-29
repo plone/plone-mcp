@@ -11,7 +11,7 @@ const inputSchema = z.object({
       "Path of the destination container to copy into (e.g., '/folder' or '/' for the site root)",
     ),
   source: z
-    .union([z.string(), z.array(z.string())])
+    .union([z.string().min(1), z.array(z.string().min(1)).min(1)])
     .describe(
       "Source object(s) to copy, each specified by URL, path, or UID. Pass a single string or an array for multiple objects",
     ),
