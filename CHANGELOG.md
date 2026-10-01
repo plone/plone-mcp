@@ -2,6 +2,22 @@
 
 <!-- towncrier release notes start -->
 
+## 1.0.0-alpha.3 (2026-10-01)
+
+### Feature
+
+- Add `plone_copy_content` and `plone_move_content` tools covering the `@copy` and `@move` endpoints, including support for copying or moving multiple sources and a warning when the API skips unresolved sources. @ilizarazu
+- Add working copy tools `plone_create_working_copy`, `plone_get_working_copy`, `plone_checkin_working_copy` and `plone_cancel_working_copy`, covering the `@workingcopy` endpoint. @Tishasoumya-02
+- `plone_add_single_block` now accepts an optional `afterBlockId` argument to insert the new block directly after an existing block (IDs are returned by `plone_get_content`). When both `position` and `afterBlockId` are provided the tool errors. @nileshgulia1
+
+### Bugfix
+
+- Fix `PloneClient.normalizePath` to collapse repeated slashes. A root destination such as `parentPath: "/"` previously produced `//@copy`, which axios treated as a protocol-relative URL, discarded the base URL, and failed with `Invalid URL`. This also affected any `${path}/@...` endpoint invoked at the site root. @ilizarazu
+
+### Internal
+
+- Make sure future tags do not have the `plone-mcp-` prefix. @ericof
+
 ## 1.0.0-alpha.2 (2026-07-27)
 
 ### Internal

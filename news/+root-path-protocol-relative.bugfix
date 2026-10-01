@@ -1,1 +1,0 @@
-Fix `PloneClient.normalizePath` to collapse repeated slashes. A root destination such as `parentPath: "/"` previously produced `//@copy`, which axios treated as a protocol-relative URL, discarded the base URL, and failed with `Invalid URL`. This also affected any `${path}/@...` endpoint invoked at the site root. @ilizarazu

@@ -1,1 +1,0 @@
-`plone_add_single_block` now accepts an optional `afterBlockId` argument to insert the new block directly after an existing block (IDs are returned by `plone_get_content`). When both `position` and `afterBlockId` are provided the tool errors. @nileshgulia1
