@@ -14,6 +14,10 @@ export const ploneGetWorkflowInfo = {
     description:
       "Shows the current workflow state (e.g., 'Published', 'Private') and available transitions for a content item. Example: plone_get_workflow_info({path: '/my-document'})",
     inputSchema,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: false,
+    },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,

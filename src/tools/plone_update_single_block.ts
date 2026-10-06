@@ -21,6 +21,12 @@ export const ploneUpdateSingleBlock = {
     description:
       "Modifies the data of a single, existing block within a content item, identified by its block ID. Example: plone_update_single_block({path: '/my-page', blockId: 'abc123', blockData: {text: 'Updated text'}})",
     inputSchema,
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,

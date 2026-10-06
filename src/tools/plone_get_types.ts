@@ -12,6 +12,10 @@ export const ploneGetTypes = {
     description:
       "Lists all available content types that can be created in the Plone site (e.g., 'Document', 'Event').",
     inputSchema,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: false,
+    },
   },
   handler: async (
     _args: z.infer<typeof inputSchema>,

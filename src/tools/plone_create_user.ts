@@ -37,6 +37,12 @@ export const ploneCreateUser = {
     description:
       "Creates a new user in the Plone site. Requires Manager role or self-registration to be enabled. Example: plone_create_user({username: 'jdoe', password: 'secret', email: 'jdoe@example.com', fullname: 'John Doe', roles: ['Contributor']})",
     inputSchema,
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,

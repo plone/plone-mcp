@@ -14,6 +14,12 @@ export const ploneCreateWorkingCopy = {
     description:
       "Checks out a content item, creating a working copy that can be edited without touching the published original. The original is locked until the working copy is checked in or cancelled. The copy is created next to the original as 'working_copy_of_<id>', so use the '@id' from the response instead of building that path yourself. Example: plone_create_working_copy({path: '/my-document'})",
     inputSchema,
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,

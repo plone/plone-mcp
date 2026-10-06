@@ -14,6 +14,12 @@ export const ploneDeleteContent = {
     description:
       "Permanently deletes a content item from Plone using its path. Example: plone_delete_content({path: '/old-content'})",
     inputSchema,
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,

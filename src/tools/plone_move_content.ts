@@ -23,6 +23,12 @@ export const ploneMoveContent = {
     description:
       "Moves one or more content items into a destination container, removing them from their current location. Sources may be given by URL, path, or UID; pass a single string or an array. Requires the DeleteObjects permission on the source's parent and AddPortalContent on the destination. Example: plone_move_content({parentPath: '/folder', source: '/front-page'})",
     inputSchema,
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,

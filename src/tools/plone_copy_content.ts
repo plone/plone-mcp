@@ -23,6 +23,12 @@ export const ploneCopyContent = {
     description:
       "Copies one or more content items into a destination container, leaving the originals in place. Sources may be given by URL, path, or UID; pass a single string or an array. Copies are auto-named 'copy_of_<id>', so the response maps each source to its new target URL. Requires the AddPortalContent permission on the destination. Example: plone_copy_content({parentPath: '/folder', source: '/front-page'})",
     inputSchema,
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,

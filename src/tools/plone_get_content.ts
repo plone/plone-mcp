@@ -24,6 +24,10 @@ export const ploneGetContent = {
     description:
       "Retrieves the full JSON data for a single content item from Plone using its path. Example: plone_get_content({path: '/news/latest-update'})",
     inputSchema,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: false,
+    },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,

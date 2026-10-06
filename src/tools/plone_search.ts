@@ -38,6 +38,10 @@ export const ploneSearch = {
     description:
       "Performs a detailed search for content items, allowing filters by text, content type, path, and workflow state. Example: plone_search({query: 'annual report', portal_type: ['Document'], review_state: ['published']})",
     inputSchema,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: false,
+    },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,
