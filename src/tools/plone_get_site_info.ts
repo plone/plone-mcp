@@ -12,6 +12,10 @@ export const ploneGetSiteInfo = {
     description:
       "Retrieves top-level information and metadata about the connected Plone site, such as available languages and Plone version.",
     inputSchema,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: false,
+    },
   },
   handler: async (
     _args: z.infer<typeof inputSchema>,

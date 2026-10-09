@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import { ploneConfigure } from "./plone_configure.js";
 import { ploneAddSingleBlock } from "./plone_add_single_block.js";
 import { ploneCancelWorkingCopy } from "./plone_cancel_working_copy.js";
@@ -28,6 +29,17 @@ import { ploneUnlinkTranslation } from "./plone_unlink_translation.js";
 import { ploneUpdateContent } from "./plone_update_content.js";
 import { ploneUpdateSingleBlock } from "./plone_update_single_block.js";
 import { ploneUpdateUser } from "./plone_update_user.js";
+
+/**
+ * Every tool must declare annotations so clients can tell reads from
+ * destructive writes.
+ */
+interface AnnotatedTool {
+  config: {
+    name: string;
+    annotations: ToolAnnotations & { readOnlyHint: boolean };
+  };
+}
 
 /**
  * Registers all tools with the provided McpServer instance.
@@ -69,7 +81,7 @@ export function registerTools(server: McpServer) {
     ploneUpdateContent,
     ploneUpdateSingleBlock,
     ploneUpdateUser,
-  ];
+  ] satisfies AnnotatedTool[];
 
   for (const tool of tools) {
     const isConfigure = tool.config.name === "plone_configure";
@@ -79,6 +91,7 @@ export function registerTools(server: McpServer) {
         {
           description: tool.config.description,
           inputSchema: tool.config.inputSchema,
+          annotations: tool.config.annotations,
         },
         tool.handler,
       );

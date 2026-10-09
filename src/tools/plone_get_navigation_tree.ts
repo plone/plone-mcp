@@ -24,6 +24,10 @@ export const ploneGetNavigationTree = {
     description:
       "Get the site navigation tree as seen from a given path. The tree is rooted at the nearest navigation root (the site root, or the language folder on multilingual sites) — use depth to include nested levels, then look up the relevant subtree in the result. Example: plone_get_navigation_tree({root_path: '/en/documentation', depth: 3})",
     inputSchema,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: false,
+    },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,

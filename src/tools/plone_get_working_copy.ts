@@ -16,6 +16,10 @@ export const ploneGetWorkingCopy = {
     description:
       "Shows the working copy relationship for a content item: the 'working_copy' field points to the checked out copy of an original, the 'working_copy_of' field points to the original of a working copy, and 'lock' reports whether the item is locked. Take paths from the '@id' of those fields. Example: plone_get_working_copy({path: '/my-document'})",
     inputSchema,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: false,
+    },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,

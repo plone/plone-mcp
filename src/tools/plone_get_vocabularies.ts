@@ -21,6 +21,10 @@ export const ploneGetVocabularies = {
     description:
       "Lists all available vocabularies, or fetches the allowed values of one specific vocabulary — such as a list of categories or tags. Useful for finding valid inputs for content fields. Call with no arguments to discover vocabulary names, then with a name to get its terms. Example: plone_get_vocabularies({vocabulary: 'plone.app.vocabularies.Keywords'})",
     inputSchema,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: false,
+    },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,

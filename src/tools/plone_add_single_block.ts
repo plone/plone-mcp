@@ -35,6 +35,12 @@ export const ploneAddSingleBlock = {
     description:
       "Adds a single new block to an existing content item without replacing other blocks. Specify the block type, data, and either position or afterBlockId (insert directly after an existing block; block IDs are returned by plone_get_content). Example: plone_add_single_block({path: '/my-page', blockType: 'slate', blockData: {text: 'New paragraph'}})",
     inputSchema,
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,

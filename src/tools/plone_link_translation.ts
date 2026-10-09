@@ -19,6 +19,12 @@ export const ploneLinkTranslation = {
     description:
       "Links an existing content item as a translation of another. Both items must already exist. Pass the '@id' (full URL) of the existing content item. Example: plone_link_translation({path: '/en/my-page', id: 'https://example.com/de/meine-seite'})",
     inputSchema,
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,

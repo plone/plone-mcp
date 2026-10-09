@@ -14,6 +14,10 @@ export const ploneGetTranslation = {
     description:
       "Retrieves all available translations for a content item, identified by its '@id' (URL). Example: plone_get_translation({path: '/en/my-page'})",
     inputSchema,
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: false,
+    },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,
