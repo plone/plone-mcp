@@ -37,8 +37,8 @@ export const ploneCreateBlocksLayout = {
     annotations: {
       readOnlyHint: false,
       destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
   handler: async (
