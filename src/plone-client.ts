@@ -7,6 +7,9 @@ export const ENV_USERNAME = "PLONE_USERNAME";
 export const ENV_PASSWORD = "PLONE_PASSWORD";
 export const ENV_TOKEN = "PLONE_TOKEN";
 
+// Raw (non-API) fetches such as sitemaps can hang on misconfigured sites
+export const RAW_REQUEST_TIMEOUT = 30000;
+
 // Helper to validate URL format
 export const isValidUrl = (url: string): boolean => {
   try {
@@ -159,6 +162,42 @@ export class PloneClient {
     const normalizedPath = this.normalizePath(path);
     const response = await this.axios.get(normalizedPath, { params });
     return response.data;
+  }
+
+  /**
+   * Resolve a site-relative path or absolute URL to an absolute URL on the
+   * configured site's origin. Refuses other hosts so the server cannot be
+   * used to fetch arbitrary URLs with the site's credentials.
+   */
+  resolveSiteUrl(pathOrUrl: string): string {
+    if (/^(https?:)?\/\//i.test(pathOrUrl)) {
+      const url = new URL(pathOrUrl, this.baseUrl);
+      if (url.origin !== new URL(this.baseUrl).origin) {
+        throw new Error(
+          `URL ${pathOrUrl} is not on the configured site's host (${new URL(this.baseUrl).origin})`,
+        );
+      }
+      return url.href;
+    }
+    return `${this.baseUrl}${this.normalizePath(pathOrUrl)}`;
+  }
+
+  /**
+   * Fetch a non-REST-API resource (e.g. sitemap.xml.gz) from the site as raw
+   * bytes, bypassing the ++api++ traversal.
+   */
+  async getRaw(
+    pathOrUrl: string,
+    accept = "*/*",
+    timeout = RAW_REQUEST_TIMEOUT,
+  ): Promise<Buffer> {
+    const url = this.resolveSiteUrl(pathOrUrl);
+    const response = await this.axios.get(url, {
+      responseType: "arraybuffer",
+      headers: { Accept: accept },
+      timeout,
+    });
+    return Buffer.from(response.data);
   }
 
   async post(path: string, data?: unknown): Promise<unknown> {

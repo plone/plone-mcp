@@ -8,6 +8,7 @@ import {
   ENV_USERNAME,
   ENV_PASSWORD,
   ENV_TOKEN,
+  RAW_REQUEST_TIMEOUT,
 } from "../../src/plone-client";
 
 vi.mock("axios", () => {
@@ -170,6 +171,46 @@ describe("plone-client", () => {
       });
     });
 
+    describe("resolveSiteUrl", () => {
+      const client = new PloneClient(config);
+
+      it("should resolve site-relative paths against the site root", () => {
+        expect(client.resolveSiteUrl("/sitemap.xml.gz")).toBe(
+          "https://example.com/Plone/sitemap.xml.gz",
+        );
+        expect(client.resolveSiteUrl("sitemap.xml.gz")).toBe(
+          "https://example.com/Plone/sitemap.xml.gz",
+        );
+      });
+
+      it("should treat non-http(s) schemes as site-relative paths", () => {
+        expect(client.resolveSiteUrl("news:2024")).toBe(
+          "https://example.com/Plone/news:2024",
+        );
+        expect(client.resolveSiteUrl("file:///etc/passwd")).toBe(
+          "https://example.com/Plone/file:/etc/passwd",
+        );
+      });
+
+      it("should accept absolute URLs on the same origin", () => {
+        expect(client.resolveSiteUrl("https://example.com/sitemap.xml")).toBe(
+          "https://example.com/sitemap.xml",
+        );
+      });
+
+      it("should reject other hosts", () => {
+        expect(() => client.resolveSiteUrl("https://evil.com/x")).toThrow(
+          "not on the configured site's host",
+        );
+        expect(() => client.resolveSiteUrl("//evil.com/x")).toThrow(
+          "not on the configured site's host",
+        );
+        expect(() => client.resolveSiteUrl("http://example.com/x")).toThrow(
+          "not on the configured site's host",
+        );
+      });
+    });
+
     describe("HTTP methods", () => {
       let client: PloneClient;
       let mockAxios: any;
@@ -185,6 +226,20 @@ describe("plone-client", () => {
         const result = await client.get("some/path", { p: 1 });
         expect(mockAxios.get).toHaveBeenCalledWith("/some/path", { params: { p: 1 } });
         expect(result).toEqual({ success: true });
+      });
+
+      it("getRaw should fetch an absolute site URL as bytes", async () => {
+        mockAxios.get.mockResolvedValue({ data: new Uint8Array([1, 2]).buffer });
+        const result = await client.getRaw("/sitemap.xml.gz", "application/xml");
+        expect(mockAxios.get).toHaveBeenCalledWith(
+          "https://example.com/Plone/sitemap.xml.gz",
+          {
+            responseType: "arraybuffer",
+            headers: { Accept: "application/xml" },
+            timeout: RAW_REQUEST_TIMEOUT,
+          },
+        );
+        expect(result).toEqual(Buffer.from([1, 2]));
       });
 
       it("post should call axios.post with normalized path", async () => {

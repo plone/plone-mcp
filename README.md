@@ -180,6 +180,7 @@ Run `make help` to list every available target.
 | `plone_search`              | Search content                           | `plone_search({query: "news", portal_type: ["Document"]})`                             |
 | `plone_transition_workflow` | Change workflow state                    | `plone_transition_workflow({path: "/page", transition: "publish"})`                    |
 | `plone_get_navigation_tree` | Get hierarchical site structure          | `plone_get_navigation_tree({root_path: "/", depth: 2})`                                |
+| `plone_get_sitemap`         | List all URLs from the XML sitemap + stats | `plone_get_sitemap({path: "/news", modified_before: "2024-01-01"})`                  |
 | `plone_get_translation`     | List translations of a content item      | `plone_get_translation({path: "/en/my-page"})`                                         |
 | `plone_link_translation`    | Link existing content as a translation   | `plone_link_translation({path: "/en/my-page", id: "/de/meine-seite"})`                 |
 | `plone_unlink_translation`  | Remove a translation link                | `plone_unlink_translation({path: "/en/my-page", language: "de"})`                      |

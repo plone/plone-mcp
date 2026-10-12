@@ -14,6 +14,7 @@ import { ploneGetBlockSchemas } from "./plone_get_block_schemas.js";
 import { ploneGetContent } from "./plone_get_content.js";
 import { ploneGetNavigationTree } from "./plone_get_navigation_tree.js";
 import { ploneGetSiteInfo } from "./plone_get_site_info.js";
+import { ploneGetSitemap } from "./plone_get_sitemap.js";
 import { ploneGetTypeSchema } from "./plone_get_type_schema.js";
 import { ploneGetTranslation } from "./plone_get_translation.js";
 import { ploneGetTypes } from "./plone_get_types.js";
@@ -66,6 +67,7 @@ export function registerTools(server: McpServer) {
     ploneGetContent,
     ploneGetNavigationTree,
     ploneGetSiteInfo,
+    ploneGetSitemap,
     ploneGetTranslation,
     ploneGetTypeSchema,
     ploneGetTypes,

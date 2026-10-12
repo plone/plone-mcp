@@ -1,0 +1,1 @@
+Add `plone_get_sitemap` tool that lists every URL in the site's XML sitemap (following sitemap indexes, gzip supported) with lastmod, changefreq and priority, plus content statistics for site analysis. @Tishasoumya-02
