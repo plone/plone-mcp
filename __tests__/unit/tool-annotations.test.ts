@@ -25,6 +25,7 @@ const expected: Record<string, ToolAnnotations> = {
   plone_get_content: readOnly,
   plone_get_navigation_tree: readOnly,
   plone_get_site_info: readOnly,
+  plone_get_sitemap: readOnly,
   plone_get_translation: readOnly,
   plone_get_type_schema: readOnly,
   plone_get_types: readOnly,
