@@ -37,9 +37,9 @@ export const ploneAddSingleBlock = {
     inputSchema,
     annotations: {
       readOnlyHint: false,
-      destructiveHint: false,
+      destructiveHint: true,
       idempotentHint: false,
-      openWorldHint: false,
+      openWorldHint: true,
     },
   },
   handler: async (

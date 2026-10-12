@@ -33,7 +33,7 @@ export const ploneUpdateContent = {
     annotations: {
       readOnlyHint: false,
       destructiveHint: true,
-      idempotentHint: true,
+      idempotentHint: false,
       openWorldHint: false,
     },
   },

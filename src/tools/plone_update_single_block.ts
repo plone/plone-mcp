@@ -24,8 +24,8 @@ export const ploneUpdateSingleBlock = {
     annotations: {
       readOnlyHint: false,
       destructiveHint: true,
-      idempotentHint: true,
-      openWorldHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
     },
   },
   handler: async (
