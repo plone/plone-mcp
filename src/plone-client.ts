@@ -140,7 +140,7 @@ export class PloneClient {
   // IMPROVEMENT: Centralize path normalization
   normalizePath(path: string): string {
     if (!path || path === "/") return "";
-    
+
     // Mitigate path traversal
     if (path.includes("..")) {
       throw new Error("Path traversal not allowed");
