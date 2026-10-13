@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { Nock , PloneMockServer } from "plone-mcp/__tests__/utils/test-helpers";
+import { Nock , PloneMockServer, createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneGetSiteInfo } from "plone-mcp/tools/plone_get_site_info";
 import { PloneClient } from "plone-mcp/plone-client";
 import { sessionManager } from "plone-mcp/session-manager";
@@ -15,11 +15,7 @@ describe("plone_get_site_info", () => {
   };
 
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
@@ -35,7 +31,7 @@ describe("plone_get_site_info", () => {
   it("should successfully retrieve site information", async () => {
     mockServer.mockSiteRoot(mockSiteInfo);
 
-    const result = await ploneGetSiteInfo.handler({}, mockExtra);
+    const result = await ploneGetSiteInfo.handler({}, mockContext);
 
     expect(JSON.parse(result.content[0].text)).toEqual(mockSiteInfo);
     expect(Nock.isDone()).toBe(true);
@@ -54,7 +50,7 @@ describe("plone_get_site_info", () => {
       .get("/++api++")
       .reply(500, "Server Error");
 
-    await expect(ploneGetSiteInfo.handler({}, mockExtra)).rejects.toThrow(
+    await expect(ploneGetSiteInfo.handler({}, mockContext)).rejects.toThrow(
       "[GetSiteInfo] Request failed with status code 500",
     );
     expect(Nock.isDone()).toBe(true);
@@ -64,7 +60,7 @@ describe("plone_get_site_info", () => {
     const service = sessionManager.getSession(sessionId);
     service.client = null;
 
-    await expect(ploneGetSiteInfo.handler({}, mockExtra)).rejects.toThrow(
+    await expect(ploneGetSiteInfo.handler({}, mockContext)).rejects.toThrow(
       "Plone client not configured. Please run plone_configure first.",
     );
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { Nock, PloneMockServer } from "plone-mcp/__tests__/utils/test-helpers";
+import { Nock, PloneMockServer, createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneCancelWorkingCopy } from "plone-mcp/tools/plone_cancel_working_copy";
 import { PloneClient } from "plone-mcp/plone-client";
 import { sessionManager } from "plone-mcp/session-manager";
@@ -10,11 +10,7 @@ describe("plone_cancel_working_copy", () => {
   const testPath = "/working_copy_of_my-document";
 
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
@@ -32,7 +28,7 @@ describe("plone_cancel_working_copy", () => {
 
     const result = await ploneCancelWorkingCopy.handler(
       { path: testPath },
-      mockExtra,
+      mockContext,
     );
 
     expect(result.content[0].text).toBe(
@@ -45,7 +41,7 @@ describe("plone_cancel_working_copy", () => {
     const originalPath = "/my-document";
     mockServer.mockWorkingCopyCancel(originalPath);
 
-    await ploneCancelWorkingCopy.handler({ path: originalPath }, mockExtra);
+    await ploneCancelWorkingCopy.handler({ path: originalPath }, mockContext);
 
     expect(Nock.isDone()).toBe(true);
   });
@@ -56,7 +52,7 @@ describe("plone_cancel_working_copy", () => {
       .reply(400, "Bad Request");
 
     await expect(
-      ploneCancelWorkingCopy.handler({ path: testPath }, mockExtra),
+      ploneCancelWorkingCopy.handler({ path: testPath }, mockContext),
     ).rejects.toThrow("[CancelWorkingCopy] Request failed with status code 400");
     expect(Nock.isDone()).toBe(true);
   });
@@ -66,7 +62,7 @@ describe("plone_cancel_working_copy", () => {
     service.client = null;
 
     await expect(
-      ploneCancelWorkingCopy.handler({ path: testPath }, mockExtra),
+      ploneCancelWorkingCopy.handler({ path: testPath }, mockContext),
     ).rejects.toThrow("Plone client not configured. Please run plone_configure first.");
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made
   });

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { Nock ,
   PloneMockServer,
   sampleDocument,
+  createMockContext,
 } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneCreateContent } from "plone-mcp/tools/plone_create_content";
 import { sessionManager } from "plone-mcp/session-manager";
@@ -16,11 +17,7 @@ describe("plone_create_content", () => {
   const newContentId = "my-new-page";
   const newContentPath = `${parentPath}${newContentId}`;
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   const mockCreatedContent = {
     ...sampleDocument,
@@ -87,7 +84,7 @@ describe("plone_create_content", () => {
       additionalFields: undefined, // Explicitly undefined
     };
 
-    const result = await ploneCreateContent.handler(args, mockExtra);
+    const result = await ploneCreateContent.handler(args, mockContext);
 
     expect(JSON.parse(result.content[0].text)).toEqual(mockCreatedContent);
     expect(Nock.isDone()).toBe(true);
@@ -128,7 +125,7 @@ describe("plone_create_content", () => {
       additionalFields: undefined, // Explicitly undefined
     };
 
-    await ploneCreateContent.handler(args, mockExtra);
+    await ploneCreateContent.handler(args, mockContext);
     expect(Nock.isDone()).toBe(true);
   });
 
@@ -178,7 +175,7 @@ describe("plone_create_content", () => {
       additionalFields: undefined, // Explicitly undefined
     };
 
-    await ploneCreateContent.handler(args, mockExtra);
+    await ploneCreateContent.handler(args, mockContext);
 
     expect(service.getPreparedBlocks()).toBeNull(); // Should be cleared
     expect(Nock.isDone()).toBe(true);
@@ -235,7 +232,7 @@ describe("plone_create_content", () => {
       additionalFields: undefined, // Explicitly undefined
     };
 
-    await ploneCreateContent.handler(args, mockExtra);
+    await ploneCreateContent.handler(args, mockContext);
 
     expect(service.getPreparedBlocks()).toBeNull(); // Still cleared
     expect(Nock.isDone()).toBe(true);
@@ -281,7 +278,7 @@ describe("plone_create_content", () => {
       blocks_layout: undefined, // Explicitly undefined
     };
 
-    await ploneCreateContent.handler(args, mockExtra);
+    await ploneCreateContent.handler(args, mockContext);
     expect(Nock.isDone()).toBe(true);
   });
 
@@ -331,7 +328,7 @@ describe("plone_create_content", () => {
       additionalFields: undefined, // Explicitly undefined
     };
 
-    await expect(ploneCreateContent.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneCreateContent.handler(args, mockContext)).rejects.toThrow(
       "[CreateContent] Request failed with status code 500",
     );
     expect(service.getPreparedBlocks()).toBeNull(); // Should be cleared
@@ -353,7 +350,7 @@ describe("plone_create_content", () => {
       additionalFields: undefined, // Explicitly undefined
     };
 
-    await expect(ploneCreateContent.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneCreateContent.handler(args, mockContext)).rejects.toThrow(
       "Plone client not configured. Please run plone_configure first.",
     );
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made

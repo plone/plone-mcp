@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
-import { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
+import { ServerContext } from "@modelcontextprotocol/server";
 import { sessionManager } from "../session-manager.js";
 import { blockRegistry } from "../block-registry.js";
 import {
@@ -43,9 +42,9 @@ export const ploneCreateBlocksLayout = {
   },
   handler: async (
     args: z.infer<typeof inputSchema>,
-    extra: RequestHandlerExtra<ServerRequest, ServerNotification>,
+    ctx: ServerContext,
   ) => {
-    const sessionId = extra.sessionId || "default";
+    const sessionId = ctx.sessionId || "default";
     const service = sessionManager.getSession(sessionId);
 
     try {
@@ -97,11 +96,10 @@ export const ploneCreateBlocksLayout = {
         content: [
           {
             type: "text" as const,
-            text: `Successfully prepared ${
-              blocks.length
-            } blocks for next create / update operation(valid for 60 seconds).Blocks ready: ${blockInfo
-              .map((block) => `${block.type}:[${block.id}]`)
-              .join(", ")} `,
+            text: `Successfully prepared ${blocks.length
+              } blocks for next create / update operation(valid for 60 seconds).Blocks ready: ${blockInfo
+                .map((block) => `${block.type}:[${block.id}]`)
+                .join(", ")} `,
           },
         ],
       };

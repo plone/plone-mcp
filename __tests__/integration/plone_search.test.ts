@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Nock ,
   PloneMockServer,
   sampleSearchResults,
+  createMockContext,
 } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneSearch } from "plone-mcp/tools/plone_search";
 import { PloneClient } from "plone-mcp/plone-client";
@@ -12,11 +13,7 @@ describe("plone_search", () => {
   const testBaseUrl = "http://localhost:8080/Plone";
 
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
@@ -43,7 +40,7 @@ describe("plone_search", () => {
       b_size: undefined,
       b_start: undefined,
     };
-    const result = await ploneSearch.handler(args, mockExtra);
+    const result = await ploneSearch.handler(args, mockContext);
 
     expect(JSON.parse(result.content[0].text)).toEqual(sampleSearchResults);
     expect(Nock.isDone()).toBe(true);
@@ -85,7 +82,7 @@ describe("plone_search", () => {
     );
 
     const args = filters;
-    await ploneSearch.handler(args, mockExtra);
+    await ploneSearch.handler(args, mockContext);
 
     expect(Nock.isDone()).toBe(true);
   });
@@ -107,7 +104,7 @@ describe("plone_search", () => {
       b_size: undefined,
       b_start: undefined,
     };
-    await expect(ploneSearch.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneSearch.handler(args, mockContext)).rejects.toThrow(
       "[Search] Request failed with status code 500",
     );
     expect(Nock.isDone()).toBe(true);
@@ -127,7 +124,7 @@ describe("plone_search", () => {
       b_size: undefined,
       b_start: undefined,
     };
-    await expect(ploneSearch.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneSearch.handler(args, mockContext)).rejects.toThrow(
       "Plone client not configured. Please run plone_configure first.",
     );
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made

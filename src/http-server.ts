@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
+import { createMcpExpressApp } from "@modelcontextprotocol/express";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import { createServer } from "./server.js";
 import { sessionManager } from "./session-manager.js";
 import type { Request, Response } from "express";
@@ -13,14 +13,14 @@ import type { Request, Response } from "express";
 const app = createMcpExpressApp();
 
 // Stateful session storage: sessionId -> transport
-const transports = new Map<string, StreamableHTTPServerTransport>();
+const transports = new Map<string, NodeStreamableHTTPServerTransport>();
 
 // POST handler - main MCP endpoint
 app.post("/mcp", async (req: Request, res: Response) => {
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
   try {
-    let transport: StreamableHTTPServerTransport;
+    let transport: NodeStreamableHTTPServerTransport;
 
     if (sessionId && transports.has(sessionId)) {
       // Reuse existing transport for session
@@ -36,7 +36,7 @@ app.post("/mcp", async (req: Request, res: Response) => {
       transport = existingTransport;
     } else if (!sessionId && req.body.method === "initialize") {
       // New session initialization
-      transport = new StreamableHTTPServerTransport({
+      transport = new NodeStreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (sid) => {
           console.log(`Session initialized: ${sid}`);

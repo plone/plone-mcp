@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { Nock } from "plone-mcp/__tests__/utils/test-helpers"; // Use Nock from test-helpers
+import { Nock, createMockContext } from "plone-mcp/__tests__/utils/test-helpers"; // Use Nock from test-helpers
 import { ploneConfigure } from "plone-mcp/tools/plone_configure";
 import { sessionManager } from "plone-mcp/session-manager";
 import { PloneClient } from "plone-mcp/plone-client"; // Import PloneClient to check its instance
@@ -7,11 +7,7 @@ import { PloneClient } from "plone-mcp/plone-client"; // Import PloneClient to c
 describe("plone_configure", () => {
   const testBaseUrl = "http://localhost:8080/Plone";
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
   const mockSiteRootResponse = {
     "@type": "Plone Site",
     id: "plone",
@@ -46,7 +42,7 @@ describe("plone_configure", () => {
       password: "admin",
     };
 
-    const result = await ploneConfigure.handler(args, mockExtra);
+    const result = await ploneConfigure.handler(args, mockContext);
 
     expect(result.content[0].text).toEqual(
       `Successfully configured connection to Plone site: ${testBaseUrl}`,
@@ -73,7 +69,7 @@ describe("plone_configure", () => {
       token: "test-token",
     };
 
-    const result = await ploneConfigure.handler(args, mockExtra);
+    const result = await ploneConfigure.handler(args, mockContext);
 
     expect(result.content[0].text).toEqual(
       `Successfully configured connection to Plone site: ${testBaseUrl}`,
@@ -102,7 +98,7 @@ describe("plone_configure", () => {
     };
 
     await expect(
-      ploneConfigure.handler(args, mockExtra),
+      ploneConfigure.handler(args, mockContext),
     ).rejects.toThrow("[Configure] Request failed with status code 401");
     const service = sessionManager.getSession(sessionId);
     expect(service.client).toBeNull(); // Client should not be set on failure
@@ -117,7 +113,7 @@ describe("plone_configure", () => {
     };
 
     await expect(
-      ploneConfigure.handler(args, mockExtra),
+      ploneConfigure.handler(args, mockContext),
     ).rejects.toThrow("[Configure] Invalid base URL: invalid-url");
     const service = sessionManager.getSession(sessionId);
     expect(service.client).toBeNull();
@@ -145,7 +141,7 @@ describe("plone_configure", () => {
       password: "argpass",
     };
 
-    const result = await ploneConfigure.handler(args, mockExtra);
+    const result = await ploneConfigure.handler(args, mockContext);
 
     expect(result.content[0].text).toEqual(
       `Successfully configured connection to Plone site: ${testBaseUrl}`,
@@ -181,7 +177,7 @@ describe("plone_configure", () => {
       token: undefined,
     };
 
-    const result = await ploneConfigure.handler(args, mockExtra);
+    const result = await ploneConfigure.handler(args, mockContext);
 
     expect(result.content[0].text).toEqual(
       `Successfully configured connection to Plone site: ${process.env.PLONE_BASE_URL}`,

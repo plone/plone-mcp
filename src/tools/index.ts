@@ -1,5 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import { McpServer, ToolAnnotations } from "@modelcontextprotocol/server";
 import { ploneConfigure } from "./plone_configure.js";
 import { ploneAddSingleBlock } from "./plone_add_single_block.js";
 import { ploneCancelWorkingCopy } from "./plone_cancel_working_copy.js";

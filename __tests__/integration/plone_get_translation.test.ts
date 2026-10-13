@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { Nock, PloneMockServer } from "plone-mcp/__tests__/utils/test-helpers";
+import { Nock, PloneMockServer, createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneGetTranslation } from "plone-mcp/tools/plone_get_translation";
 import { sessionManager } from "plone-mcp/session-manager";
 import { PloneClient } from "plone-mcp/plone-client";
@@ -8,11 +8,7 @@ describe("plone_get_translation", () => {
   const testBaseUrl = "http://localhost:8080/Plone";
   const testPath = "/en/my-page";
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     new PloneMockServer(testBaseUrl);
@@ -31,7 +27,7 @@ describe("plone_get_translation", () => {
       .get(`/++api++${testPath}/@translations`)
       .reply(200, response);
 
-    const result = await ploneGetTranslation.handler({ path: testPath }, mockExtra);
+    const result = await ploneGetTranslation.handler({ path: testPath }, mockContext);
 
     expect(result.content[0].text).toContain('"language": "de"');
     expect(Nock.isDone()).toBe(true);
@@ -42,7 +38,7 @@ describe("plone_get_translation", () => {
     service.client = null;
 
     await expect(
-      ploneGetTranslation.handler({ path: testPath }, mockExtra),
+      ploneGetTranslation.handler({ path: testPath }, mockContext),
     ).rejects.toThrow("Plone client not configured. Please run plone_configure first.");
     expect(Nock.pendingMocks()).toHaveLength(0);
   });

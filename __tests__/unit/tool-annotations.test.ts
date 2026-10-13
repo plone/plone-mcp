@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { registerTools } from "plone-mcp/tools/index";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type { McpServer, ToolAnnotations } from "@modelcontextprotocol/server";
 
 const destructive = (idempotentHint: boolean): ToolAnnotations => ({
   readOnlyHint: false,

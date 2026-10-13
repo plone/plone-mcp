@@ -4,6 +4,7 @@ import {
   PloneMockServer,
   sampleLockInfo,
   sampleWorkingCopyInfo,
+  createMockContext,
 } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneGetWorkingCopy } from "plone-mcp/tools/plone_get_working_copy";
 import { PloneClient } from "plone-mcp/plone-client";
@@ -15,11 +16,7 @@ describe("plone_get_working_copy", () => {
   const testPath = "/my-document";
 
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
@@ -38,7 +35,7 @@ describe("plone_get_working_copy", () => {
 
     const result = await ploneGetWorkingCopy.handler(
       { path: testPath },
-      mockExtra,
+      mockContext,
     );
 
     expect(JSON.parse(result.content[0].text)).toEqual({
@@ -57,7 +54,7 @@ describe("plone_get_working_copy", () => {
 
     const result = await ploneGetWorkingCopy.handler(
       { path: testPath },
-      mockExtra,
+      mockContext,
     );
 
     const parsed = JSON.parse(result.content[0].text);
@@ -75,7 +72,7 @@ describe("plone_get_working_copy", () => {
       .reply(200, { locked: false });
 
     await expect(
-      ploneGetWorkingCopy.handler({ path: testPath }, mockExtra),
+      ploneGetWorkingCopy.handler({ path: testPath }, mockContext),
     ).rejects.toThrow("[GetWorkingCopy] Request failed with status code 400");
   });
 
@@ -84,7 +81,7 @@ describe("plone_get_working_copy", () => {
     service.client = null;
 
     await expect(
-      ploneGetWorkingCopy.handler({ path: testPath }, mockExtra),
+      ploneGetWorkingCopy.handler({ path: testPath }, mockContext),
     ).rejects.toThrow("Plone client not configured. Please run plone_configure first.");
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made
   });

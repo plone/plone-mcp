@@ -1,15 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneGetBlockSchemas } from "plone-mcp/tools/plone_get_block_schemas";
 import { blockRegistry } from "plone-mcp/block-registry";
 import * as BlockUtils from "plone-mcp/utils/block-utils"; // Import BlockUtils for mocking getBlockExample
 
 describe("plone_get_block_schemas", () => {
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -34,7 +31,7 @@ describe("plone_get_block_schemas", () => {
     vi.spyOn(BlockUtils, "getBlockExample").mockReturnValue(mockExample);
 
     const args = { blockType: mockBlockType };
-    const result = await ploneGetBlockSchemas.handler(args, mockExtra);
+    const result = await ploneGetBlockSchemas.handler(args, mockContext);
     const parsedContent = JSON.parse(result.content[0].text);
 
     expect(parsedContent.blockType).toBe(mockBlockType);
@@ -68,7 +65,7 @@ describe("plone_get_block_schemas", () => {
     );
 
     const args = { blockType: undefined }; // No blockType specified
-    const result = await ploneGetBlockSchemas.handler(args, mockExtra);
+    const result = await ploneGetBlockSchemas.handler(args, mockContext);
     const parsedContent = JSON.parse(result.content[0].text);
 
     expect(parsedContent.availableTypes).toEqual(mockAvailableTypes);
@@ -87,7 +84,7 @@ describe("plone_get_block_schemas", () => {
     vi.spyOn(blockRegistry, "getBlockTypes").mockReturnValue(["text", "image"]);
 
     const args = { blockType: unknownBlockType };
-    await expect(ploneGetBlockSchemas.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneGetBlockSchemas.handler(args, mockContext)).rejects.toThrow(
       `Unknown block type: ${unknownBlockType}. Available types: text, image`,
     );
     expect(blockRegistry.getSpecification).toHaveBeenCalledWith(
@@ -101,7 +98,7 @@ describe("plone_get_block_schemas", () => {
     });
 
     const args = { blockType: undefined };
-    await expect(ploneGetBlockSchemas.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneGetBlockSchemas.handler(args, mockContext)).rejects.toThrow(
       "[GetBlockSchemas] Mock block registry error",
     );
   });

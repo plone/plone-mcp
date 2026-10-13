@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
-import { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
+import { ServerContext } from "@modelcontextprotocol/server";
 import { blockRegistry } from "../block-registry.js";
 import { wrapError, getBlockExample } from "../utils/block-utils.js";
 
@@ -26,7 +25,7 @@ export const ploneGetBlockSchemas = {
   },
   handler: async (
     args: z.infer<typeof inputSchema>,
-    _extra: RequestHandlerExtra<ServerRequest, ServerNotification>,
+    _extra: ServerContext,
   ) => {
     try {
       const { blockType } = args;

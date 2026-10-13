@@ -1,0 +1,1 @@
+Upgrade to the MCP TypeScript SDK v2 (`@modelcontextprotocol/server`, `/node`, `/express`). The wire protocol is unchanged. The server now reports the package version and advertises that its tool, resource and prompt lists do not change at runtime. @Tishasoumya-02

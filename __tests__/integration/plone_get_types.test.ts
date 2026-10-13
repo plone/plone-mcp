@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { Nock , PloneMockServer } from "plone-mcp/__tests__/utils/test-helpers";
+import { Nock , PloneMockServer, createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneGetTypes } from "plone-mcp/tools/plone_get_types";
 import { PloneClient } from "plone-mcp/plone-client";
 import { sessionManager } from "plone-mcp/session-manager";
@@ -13,11 +13,7 @@ describe("plone_get_types", () => {
   };
 
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
@@ -33,7 +29,7 @@ describe("plone_get_types", () => {
   it("should successfully retrieve content types", async () => {
     mockServer.mockTypes(mockTypes);
 
-    const result = await ploneGetTypes.handler({}, mockExtra);
+    const result = await ploneGetTypes.handler({}, mockContext);
 
     expect(JSON.parse(result.content[0].text)).toEqual(mockTypes);
     expect(Nock.isDone()).toBe(true);
@@ -51,7 +47,7 @@ describe("plone_get_types", () => {
       .get("/++api++/@types")
       .reply(500, "Server Error");
 
-    await expect(ploneGetTypes.handler({}, mockExtra)).rejects.toThrow(
+    await expect(ploneGetTypes.handler({}, mockContext)).rejects.toThrow(
       "[GetTypes] Request failed with status code 500",
     );
     expect(Nock.isDone()).toBe(true);
@@ -61,7 +57,7 @@ describe("plone_get_types", () => {
     const service = sessionManager.getSession(sessionId);
     service.client = null;
 
-    await expect(ploneGetTypes.handler({}, mockExtra)).rejects.toThrow(
+    await expect(ploneGetTypes.handler({}, mockContext)).rejects.toThrow(
       "Plone client not configured. Please run plone_configure first.",
     );
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made

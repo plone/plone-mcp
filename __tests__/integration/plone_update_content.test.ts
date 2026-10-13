@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { Nock ,
   PloneMockServer,
   sampleDocument,
+  createMockContext,
 } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneUpdateContent } from "plone-mcp/tools/plone_update_content";
 import { sessionManager } from "plone-mcp/session-manager";
@@ -14,11 +15,7 @@ describe("plone_update_content", () => {
   const testBaseUrl = "http://localhost:8080/Plone";
   const testPath = "/my-page";
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
   const mockContent = {
     ...sampleDocument,
     "@id": `${testBaseUrl}/++api++${testPath}`,
@@ -70,7 +67,7 @@ describe("plone_update_content", () => {
       additionalFields: undefined,
     };
 
-    const result = await ploneUpdateContent.handler(args, mockExtra);
+    const result = await ploneUpdateContent.handler(args, mockContext);
 
     expect(JSON.parse(result.content[0].text)).toEqual(mockUpdatedContent);
     expect(Nock.isDone()).toBe(true);
@@ -122,7 +119,7 @@ describe("plone_update_content", () => {
       additionalFields: undefined,
     };
 
-    await ploneUpdateContent.handler(args, mockExtra);
+    await ploneUpdateContent.handler(args, mockContext);
 
     expect(service.getPreparedBlocks()).toBeNull(); // Should be cleared
     expect(Nock.isDone()).toBe(true);
@@ -179,7 +176,7 @@ describe("plone_update_content", () => {
       additionalFields: undefined,
     };
 
-    await ploneUpdateContent.handler(args, mockExtra);
+    await ploneUpdateContent.handler(args, mockContext);
 
     expect(service.getPreparedBlocks()).toBeNull(); // Prepared should still be cleared
     expect(Nock.isDone()).toBe(true);
@@ -208,7 +205,7 @@ describe("plone_update_content", () => {
       blocks_layout: undefined,
     };
 
-    await ploneUpdateContent.handler(args, mockExtra);
+    await ploneUpdateContent.handler(args, mockContext);
     expect(Nock.isDone()).toBe(true);
   });
 
@@ -222,7 +219,7 @@ describe("plone_update_content", () => {
       additionalFields: undefined,
     };
 
-    await expect(ploneUpdateContent.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneUpdateContent.handler(args, mockContext)).rejects.toThrow(
       "No changes specified for update",
     );
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made
@@ -237,7 +234,7 @@ describe("plone_update_content", () => {
       additionalFields: undefined,
     } as any;
     await expect(
-      ploneUpdateContent.handler(args, mockExtra),
+      ploneUpdateContent.handler(args, mockContext),
     ).rejects.toThrow("Path is required for updating content");
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made
   });
@@ -273,7 +270,7 @@ describe("plone_update_content", () => {
       additionalFields: undefined,
     };
 
-    await expect(ploneUpdateContent.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneUpdateContent.handler(args, mockContext)).rejects.toThrow(
       "[UpdateContent] Request failed with status code 500",
     );
     expect(service.getPreparedBlocks()).toBeNull(); // Should be cleared
@@ -292,7 +289,7 @@ describe("plone_update_content", () => {
       blocks_layout: undefined,
       additionalFields: undefined,
     };
-    await expect(ploneUpdateContent.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneUpdateContent.handler(args, mockContext)).rejects.toThrow(
       "Plone client not configured. Please run plone_configure first.",
     );
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made

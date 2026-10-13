@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Nock ,
   PloneMockServer,
   sampleWorkflowInfo,
+  createMockContext,
 } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneTransitionWorkflow } from "plone-mcp/tools/plone_transition_workflow";
 import { PloneClient } from "plone-mcp/plone-client";
@@ -14,11 +15,7 @@ describe("plone_transition_workflow", () => {
   const transitionName = "publish";
 
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
@@ -43,7 +40,7 @@ describe("plone_transition_workflow", () => {
       transition: transitionName,
       comment: undefined,
     };
-    const result = await ploneTransitionWorkflow.handler(args, mockExtra);
+    const result = await ploneTransitionWorkflow.handler(args, mockContext);
 
     expect(JSON.parse(result.content[0].text)).toEqual(sampleWorkflowInfo);
     expect(Nock.isDone()).toBe(true);
@@ -66,7 +63,7 @@ describe("plone_transition_workflow", () => {
       transition: transitionName,
       comment: comment,
     };
-    await ploneTransitionWorkflow.handler(args, mockExtra);
+    await ploneTransitionWorkflow.handler(args, mockContext);
 
     expect(Nock.isDone()).toBe(true);
   });
@@ -88,7 +85,7 @@ describe("plone_transition_workflow", () => {
       transition: transitionName,
       comment: undefined,
     };
-    await expect(ploneTransitionWorkflow.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneTransitionWorkflow.handler(args, mockContext)).rejects.toThrow(
       "[TransitionWorkflow] Request failed with status code 400",
     );
     expect(Nock.isDone()).toBe(true);
@@ -103,7 +100,7 @@ describe("plone_transition_workflow", () => {
       transition: transitionName,
       comment: undefined,
     };
-    await expect(ploneTransitionWorkflow.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneTransitionWorkflow.handler(args, mockContext)).rejects.toThrow(
       "Plone client not configured. Please run plone_configure first.",
     );
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made

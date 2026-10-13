@@ -1,0 +1,1209 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_add_single_block 1`] = `
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": true,
+    "readOnlyHint": false,
+  },
+  "description": "Adds a single new block to an existing content item without replacing other blocks. Specify the block type, data, and either position or afterBlockId (insert directly after an existing block; block IDs are returned by plone_get_content). Example: plone_add_single_block({path: '/my-page', blockType: 'slate', blockData: {text: 'New paragraph'}})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "afterBlockId": {
+        "description": "ID of an existing block to insert the new block directly after. Get block IDs from plone_get_content: every key in the 'blocks' object is a block ID, and 'blocks_layout.items' lists them in rendering order. Cannot be combined with 'position'. Optional; if omitted, 'position' or append-to-end is used.",
+        "type": "string",
+      },
+      "blockData": {
+        "additionalProperties": {},
+        "description": "Block-specific data",
+        "propertyNames": {
+          "type": "string",
+        },
+        "type": "object",
+      },
+      "blockType": {
+        "description": "Type of block to add",
+        "enum": [
+          "teaser",
+          "slate",
+          "__button",
+          "separator",
+          "image",
+          "gridBlock",
+          "listing",
+        ],
+        "type": "string",
+      },
+      "path": {
+        "description": "Path to the content",
+        "type": "string",
+      },
+      "position": {
+        "description": "Position to insert the block (optional, defaults to end)",
+        "type": "number",
+      },
+    },
+    "required": [
+      "path",
+      "blockType",
+      "blockData",
+    ],
+    "type": "object",
+  },
+  "name": "plone_add_single_block",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_cancel_working_copy 1`] = `
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false,
+  },
+  "description": "Cancels a checkout, discarding the working copy and its edits. The original content is left unchanged and unlocked. Example: plone_cancel_working_copy({path: '/working_copy_of_my-document'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "path": {
+        "description": "Path to the working copy or to the original content item it was checked out from",
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+    ],
+    "type": "object",
+  },
+  "name": "plone_cancel_working_copy",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_checkin_working_copy 1`] = `
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false,
+  },
+  "description": "Checks in a working copy, replacing the original content with the edits made on the copy. The working copy is deleted and the original is unlocked. Example: plone_checkin_working_copy({path: '/working_copy_of_my-document'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "path": {
+        "description": "Path to the working copy or to the original content item it was checked out from",
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+    ],
+    "type": "object",
+  },
+  "name": "plone_checkin_working_copy",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_configure 1`] = `
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true,
+    "readOnlyHint": false,
+  },
+  "description": "Establishes and authenticates the connection to a Plone CMS. **Must be called once per session** before other tools can be used. Configuration can be provided via arguments or environment variables (PLONE_BASE_URL, PLONE_USERNAME, PLONE_PASSWORD, PLONE_TOKEN). Arguments take precedence over environment variables. To use environment variables only, call with an empty object: plone_configure({}). Example with arguments: plone_configure({baseUrl: 'https://demo.plone.org', username: 'admin', password: 'secret'}).",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "baseUrl": {
+        "description": "Base URL of the Plone site. Can be set via PLONE_BASE_URL environment variable.",
+        "type": "string",
+      },
+      "password": {
+        "description": "Password for authentication. Can be set via PLONE_PASSWORD environment variable.",
+        "type": "string",
+      },
+      "token": {
+        "description": "JWT token for authentication (alternative to username/password). Can be set via PLONE_TOKEN environment variable.",
+        "type": "string",
+      },
+      "username": {
+        "description": "Username for authentication. Can be set via PLONE_USERNAME environment variable.",
+        "type": "string",
+      },
+    },
+    "type": "object",
+  },
+  "name": "plone_configure",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_copy_content 1`] = `
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false,
+  },
+  "description": "Copies one or more content items into a destination container, leaving the originals in place. Sources may be given by URL, path, or UID; pass a single string or an array. Copies are auto-named 'copy_of_<id>', so the response maps each source to its new target URL. Requires the AddPortalContent permission on the destination. Example: plone_copy_content({parentPath: '/folder', source: '/front-page'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "parentPath": {
+        "description": "Path of the destination container to copy into (e.g., '/folder' or '/' for the site root)",
+        "type": "string",
+      },
+      "source": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "type": "string",
+          },
+          {
+            "items": {
+              "minLength": 1,
+              "type": "string",
+            },
+            "minItems": 1,
+            "type": "array",
+          },
+        ],
+        "description": "Source object(s) to copy, each specified by URL, path, or UID. Pass a single string or an array for multiple objects",
+      },
+    },
+    "required": [
+      "parentPath",
+      "source",
+    ],
+    "type": "object",
+  },
+  "name": "plone_copy_content",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_create_blocks_layout 1`] = `
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": true,
+    "readOnlyHint": false,
+  },
+  "description": "Prepares a complete block structure in memory (valid for 60 seconds). This structure is then used by the **next immediate call** to \`plone_create_content\` or \`plone_update_content\`. Use \`plone_get_block_schemas\` to learn what data each block type needs. The text displayed by the Title block is automatically managed by Plone, DO NOT add it in the block's data. Example: plone_create_blocks_layout({blocks: [{type: 'slate', data: {text: 'Hello World'}}]})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "blocks": {
+        "description": "Array of block specifications to process. You MUST call plone_get_block_schemas first to see available block types and their required fields. You MUST follow the block specifications EXACTLY, DO NOT invent your own fields. DO NOT add the content object's title in a text block. To set the page title, use the 'title' field of the content object itself when calling plone_create_content or plone_update_content. A Title block will be automatically created by Plone.",
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": {},
+              "description": "Block-specific data following the block specification",
+              "propertyNames": {
+                "type": "string",
+              },
+              "type": "object",
+            },
+            "type": {
+              "description": "Type of block to create",
+              "enum": [
+                "teaser",
+                "slate",
+                "__button",
+                "separator",
+                "image",
+                "gridBlock",
+                "listing",
+              ],
+              "type": "string",
+            },
+          },
+          "required": [
+            "type",
+            "data",
+          ],
+          "type": "object",
+        },
+        "type": "array",
+      },
+    },
+    "required": [
+      "blocks",
+    ],
+    "type": "object",
+  },
+  "name": "plone_create_blocks_layout",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_create_content 1`] = `
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false,
+  },
+  "description": "Creates a new content item (e.g., a page or news article) in Plone. To add complex block-based content, first prepare the structure with \`plone_create_blocks_layout\`, then call this tool. Example: plone_create_content({parentPath: '/', type: 'Document', title: 'My Page', description: 'A sample page'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "additionalFields": {
+        "additionalProperties": {},
+        "description": "Additional fields to update. For preview images, include preview_image_link: { '@id': 'image-url' } in this object (if you get a 400 error, make sure the image URL is accessible).",
+        "propertyNames": {
+          "type": "string",
+        },
+        "type": "object",
+      },
+      "blocks": {
+        "additionalProperties": {},
+        "description": "Volto blocks structure for the content, it specifies the blocks data and content",
+        "propertyNames": {
+          "type": "string",
+        },
+        "type": "object",
+      },
+      "blocks_layout": {
+        "additionalProperties": {},
+        "description": "Volto blocks layout configuration, it specifies the order of blocks",
+        "propertyNames": {
+          "type": "string",
+        },
+        "type": "object",
+      },
+      "description": {
+        "description": "Description of the new content",
+        "type": "string",
+      },
+      "id": {
+        "description": "ID for the new content (optional, will be auto-generated if not provided)",
+        "type": "string",
+      },
+      "parentPath": {
+        "description": "Path where to create the content (e.g., '/parentDocument/document' or '/' for root)",
+        "type": "string",
+      },
+      "title": {
+        "description": "Title of the new content",
+        "type": "string",
+      },
+      "type": {
+        "description": "Content type to create (e.g., 'Document', 'Event', 'News Item')",
+        "type": "string",
+      },
+    },
+    "required": [
+      "parentPath",
+      "type",
+      "title",
+    ],
+    "type": "object",
+  },
+  "name": "plone_create_content",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_create_user 1`] = `
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false,
+  },
+  "description": "Creates a new user in the Plone site. Requires Manager role or self-registration to be enabled. Example: plone_create_user({username: 'jdoe', password: 'secret', email: 'jdoe@example.com', fullname: 'John Doe', roles: ['Contributor']})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "description": {
+        "description": "Short biography or description of the user",
+        "type": "string",
+      },
+      "email": {
+        "description": "Email address of the user",
+        "type": "string",
+      },
+      "fullname": {
+        "description": "Full name of the user",
+        "type": "string",
+      },
+      "home_page": {
+        "description": "URL of the user's home page",
+        "type": "string",
+      },
+      "location": {
+        "description": "Location of the user",
+        "type": "string",
+      },
+      "password": {
+        "description": "Password for the new user, it must be 8 characters or longer. Unless specified otherwise, use 12345678 as the default password for created users.",
+        "type": "string",
+      },
+      "roles": {
+        "description": "Roles to assign to the user (e.g., ['Contributor', 'Editor'])",
+        "items": {
+          "type": "string",
+        },
+        "type": "array",
+      },
+      "sendPasswordReset": {
+        "description": "If true, send a password reset email to the user instead of setting the password directly",
+        "type": "boolean",
+      },
+      "username": {
+        "description": "Username for the new user",
+        "type": "string",
+      },
+    },
+    "required": [
+      "username",
+      "password",
+    ],
+    "type": "object",
+  },
+  "name": "plone_create_user",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_create_working_copy 1`] = `
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false,
+  },
+  "description": "Checks out a content item, creating a working copy that can be edited without touching the published original. The original is locked until the working copy is checked in or cancelled. The copy is created next to the original as 'working_copy_of_<id>', so use the '@id' from the response instead of building that path yourself. Example: plone_create_working_copy({path: '/my-document'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "path": {
+        "description": "Path to the content item to check out",
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+    ],
+    "type": "object",
+  },
+  "name": "plone_create_working_copy",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_delete_content 1`] = `
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false,
+  },
+  "description": "Permanently deletes a content item from Plone using its path. Example: plone_delete_content({path: '/old-content'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "path": {
+        "description": "Path to the content to delete",
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+    ],
+    "type": "object",
+  },
+  "name": "plone_delete_content",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_block_schemas 1`] = `
+{
+  "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true,
+  },
+  "description": "Lists all available Volto block types (e.g., 'slate', 'teaser', 'button') and their required data schemas. **Essential for understanding how to construct blocks.** Example: plone_get_block_schemas({blockType: 'teaser'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "blockType": {
+        "description": "Specific block type to get schema for (optional, returns all if not specified).",
+        "enum": [
+          "teaser",
+          "slate",
+          "__button",
+          "separator",
+          "image",
+          "gridBlock",
+          "listing",
+        ],
+        "type": "string",
+      },
+    },
+    "type": "object",
+  },
+  "name": "plone_get_block_schemas",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_content 1`] = `
+{
+  "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true,
+  },
+  "description": "Retrieves the full JSON data for a single content item from Plone using its path. Example: plone_get_content({path: '/news/latest-update'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "expand": {
+        "description": "Components to expand (e.g., ['breadcrumbs', 'actions', 'workflow'])",
+        "items": {
+          "type": "string",
+        },
+        "type": "array",
+      },
+      "path": {
+        "description": "Path to content (e.g., '/parentDocument/document' or just '/' for root level)",
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+    ],
+    "type": "object",
+  },
+  "name": "plone_get_content",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_navigation_tree 1`] = `
+{
+  "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true,
+  },
+  "description": "Get the site navigation tree as seen from a given path. The tree is rooted at the nearest navigation root (the site root, or the language folder on multilingual sites) — use depth to include nested levels, then look up the relevant subtree in the result. Example: plone_get_navigation_tree({root_path: '/en/documentation', depth: 3})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "depth": {
+        "default": 2,
+        "description": "How many levels of the navigation tree to include",
+        "type": "number",
+      },
+      "root_path": {
+        "description": "Path whose navigation root determines the tree (defaults to portal root). Note: the tree is rooted at the nearest navigation root of this path (e.g. the language folder on multilingual sites), not at the path itself.",
+        "type": "string",
+      },
+    },
+    "required": [
+      "depth",
+    ],
+    "type": "object",
+  },
+  "name": "plone_get_navigation_tree",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_site_info 1`] = `
+{
+  "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true,
+  },
+  "description": "Retrieves top-level information and metadata about the connected Plone site, such as available languages and Plone version.",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {},
+    "type": "object",
+  },
+  "name": "plone_get_site_info",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_translation 1`] = `
+{
+  "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true,
+  },
+  "description": "Retrieves all available translations for a content item, identified by its '@id' (URL). Example: plone_get_translation({path: '/en/my-page'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "path": {
+        "description": "Path to the content item (e.g., '/en/my-page')",
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+    ],
+    "type": "object",
+  },
+  "name": "plone_get_translation",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_type_schema 1`] = `
+{
+  "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true,
+  },
+  "description": "Gets the full JSON schema for a specific content type, including all fields, their types, required status, and validation rules. Use this to understand what fields are available when creating or updating content. Example: plone_get_type_schema({contentType: 'Document'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "contentType": {
+        "description": "Content type to get the schema for (e.g., 'Document')",
+        "type": "string",
+      },
+    },
+    "required": [
+      "contentType",
+    ],
+    "type": "object",
+  },
+  "name": "plone_get_type_schema",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_types 1`] = `
+{
+  "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true,
+  },
+  "description": "Lists all available content types that can be created in the Plone site (e.g., 'Document', 'Event').",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {},
+    "type": "object",
+  },
+  "name": "plone_get_types",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_vocabularies 1`] = `
+{
+  "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true,
+  },
+  "description": "Lists all available vocabularies, or fetches the allowed values of one specific vocabulary — such as a list of categories or tags. Useful for finding valid inputs for content fields. Call with no arguments to discover vocabulary names, then with a name to get its terms. Example: plone_get_vocabularies({vocabulary: 'plone.app.vocabularies.Keywords'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "title": {
+        "description": "Filter terms by title",
+        "type": "string",
+      },
+      "token": {
+        "description": "Filter terms by token",
+        "type": "string",
+      },
+      "vocabulary": {
+        "description": "Vocabulary name (e.g. 'plone.app.vocabularies.Keywords'). Omit to list all available vocabularies.",
+        "type": "string",
+      },
+    },
+    "type": "object",
+  },
+  "name": "plone_get_vocabularies",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_workflow_info 1`] = `
+{
+  "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true,
+  },
+  "description": "Shows the current workflow state (e.g., 'Published', 'Private') and available transitions for a content item. Example: plone_get_workflow_info({path: '/my-document'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "path": {
+        "description": "Path to the content",
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+    ],
+    "type": "object",
+  },
+  "name": "plone_get_workflow_info",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_working_copy 1`] = `
+{
+  "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true,
+  },
+  "description": "Shows the working copy relationship for a content item: the 'working_copy' field points to the checked out copy of an original, the 'working_copy_of' field points to the original of a working copy, and 'lock' reports whether the item is locked. Take paths from the '@id' of those fields. Example: plone_get_working_copy({path: '/my-document'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "path": {
+        "description": "Path to the content item, either the original or its working copy",
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+    ],
+    "type": "object",
+  },
+  "name": "plone_get_working_copy",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_link_translation 1`] = `
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false,
+  },
+  "description": "Links an existing content item as a translation of another. Both items must already exist. Pass the '@id' (full URL) of the existing content item. Example: plone_link_translation({path: '/en/my-page', id: 'https://example.com/de/meine-seite'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "description": "The path of the content item to link as a translation (e.g., '/es/test-document').",
+        "type": "string",
+      },
+      "path": {
+        "description": "Path to the source content item",
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+      "id",
+    ],
+    "type": "object",
+  },
+  "name": "plone_link_translation",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_move_content 1`] = `
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false,
+  },
+  "description": "Moves one or more content items into a destination container, removing them from their current location. Sources may be given by URL, path, or UID; pass a single string or an array. Requires the DeleteObjects permission on the source's parent and AddPortalContent on the destination. Example: plone_move_content({parentPath: '/folder', source: '/front-page'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "parentPath": {
+        "description": "Path of the destination container to move into (e.g., '/folder' or '/' for the site root)",
+        "type": "string",
+      },
+      "source": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "type": "string",
+          },
+          {
+            "items": {
+              "minLength": 1,
+              "type": "string",
+            },
+            "minItems": 1,
+            "type": "array",
+          },
+        ],
+        "description": "Source object(s) to move, each specified by URL, path, or UID. Pass a single string or an array for multiple objects",
+      },
+    },
+    "required": [
+      "parentPath",
+      "source",
+    ],
+    "type": "object",
+  },
+  "name": "plone_move_content",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_remove_single_block 1`] = `
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false,
+  },
+  "description": "Deletes a single block from a content item, identified by its block ID. Example: plone_remove_single_block({path: '/my-page', blockId: 'abc123'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "blockId": {
+        "description": "ID of the block to remove",
+        "type": "string",
+      },
+      "path": {
+        "description": "Path to the content",
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+      "blockId",
+    ],
+    "type": "object",
+  },
+  "name": "plone_remove_single_block",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_search 1`] = `
+{
+  "annotations": {
+    "openWorldHint": false,
+    "readOnlyHint": true,
+  },
+  "description": "Performs a detailed search for content items, allowing filters by text, content type, path, and workflow state. Example: plone_search({query: 'annual report', portal_type: ['Document'], review_state: ['published']})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "b_size": {
+        "description": "Batch size (number of results per page)",
+        "type": "number",
+      },
+      "b_start": {
+        "description": "Batch start (for pagination)",
+        "type": "number",
+      },
+      "path": {
+        "description": "Path to search within",
+        "type": "string",
+      },
+      "portal_type": {
+        "description": "Content types to search for",
+        "items": {
+          "type": "string",
+        },
+        "type": "array",
+      },
+      "query": {
+        "description": "Search query text",
+        "type": "string",
+      },
+      "review_state": {
+        "description": "Workflow states to filter by",
+        "items": {
+          "type": "string",
+        },
+        "type": "array",
+      },
+      "sort_on": {
+        "description": "Field to sort by (e.g., 'modified', 'created', 'sortable_title')",
+        "type": "string",
+      },
+      "sort_order": {
+        "description": "Sort order",
+        "enum": [
+          "ascending",
+          "descending",
+        ],
+        "type": "string",
+      },
+    },
+    "type": "object",
+  },
+  "name": "plone_search",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_transition_workflow 1`] = `
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false,
+  },
+  "description": "Changes the workflow state of a content item by executing a specific transition, like 'publish' or 'submit'. Example: plone_transition_workflow({path: '/my-document', transition: 'publish'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "comment": {
+        "description": "Comment for the transition",
+        "type": "string",
+      },
+      "path": {
+        "description": "Path to the content",
+        "type": "string",
+      },
+      "transition": {
+        "description": "Workflow transition to execute",
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+      "transition",
+    ],
+    "type": "object",
+  },
+  "name": "plone_transition_workflow",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_unlink_translation 1`] = `
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false,
+  },
+  "description": "Removes the translation link between a content item and one of its translations, identified by language code. Example: plone_unlink_translation({path: '/en/my-page', language: 'de'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "language": {
+        "description": "Language code of the translation to unlink (e.g., 'de', 'fr')",
+        "type": "string",
+      },
+      "path": {
+        "description": "Path to the content item to unlink a translation from",
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+      "language",
+    ],
+    "type": "object",
+  },
+  "name": "plone_unlink_translation",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_update_content 1`] = `
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false,
+  },
+  "description": "Modifies an existing content item in Plone. Can update metadata (like title) and/or replace the entire block structure. Use \`plone_create_blocks_layout\` to prepare complex block updates. Example: plone_update_content({path: '/my-page', title: 'Updated Title'})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "additionalFields": {
+        "additionalProperties": {},
+        "description": "Additional fields to update. For preview images, include preview_image_link: { '@id': 'image-url' } in this object (if you get a 400 error, make sure the image URL is accessible).",
+        "propertyNames": {
+          "type": "string",
+        },
+        "type": "object",
+      },
+      "blocks": {
+        "additionalProperties": {},
+        "description": "Volto blocks structure for the content",
+        "propertyNames": {
+          "type": "string",
+        },
+        "type": "object",
+      },
+      "blocks_layout": {
+        "additionalProperties": {},
+        "description": "Volto blocks layout configuration",
+        "propertyNames": {
+          "type": "string",
+        },
+        "type": "object",
+      },
+      "description": {
+        "description": "New description",
+        "type": "string",
+      },
+      "path": {
+        "description": "Path to the content to update",
+        "type": "string",
+      },
+      "title": {
+        "description": "New title",
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+    ],
+    "type": "object",
+  },
+  "name": "plone_update_content",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_update_single_block 1`] = `
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": true,
+    "readOnlyHint": false,
+  },
+  "description": "Modifies the data of a single, existing block within a content item, identified by its block ID. Example: plone_update_single_block({path: '/my-page', blockId: 'abc123', blockData: {text: 'Updated text'}})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "blockData": {
+        "additionalProperties": {},
+        "description": "New block data",
+        "propertyNames": {
+          "type": "string",
+        },
+        "type": "object",
+      },
+      "blockId": {
+        "description": "ID of the block to update",
+        "type": "string",
+      },
+      "path": {
+        "description": "Path to the content",
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+      "blockId",
+      "blockData",
+    ],
+    "type": "object",
+  },
+  "name": "plone_update_single_block",
+}
+`;
+
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_update_user 1`] = `
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false,
+  },
+  "description": "Updates an existing user's properties in Plone. Requires Manager role or the user updating their own account. Roles are specified as an object mapping role names to booleans to add or remove them. Example: plone_update_user({userid: 'jdoe', fullname: 'Jane Doe', roles: {Editor: true, Contributor: false}})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "description": {
+        "description": "New biography or description",
+        "type": "string",
+      },
+      "email": {
+        "description": "New email address",
+        "type": "string",
+      },
+      "fullname": {
+        "description": "New full name",
+        "type": "string",
+      },
+      "home_page": {
+        "description": "New home page URL",
+        "type": "string",
+      },
+      "location": {
+        "description": "New location",
+        "type": "string",
+      },
+      "roles": {
+        "additionalProperties": {
+          "type": "boolean",
+        },
+        "description": "Roles to add or remove, as an object mapping role names to booleans (e.g., {Contributor: true, Editor: false})",
+        "propertyNames": {
+          "type": "string",
+        },
+        "type": "object",
+      },
+      "userid": {
+        "description": "The ID of the user to update",
+        "type": "string",
+      },
+    },
+    "required": [
+      "userid",
+    ],
+    "type": "object",
+  },
+  "name": "plone_update_user",
+}
+`;
+
+exports[`server surface > registers the expected prompts 1`] = `
+[
+  {
+    "argsSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "audience": {
+          "description": "The target audience for the page",
+          "type": "string",
+        },
+        "contentType": {
+          "description": "Type of content to create (e.g., 'Document', 'News Item')",
+          "type": "string",
+        },
+        "purpose": {
+          "description": "The purpose or topic of the page",
+          "type": "string",
+        },
+      },
+      "required": [
+        "contentType",
+        "purpose",
+      ],
+      "type": "object",
+    },
+    "description": "A guided workflow to create a single web page with specific content and structure.",
+    "name": "create-page-workflow",
+  },
+  {
+    "argsSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "audience": {
+          "description": "The target audience for the site",
+          "type": "string",
+        },
+        "contentTypes": {
+          "description": "Types of content to create (e.g., 'Documents, News Items')",
+          "type": "string",
+        },
+        "numberOfPages": {
+          "description": "The number of pages to create (default is 3)",
+          "type": "string",
+        },
+        "purpose": {
+          "description": "The overall theme or topic of the site",
+          "type": "string",
+        },
+      },
+      "required": [
+        "contentTypes",
+        "purpose",
+      ],
+      "type": "object",
+    },
+    "description": "A guided workflow to create a small, multi-page example website with interconnected content.",
+    "name": "create-example-site-workflow",
+  },
+]
+`;
+
+exports[`server surface > registers the expected resources 1`] = `
+[
+  {
+    "description": "Provides direct read-only access to the full JSON of a Plone content item via its path.",
+    "mimeType": "application/json",
+    "name": "plone-content",
+    "uri": "plone://content{+path}",
+  },
+  {
+    "description": "Provides direct read-only access to the Plone site's root information object.",
+    "mimeType": "application/json",
+    "name": "plone-site",
+    "uri": "plone://site",
+  },
+  {
+    "description": "Provides direct read-only access to the list of available content types.",
+    "mimeType": "application/json",
+    "name": "plone-types",
+    "uri": "plone://types",
+  },
+]
+`;
+
+exports[`server surface > registers the expected tools, in order 1`] = `
+[
+  "plone_configure",
+  "plone_add_single_block",
+  "plone_cancel_working_copy",
+  "plone_checkin_working_copy",
+  "plone_copy_content",
+  "plone_create_blocks_layout",
+  "plone_create_content",
+  "plone_create_user",
+  "plone_create_working_copy",
+  "plone_delete_content",
+  "plone_get_block_schemas",
+  "plone_get_content",
+  "plone_get_navigation_tree",
+  "plone_get_site_info",
+  "plone_get_translation",
+  "plone_get_type_schema",
+  "plone_get_types",
+  "plone_get_vocabularies",
+  "plone_get_workflow_info",
+  "plone_get_working_copy",
+  "plone_link_translation",
+  "plone_move_content",
+  "plone_remove_single_block",
+  "plone_search",
+  "plone_transition_workflow",
+  "plone_unlink_translation",
+  "plone_update_content",
+  "plone_update_single_block",
+  "plone_update_user",
+]
+`;

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { Nock, PloneMockServer } from "plone-mcp/__tests__/utils/test-helpers";
+import { Nock, PloneMockServer, createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneMoveContent } from "plone-mcp/tools/plone_move_content";
 import { sessionManager } from "plone-mcp/session-manager";
 import { PloneClient } from "plone-mcp/plone-client";
@@ -9,11 +9,7 @@ describe("plone_move_content", () => {
   const parentPath = "/folder";
   const sourcePath = "/front-page";
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     new PloneMockServer(testBaseUrl);
@@ -40,7 +36,7 @@ describe("plone_move_content", () => {
 
     const result = await ploneMoveContent.handler(
       { parentPath, source: sourcePath },
-      mockExtra,
+      mockContext,
     );
 
     expect(JSON.parse(result.content[0].text)).toEqual(response);
@@ -61,7 +57,7 @@ describe("plone_move_content", () => {
 
     const result = await ploneMoveContent.handler(
       { parentPath: "/", source: sourcePath },
-      mockExtra,
+      mockContext,
     );
 
     expect(JSON.parse(result.content[0].text)).toEqual(response);
@@ -86,7 +82,7 @@ describe("plone_move_content", () => {
 
     const result = await ploneMoveContent.handler(
       { parentPath, source: sources },
-      mockExtra,
+      mockContext,
     );
 
     expect(JSON.parse(result.content[0].text)).toHaveLength(2);
@@ -108,7 +104,7 @@ describe("plone_move_content", () => {
 
     const result = await ploneMoveContent.handler(
       { parentPath, source: sources },
-      mockExtra,
+      mockContext,
     );
 
     expect(result.content).toHaveLength(2);
@@ -122,7 +118,7 @@ describe("plone_move_content", () => {
       .reply(403, "Forbidden");
 
     await expect(
-      ploneMoveContent.handler({ parentPath, source: sourcePath }, mockExtra),
+      ploneMoveContent.handler({ parentPath, source: sourcePath }, mockContext),
     ).rejects.toThrow("[MoveContent] Request failed with status code 403");
     expect(Nock.isDone()).toBe(true);
   });
@@ -132,7 +128,7 @@ describe("plone_move_content", () => {
     service.client = null;
 
     await expect(
-      ploneMoveContent.handler({ parentPath, source: sourcePath }, mockExtra),
+      ploneMoveContent.handler({ parentPath, source: sourcePath }, mockContext),
     ).rejects.toThrow("Plone client not configured. Please run plone_configure first.");
     expect(Nock.pendingMocks()).toHaveLength(0);
   });

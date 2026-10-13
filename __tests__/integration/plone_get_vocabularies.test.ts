@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { Nock , PloneMockServer } from "plone-mcp/__tests__/utils/test-helpers";
+import { Nock , PloneMockServer, createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneGetVocabularies } from "plone-mcp/tools/plone_get_vocabularies";
 import { PloneClient } from "plone-mcp/plone-client";
 import { sessionManager } from "plone-mcp/session-manager";
@@ -17,11 +17,7 @@ describe("plone_get_vocabularies", () => {
   };
 
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
@@ -42,7 +38,7 @@ describe("plone_get_vocabularies", () => {
       title: undefined,
       token: undefined,
     };
-    const result = await ploneGetVocabularies.handler(args, mockExtra);
+    const result = await ploneGetVocabularies.handler(args, mockContext);
 
     expect(JSON.parse(result.content[0].text)).toEqual(mockVocabularyResponse);
     expect(Nock.isDone()).toBe(true);
@@ -61,7 +57,7 @@ describe("plone_get_vocabularies", () => {
       .reply(200, mockListResponse);
 
     const args = { vocabulary: undefined, title: undefined, token: undefined };
-    const result = await ploneGetVocabularies.handler(args, mockExtra);
+    const result = await ploneGetVocabularies.handler(args, mockContext);
 
     expect(JSON.parse(result.content[0].text)).toEqual(mockListResponse);
     expect(Nock.isDone()).toBe(true);
@@ -79,7 +75,7 @@ describe("plone_get_vocabularies", () => {
       title: titleFilter,
       token: undefined,
     };
-    await ploneGetVocabularies.handler(args, mockExtra);
+    await ploneGetVocabularies.handler(args, mockContext);
 
     expect(Nock.isDone()).toBe(true);
   });
@@ -96,7 +92,7 @@ describe("plone_get_vocabularies", () => {
       token: tokenFilter,
       title: undefined,
     };
-    await ploneGetVocabularies.handler(args, mockExtra);
+    await ploneGetVocabularies.handler(args, mockContext);
 
     expect(Nock.isDone()).toBe(true);
   });
@@ -112,7 +108,7 @@ describe("plone_get_vocabularies", () => {
       title: undefined,
       token: undefined,
     };
-    await expect(ploneGetVocabularies.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneGetVocabularies.handler(args, mockContext)).rejects.toThrow(
       "[GetVocabularies] Request failed with status code 404",
     );
     expect(Nock.isDone()).toBe(true);
@@ -127,7 +123,7 @@ describe("plone_get_vocabularies", () => {
       title: undefined,
       token: undefined,
     };
-    await expect(ploneGetVocabularies.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneGetVocabularies.handler(args, mockContext)).rejects.toThrow(
       "Plone client not configured. Please run plone_configure first.",
     );
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made

@@ -5,7 +5,7 @@ export const ploneCreatePageWorkflow = {
     name: "create-page-workflow",
     description:
       "A guided workflow to create a single web page with specific content and structure.",
-    argsSchema: {
+    argsSchema: z.object({
       contentType: z
         .string()
         .describe("Type of content to create (e.g., 'Document', 'News Item')"),
@@ -14,7 +14,7 @@ export const ploneCreatePageWorkflow = {
         .string()
         .optional()
         .describe("The target audience for the page"),
-    },
+    }),
   },
   handler: async (args: {
     contentType: string;
@@ -29,9 +29,8 @@ export const ploneCreatePageWorkflow = {
           role: "user" as const,
           content: {
             type: "text" as const,
-            text: `My goal is to create a new ${contentType} page about "${purpose}"${
-              audience ? ` for an audience of ${audience}` : ""
-            }. Perform the following steps:
+            text: `My goal is to create a new ${contentType} page about "${purpose}"${audience ? ` for an audience of ${audience}` : ""
+              }. Perform the following steps:
 
 1.  Ensure the Plone connection is configured.
 2.  Determine the best parent path for this new content.

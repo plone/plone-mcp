@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { Nock } from "plone-mcp/__tests__/utils/test-helpers";
+import { Nock, createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneUpdateUser } from "plone-mcp/tools/plone_update_user";
 import { sessionManager } from "plone-mcp/session-manager";
 import { PloneClient } from "plone-mcp/plone-client";
@@ -7,11 +7,7 @@ import { PloneClient } from "plone-mcp/plone-client";
 describe("plone_update_user", () => {
   const testBaseUrl = "http://localhost:8080/Plone";
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     const service = sessionManager.getSession(sessionId);
@@ -38,7 +34,7 @@ describe("plone_update_user", () => {
       userid,
       ...updateData,
     };
-    const result = await ploneUpdateUser.handler(args, mockExtra);
+    const result = await ploneUpdateUser.handler(args, mockContext);
 
     expect(result.content[0].text).toBe(`Successfully updated user: ${userid}`);
     expect(Nock.isDone()).toBe(true);
@@ -61,7 +57,7 @@ describe("plone_update_user", () => {
       userid,
       ...updateData,
     };
-    const result = await ploneUpdateUser.handler(args, mockExtra);
+    const result = await ploneUpdateUser.handler(args, mockContext);
 
     expect(result.content[0].text).toBe(`Successfully updated user: ${userid}`);
     expect(Nock.isDone()).toBe(true);
@@ -71,7 +67,7 @@ describe("plone_update_user", () => {
     const args = {
       userid: "jdoe",
     };
-    await expect(ploneUpdateUser.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneUpdateUser.handler(args, mockContext)).rejects.toThrow(
       "[UpdateUser] No changes specified for update",
     );
   });
@@ -90,7 +86,7 @@ describe("plone_update_user", () => {
       userid,
       ...updateData,
     };
-    await expect(ploneUpdateUser.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneUpdateUser.handler(args, mockContext)).rejects.toThrow(
       "[UpdateUser] Request failed with status code 404",
     );
     expect(Nock.isDone()).toBe(true);

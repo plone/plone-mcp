@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
-import { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
+import { ServerContext } from "@modelcontextprotocol/server";
 import { sessionManager } from "../session-manager.js";
 import { blockRegistry } from "../block-registry.js";
 import {
@@ -44,10 +43,10 @@ export const ploneAddSingleBlock = {
   },
   handler: async (
     args: z.infer<typeof inputSchema>,
-    extra: RequestHandlerExtra<ServerRequest, ServerNotification>,
+    ctx: ServerContext,
   ) => {
     try {
-      const sessionId = extra.sessionId || "default";
+      const sessionId = ctx.sessionId || "default";
       const service = sessionManager.getSession(sessionId);
       const { path, blockType, position, afterBlockId, blockData } = args;
       const client = service.getClient();
@@ -90,8 +89,7 @@ export const ploneAddSingleBlock = {
         );
       } catch (error) {
         throw new Error(
-          `Error processing block data: ${
-            error instanceof Error ? error.message : String(error)
+          `Error processing block data: ${error instanceof Error ? error.message : String(error)
           } `,
         );
       }

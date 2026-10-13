@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { sessionManager } from "plone-mcp/session-manager";
 import { ploneCreateBlocksLayout } from "plone-mcp/tools/plone_create_blocks_layout";
 import * as BlockUtils from "plone-mcp/utils/block-utils";
@@ -30,11 +31,7 @@ interface TestPreparedBlocks extends PreparedBlocks {
 
 describe("plone_create_blocks_layout", () => {
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     const service = sessionManager.getSession(sessionId);
@@ -61,7 +58,7 @@ describe("plone_create_blocks_layout", () => {
       ],
     };
 
-    await ploneCreateBlocksLayout.handler(args, mockExtra);
+    await ploneCreateBlocksLayout.handler(args, mockContext);
     const service = sessionManager.getSession(sessionId);
     const preparedBlocks = service.getPreparedBlocks();
 
@@ -92,7 +89,7 @@ describe("plone_create_blocks_layout", () => {
       ],
     };
 
-    await ploneCreateBlocksLayout.handler(args, mockExtra);
+    await ploneCreateBlocksLayout.handler(args, mockContext);
     const service = sessionManager.getSession(sessionId);
     const preparedBlocks = service.getPreparedBlocks();
 
@@ -123,7 +120,7 @@ describe("plone_create_blocks_layout", () => {
       ],
     };
 
-    await ploneCreateBlocksLayout.handler(args, mockExtra);
+    await ploneCreateBlocksLayout.handler(args, mockContext);
     const service = sessionManager.getSession(sessionId);
     const preparedBlocks = service.getPreparedBlocks();
 
@@ -150,7 +147,7 @@ describe("plone_create_blocks_layout", () => {
       ],
     };
 
-    await expect(ploneCreateBlocksLayout.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneCreateBlocksLayout.handler(args, mockContext)).rejects.toThrow(
       "[CreateBlocksLayout] Invalid or inaccessible image URL: http://invalid.com/image.jpg",
     );
     expect(BlockUtils.validateImageURL).toHaveBeenCalledWith(
@@ -163,7 +160,7 @@ describe("plone_create_blocks_layout", () => {
 
   it("should prepare an empty layout if no blocks are provided", async () => {
     const args = { blocks: [] };
-    const result = await ploneCreateBlocksLayout.handler(args, mockExtra);
+    const result = await ploneCreateBlocksLayout.handler(args, mockContext);
     const service = sessionManager.getSession(sessionId);
     const preparedBlocks = service.getPreparedBlocks();
 
@@ -182,7 +179,7 @@ describe("plone_create_blocks_layout", () => {
       blocks: [{ type: "text", data: { text: "This will fail" } }],
     };
 
-    await expect(ploneCreateBlocksLayout.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneCreateBlocksLayout.handler(args, mockContext)).rejects.toThrow(
       "[CreateBlocksLayout] Mock processing error",
     );
     const service = sessionManager.getSession(sessionId);

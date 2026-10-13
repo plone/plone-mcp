@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { Nock } from "plone-mcp/__tests__/utils/test-helpers";
+import { Nock, createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneCreateUser } from "plone-mcp/tools/plone_create_user";
 import { sessionManager } from "plone-mcp/session-manager";
 import { PloneClient } from "plone-mcp/plone-client";
@@ -7,11 +7,7 @@ import { PloneClient } from "plone-mcp/plone-client";
 describe("plone_create_user", () => {
   const testBaseUrl = "http://localhost:8080/Plone";
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     const service = sessionManager.getSession(sessionId);
@@ -42,7 +38,7 @@ describe("plone_create_user", () => {
       .reply(201, responseData);
 
     const args = userData;
-    const result = await ploneCreateUser.handler(args, mockExtra);
+    const result = await ploneCreateUser.handler(args, mockContext);
 
     expect(JSON.parse(result.content[0].text)).toEqual(responseData);
     expect(Nock.isDone()).toBe(true);
@@ -59,7 +55,7 @@ describe("plone_create_user", () => {
       .reply(400, { message: "Username already exists" });
 
     const args = userData;
-    await expect(ploneCreateUser.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneCreateUser.handler(args, mockContext)).rejects.toThrow(
       "[CreateUser] Request failed with status code 400",
     );
     expect(Nock.isDone()).toBe(true);

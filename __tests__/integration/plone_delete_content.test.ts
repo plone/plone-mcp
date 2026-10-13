@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { Nock , PloneMockServer } from "plone-mcp/__tests__/utils/test-helpers";
+import { Nock , PloneMockServer, createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneDeleteContent } from "plone-mcp/tools/plone_delete_content";
 import { sessionManager } from "plone-mcp/session-manager";
 import { PloneClient } from "plone-mcp/plone-client";
@@ -9,11 +9,7 @@ describe("plone_delete_content", () => {
   const testBaseUrl = "http://localhost:8080/Plone";
   const testPath = "/my-old-page";
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
@@ -30,7 +26,7 @@ describe("plone_delete_content", () => {
     mockServer.mockContentDelete(testPath);
 
     const args = { path: testPath };
-    const result = await ploneDeleteContent.handler(args, mockExtra);
+    const result = await ploneDeleteContent.handler(args, mockContext);
 
     expect(result.content[0].text).toContain(
       `Successfully deleted content at path: ${testPath}`,
@@ -51,7 +47,7 @@ describe("plone_delete_content", () => {
       .reply(404, "Not Found");
 
     const args = { path: testPath };
-    await expect(ploneDeleteContent.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneDeleteContent.handler(args, mockContext)).rejects.toThrow(
       "[DeleteContent] Request failed with status code 404",
     );
     expect(Nock.isDone()).toBe(true);
@@ -62,7 +58,7 @@ describe("plone_delete_content", () => {
     service.client = null;
 
     const args = { path: testPath };
-    await expect(ploneDeleteContent.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneDeleteContent.handler(args, mockContext)).rejects.toThrow(
       "Plone client not configured. Please run plone_configure first.",
     );
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made

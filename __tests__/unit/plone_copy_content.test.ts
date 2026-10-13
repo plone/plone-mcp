@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneCopyContent } from "plone-mcp/tools/plone_copy_content";
 import { sessionManager } from "plone-mcp/session-manager";
 import { wrapError } from "plone-mcp/utils/block-utils";
@@ -17,11 +18,7 @@ describe("plone_copy_content", () => {
   let mockClient: any;
   let mockService: any;
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -73,7 +70,7 @@ describe("plone_copy_content", () => {
 
       const result = await ploneCopyContent.handler(
         { parentPath: "/folder", source: "/front-page" },
-        mockExtra,
+        mockContext,
       );
 
       expect(mockClient.post).toHaveBeenCalledWith("/folder/@copy", {
@@ -92,7 +89,7 @@ describe("plone_copy_content", () => {
 
       const result = await ploneCopyContent.handler(
         { parentPath: "/folder", source: sources },
-        mockExtra,
+        mockContext,
       );
 
       expect(mockClient.post).toHaveBeenCalledWith("/folder/@copy", {
@@ -108,19 +105,19 @@ describe("plone_copy_content", () => {
 
       const result = await ploneCopyContent.handler(
         { parentPath: "/folder", source: ["/a", "/missing"] },
-        mockExtra,
+        mockContext,
       );
 
       expect(result.content).toHaveLength(2);
       expect(result.content[1].text).toContain("1 of 2 source(s)");
     });
 
-    it("should use the session from extra", async () => {
+    it("should use the session from ctx", async () => {
       mockClient.post.mockResolvedValue([]);
 
       await ploneCopyContent.handler(
         { parentPath: "/folder", source: "/a" },
-        mockExtra,
+        mockContext,
       );
 
       expect(sessionManager.getSession).toHaveBeenCalledWith(sessionId);
@@ -136,7 +133,7 @@ describe("plone_copy_content", () => {
       await expect(
         ploneCopyContent.handler(
           { parentPath: "/folder", source: "/a" },
-          mockExtra,
+          mockContext,
         ),
       ).rejects.toThrow(wrappedError);
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { Nock, PloneMockServer } from "plone-mcp/__tests__/utils/test-helpers";
+import { Nock, PloneMockServer, createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneCreateWorkingCopy } from "plone-mcp/tools/plone_create_working_copy";
 import { PloneClient } from "plone-mcp/plone-client";
 import { sessionManager } from "plone-mcp/session-manager";
@@ -10,11 +10,7 @@ describe("plone_create_working_copy", () => {
   const testPath = "/my-document";
 
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
@@ -35,7 +31,7 @@ describe("plone_create_working_copy", () => {
 
     const result = await ploneCreateWorkingCopy.handler(
       { path: testPath },
-      mockExtra,
+      mockContext,
     );
 
     expect(JSON.parse(result.content[0].text)).toEqual(response);
@@ -48,7 +44,7 @@ describe("plone_create_working_copy", () => {
       .reply(400, "Bad Request");
 
     await expect(
-      ploneCreateWorkingCopy.handler({ path: testPath }, mockExtra),
+      ploneCreateWorkingCopy.handler({ path: testPath }, mockContext),
     ).rejects.toThrow("[CreateWorkingCopy] Request failed with status code 400");
     expect(Nock.isDone()).toBe(true);
   });
@@ -58,7 +54,7 @@ describe("plone_create_working_copy", () => {
     service.client = null;
 
     await expect(
-      ploneCreateWorkingCopy.handler({ path: testPath }, mockExtra),
+      ploneCreateWorkingCopy.handler({ path: testPath }, mockContext),
     ).rejects.toThrow("Plone client not configured. Please run plone_configure first.");
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made
   });

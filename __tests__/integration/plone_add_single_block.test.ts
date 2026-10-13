@@ -3,6 +3,7 @@ import {
   Nock,
   PloneMockServer,
   sampleDocument,
+  createMockContext,
 } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneAddSingleBlock } from "plone-mcp/tools/plone_add_single_block";
 import { sessionManager } from "plone-mcp/session-manager";
@@ -23,11 +24,7 @@ describe("plone_add_single_block", () => {
   const testBaseUrl = "http://localhost:8080/Plone";
   const testPath = "/my-page";
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   const mockContent: {
     "@id": string;
@@ -103,7 +100,7 @@ describe("plone_add_single_block", () => {
       blockData: { text: "New paragraph" },
     };
 
-    const result = await ploneAddSingleBlock.handler(args, mockExtra);
+    const result = await ploneAddSingleBlock.handler(args, mockContext);
 
     expect(result.content[0].text).toEqual(
       JSON.stringify(mockContentAfterAdd, null, 2),
@@ -145,7 +142,7 @@ describe("plone_add_single_block", () => {
       blockData: { url: "http://example.com/image.jpg", alt: "My Image" },
     };
 
-    const result = await ploneAddSingleBlock.handler(args, mockExtra);
+    const result = await ploneAddSingleBlock.handler(args, mockContext);
 
     expect(result.content[0].text).toEqual(
       JSON.stringify(mockContentAfterImageAdd, null, 2),
@@ -170,7 +167,7 @@ describe("plone_add_single_block", () => {
     };
 
     await expect(
-      ploneAddSingleBlock.handler(args, mockExtra),
+      ploneAddSingleBlock.handler(args, mockContext),
     ).rejects.toThrow(
       "[AddBlock] Invalid or inaccessible image URL: http://invalid.com/image.jpg",
     );
@@ -211,7 +208,7 @@ describe("plone_add_single_block", () => {
       position: 1,
     };
 
-    const result = await ploneAddSingleBlock.handler(args, mockExtra);
+    const result = await ploneAddSingleBlock.handler(args, mockContext);
     expect(result.content[0].text).toEqual(
       JSON.stringify(mockContentAfterPositionAdd, null, 2),
     );
@@ -249,7 +246,7 @@ describe("plone_add_single_block", () => {
       afterBlockId: "block-existing-1",
     };
 
-    const result = await ploneAddSingleBlock.handler(args, mockExtra);
+    const result = await ploneAddSingleBlock.handler(args, mockContext);
     expect(result.content[0].text).toEqual(
       JSON.stringify(mockContentAfterAnchor, null, 2),
     );
@@ -285,7 +282,7 @@ describe("plone_add_single_block", () => {
       afterBlockId: "block-existing-2",
     };
 
-    const result = await ploneAddSingleBlock.handler(args, mockExtra);
+    const result = await ploneAddSingleBlock.handler(args, mockContext);
     expect(result.content[0].text).toEqual(
       JSON.stringify(mockContentAfterAppend, null, 2),
     );
@@ -336,7 +333,7 @@ describe("plone_add_single_block", () => {
       afterBlockId: "block-title",
     };
 
-    const result = await ploneAddSingleBlock.handler(args, mockExtra);
+    const result = await ploneAddSingleBlock.handler(args, mockContext);
     expect(result.content[0].text).toEqual(
       JSON.stringify(mockContentAfterTitle, null, 2),
     );
@@ -354,7 +351,7 @@ describe("plone_add_single_block", () => {
     };
 
     await expect(
-      ploneAddSingleBlock.handler(args, mockExtra),
+      ploneAddSingleBlock.handler(args, mockContext),
     ).rejects.toThrow("[AddBlock] Block ID not found in the page layout");
     expect(Nock.pendingMocks()).toHaveLength(0); // No patch request should be made
   });
@@ -371,7 +368,7 @@ describe("plone_add_single_block", () => {
     };
 
     await expect(
-      ploneAddSingleBlock.handler(args, mockExtra),
+      ploneAddSingleBlock.handler(args, mockContext),
     ).rejects.toThrow(
       "[AddBlock] Provide either 'position' or 'afterBlockId', not both",
     );
@@ -389,7 +386,7 @@ describe("plone_add_single_block", () => {
     };
 
     await expect(
-      ploneAddSingleBlock.handler(args, mockExtra),
+      ploneAddSingleBlock.handler(args, mockContext),
     ).rejects.toThrow(
       "Plone client not configured. Please run plone_configure first.",
     );
@@ -408,7 +405,7 @@ describe("plone_add_single_block", () => {
     };
 
     await expect(
-      ploneAddSingleBlock.handler(args, mockExtra),
+      ploneAddSingleBlock.handler(args, mockContext),
     ).rejects.toThrow(`[AddBlock] Request failed with status code 404`);
     expect(Nock.isDone()).toBe(true);
   });
@@ -426,7 +423,7 @@ describe("plone_add_single_block", () => {
     };
 
     await expect(
-      ploneAddSingleBlock.handler(args, mockExtra),
+      ploneAddSingleBlock.handler(args, mockContext),
     ).rejects.toThrow(`[AddBlock] Request failed with status code 500`);
     expect(Nock.isDone()).toBe(true);
   });

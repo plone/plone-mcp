@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Nock ,
   PloneMockServer,
   sampleDocument,
+  createMockContext,
 } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneRemoveSingleBlock } from "plone-mcp/tools/plone_remove_single_block";
 import { PloneClient } from "plone-mcp/plone-client";
@@ -45,11 +46,7 @@ describe("plone_remove_single_block", () => {
   };
 
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
@@ -79,7 +76,7 @@ describe("plone_remove_single_block", () => {
     );
 
     const args = { path: testPath, blockId: blockToRemoveId };
-    const result = await ploneRemoveSingleBlock.handler(args, mockExtra);
+    const result = await ploneRemoveSingleBlock.handler(args, mockContext);
 
     expect(JSON.parse(result.content[0].text)).toEqual(mockContentAfterRemoval);
     expect(Nock.isDone()).toBe(true);
@@ -92,7 +89,7 @@ describe("plone_remove_single_block", () => {
     const nonExistentBlockId = "non-existent-block";
     const args = { path: testPath, blockId: nonExistentBlockId };
 
-    await expect(ploneRemoveSingleBlock.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneRemoveSingleBlock.handler(args, mockContext)).rejects.toThrow(
       `[RemoveBlock] Block with ID '${nonExistentBlockId}' not found. Available block IDs: ${blockToRemoveId}, ${remainingBlockId}`,
     );
     expect(Nock.pendingMocks()).toHaveLength(0); // No patch request should have been made
@@ -104,7 +101,7 @@ describe("plone_remove_single_block", () => {
       .reply(404, "Not Found");
 
     const args = { path: testPath, blockId: blockToRemoveId };
-    await expect(ploneRemoveSingleBlock.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneRemoveSingleBlock.handler(args, mockContext)).rejects.toThrow(
       `[RemoveBlock] Request failed with status code 404`,
     );
     expect(Nock.isDone()).toBe(true);
@@ -117,7 +114,7 @@ describe("plone_remove_single_block", () => {
       .reply(500, "Server Error");
 
     const args = { path: testPath, blockId: blockToRemoveId };
-    await expect(ploneRemoveSingleBlock.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneRemoveSingleBlock.handler(args, mockContext)).rejects.toThrow(
       `[RemoveBlock] Request failed with status code 500`,
     );
     expect(Nock.isDone()).toBe(true);
@@ -128,7 +125,7 @@ describe("plone_remove_single_block", () => {
     service.client = null;
 
     const args = { path: testPath, blockId: blockToRemoveId };
-    await expect(ploneRemoveSingleBlock.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneRemoveSingleBlock.handler(args, mockContext)).rejects.toThrow(
       "Plone client not configured. Please run plone_configure first.",
     );
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made

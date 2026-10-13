@@ -1,10 +1,23 @@
 import nock from "nock";
+import type { ServerContext } from "@modelcontextprotocol/server";
 
 export const Nock = nock;
 
 export const cleanupNock = () => nock.cleanAll();
 export const isNockDone = () => nock.isDone();
 export const getPendingNocks = () => nock.pendingMocks();
+
+export const createMockContext = ({
+  sessionId,
+}: { sessionId?: string } = {}): ServerContext =>
+  ({
+    sessionId,
+    mcpReq: {
+      id: "test-request-id",
+      method: "tools/call",
+      signal: new AbortController().signal,
+    },
+  }) as unknown as ServerContext;
 
 export class PloneMockServer {
   private baseUrl: string;

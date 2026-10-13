@@ -1,4 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { ploneContentResource } from "./content.js";
 import { ploneSiteResource } from "./site.js";
 import { ploneTypesResource } from "./types.js";

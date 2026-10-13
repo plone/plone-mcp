@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Nock ,
   PloneMockServer,
   sampleWorkflowInfo,
+  createMockContext,
 } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneGetWorkflowInfo } from "plone-mcp/tools/plone_get_workflow_info";
 import { PloneClient } from "plone-mcp/plone-client";
@@ -13,11 +14,7 @@ describe("plone_get_workflow_info", () => {
   const testPath = "/my-document";
 
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
@@ -34,7 +31,7 @@ describe("plone_get_workflow_info", () => {
     mockServer.mockWorkflow(testPath, sampleWorkflowInfo);
 
     const args = { path: testPath };
-    const result = await ploneGetWorkflowInfo.handler(args, mockExtra);
+    const result = await ploneGetWorkflowInfo.handler(args, mockContext);
 
     expect(JSON.parse(result.content[0].text)).toEqual(sampleWorkflowInfo);
     expect(Nock.isDone()).toBe(true);
@@ -53,7 +50,7 @@ describe("plone_get_workflow_info", () => {
       .reply(404, "Not Found");
 
     const args = { path: testPath };
-    await expect(ploneGetWorkflowInfo.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneGetWorkflowInfo.handler(args, mockContext)).rejects.toThrow(
       "[GetWorkflowInfo] Request failed with status code 404",
     );
     expect(Nock.isDone()).toBe(true);
@@ -64,7 +61,7 @@ describe("plone_get_workflow_info", () => {
     service.client = null;
 
     const args = { path: testPath };
-    await expect(ploneGetWorkflowInfo.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneGetWorkflowInfo.handler(args, mockContext)).rejects.toThrow(
       "Plone client not configured. Please run plone_configure first.",
     );
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made

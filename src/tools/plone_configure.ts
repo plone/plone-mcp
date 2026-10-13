@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
-import { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
+import { ServerContext } from "@modelcontextprotocol/server";
 import { sessionManager } from "../session-manager.js";
 import {
   ENV_BASE_URL,
@@ -54,9 +53,9 @@ export const ploneConfigure = {
   },
   handler: async (
     args: z.infer<typeof inputSchema>,
-    extra: RequestHandlerExtra<ServerRequest, ServerNotification>,
+    ctx: ServerContext,
   ) => {
-    const sessionId = extra.sessionId || "default";
+    const sessionId = ctx.sessionId || "default";
     const service = sessionManager.getSession(sessionId);
 
     // Build config from args and environment variables

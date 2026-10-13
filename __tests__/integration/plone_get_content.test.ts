@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Nock ,
   PloneMockServer,
   sampleDocument,
+  createMockContext,
 } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneGetContent } from "plone-mcp/tools/plone_get_content";
 import { sessionManager } from "plone-mcp/session-manager";
@@ -12,11 +13,7 @@ describe("plone_get_content", () => {
   const testBaseUrl = "http://localhost:8080/Plone";
   const testPath = "/test-document";
   const sessionId = "test-session-id";
-  const mockExtra = {
-    sessionId,
-    signal: new AbortController().signal,
-    requestId: "test-request-id",
-  } as any;
+  const mockContext = createMockContext({ sessionId });
   const defaultReqHeaders = {
     Accept: "application/json",
     "Content-Type": "application/json",
@@ -40,7 +37,7 @@ describe("plone_get_content", () => {
       path: testPath,
       expand: undefined,
     };
-    const result = await ploneGetContent.handler(args, mockExtra);
+    const result = await ploneGetContent.handler(args, mockContext);
 
     expect(JSON.parse(result.content[0].text)).toEqual(sampleDocument);
     expect(Nock.isDone()).toBe(true);
@@ -59,7 +56,7 @@ describe("plone_get_content", () => {
       path: testPath,
       expand: expandParams,
     };
-    await ploneGetContent.handler(args, mockExtra);
+    await ploneGetContent.handler(args, mockContext);
 
     expect(Nock.isDone()).toBe(true);
   });
@@ -73,7 +70,7 @@ describe("plone_get_content", () => {
       path: testPath,
       expand: undefined,
     };
-    await expect(ploneGetContent.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneGetContent.handler(args, mockContext)).rejects.toThrow(
       "[GetContent] Request failed with status code 404",
     );
     expect(Nock.isDone()).toBe(true);
@@ -87,7 +84,7 @@ describe("plone_get_content", () => {
       path: testPath,
       expand: undefined,
     };
-    await expect(ploneGetContent.handler(args, mockExtra)).rejects.toThrow(
+    await expect(ploneGetContent.handler(args, mockContext)).rejects.toThrow(
       "Plone client not configured. Please run plone_configure first.",
     );
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made
