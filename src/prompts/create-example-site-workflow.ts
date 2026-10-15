@@ -37,11 +37,10 @@ export const ploneCreateExampleSiteWorkflow = {
             text: `My goal is to create an example site with ${numberOfPages} pages of type ${contentTypes}, all centered around the theme of "${purpose}"${audience ? `, aimed at an audience of ${audience}` : ""
               }. Follow this plan:
 
-1.  Ensure the Plone connection is configured.
-2.  Establish a logical folder (Document type objects can be used as folders) structure for the new pages.
-3.  Create each of the ${numberOfPages} pages with appropriate titles, descriptions, and content.
-4.  Populate each page with relevant and structured content blocks.
-5.  Ensure all created pages are published.
+1.  Establish a logical folder (Document type objects can be used as folders) structure for the new pages.
+2.  Look up the available block types with plone_get_block_schemas.
+3.  Create each of the ${numberOfPages} pages with one plone_create_content call per page, with an appropriate title, a description, and relevant, structured content blocks passed as block_specs.
+4.  Ensure all created pages are published.
 
 Begin this process step-by-step.`,
           },

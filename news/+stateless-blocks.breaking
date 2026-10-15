@@ -1,0 +1,1 @@
+Create and update content with blocks in a single call: `plone_create_content` and `plone_update_content` accept `block_specs`, which the server converts in the same request. `plone_create_blocks_layout` is replaced by `plone_validate_blocks`, which only checks block specs, and the `PLONE_PREPARED_BLOCKS_TTL` environment variable is removed. @Tishasoumya-02

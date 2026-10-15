@@ -1,0 +1,1 @@
+Remove per-session server state and the `PLONE_SESSION_TTL` environment variable. Every request now builds its Plone connection from the request itself. @Tishasoumya-02

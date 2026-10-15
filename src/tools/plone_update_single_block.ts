@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
-import { sessionManager } from "../session-manager.js";
+import { getClient } from "../connection.js";
 import {
   wrapError,
   processBlock,
@@ -31,12 +31,9 @@ export const ploneUpdateSingleBlock = {
     args: z.infer<typeof inputSchema>,
     ctx: ServerContext,
   ) => {
-    const sessionId = ctx.sessionId || "default";
-    const service = sessionManager.getSession(sessionId);
-
     try {
       const { path, blockId, blockData } = args;
-      const client = service.getClient();
+      const client = getClient(ctx);
 
       // First get the current content
       const content = (await client.get(path)) as PloneContent;

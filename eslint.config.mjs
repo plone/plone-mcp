@@ -68,6 +68,29 @@ export default defineConfig(
     },
   },
   {
+    // The application layer keeps no state between requests. The HTTP entry
+    // point keeps its transport sessions until the stateless transport lands.
+    files: ["src/**/*.ts"],
+    ignores: ["src/http-server.ts"],
+    rules: {
+      "no-restricted-properties": [
+        "error",
+        {
+          property: "sessionId",
+          message:
+            "Do not key anything on the session: take everything from the request.",
+        },
+      ],
+      "no-restricted-globals": [
+        "error",
+        {
+          name: "setInterval",
+          message: "No background timers: the server must be stateless.",
+        },
+      ],
+    },
+  },
+  {
     files: ["__tests__/**/*.ts"],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",

@@ -1,14 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneDeleteContent } from "plone-mcp/tools/plone_delete_content";
-import { sessionManager } from "plone-mcp/session-manager";
+import { getClient } from "plone-mcp/connection";
 import { wrapError } from "plone-mcp/utils/block-utils";
 
 // Mock dependencies
-vi.mock("plone-mcp/session-manager", () => ({
-  sessionManager: {
-    getSession: vi.fn(),
-  },
+vi.mock("plone-mcp/connection", () => ({
+  getClient: vi.fn(),
 }));
 
 vi.mock("plone-mcp/utils/block-utils", () => ({
@@ -17,9 +15,7 @@ vi.mock("plone-mcp/utils/block-utils", () => ({
 
 describe("plone_delete_content", () => {
   let mockClient: any;
-  let mockService: any;
-  const sessionId = "test-session-id";
-  const mockContext = createMockContext({ sessionId });
+  const mockContext = createMockContext();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -28,11 +24,7 @@ describe("plone_delete_content", () => {
       delete: vi.fn(),
     };
 
-    mockService = {
-      getClient: vi.fn().mockReturnValue(mockClient),
-    };
-
-    (sessionManager.getSession as any).mockReturnValue(mockService);
+    (getClient as any).mockReturnValue(mockClient);
   });
 
   describe("config", () => {
@@ -89,14 +81,13 @@ describe("plone_delete_content", () => {
       expect(result.content[0].text).toContain(testPath);
     });
 
-    it("should use correct session management", async () => {
+    it("should get the client from the request context", async () => {
       const testPath = "/test-doc";
       mockClient.delete.mockResolvedValue(undefined);
 
       await ploneDeleteContent.handler({ path: testPath }, mockContext);
 
-      expect(sessionManager.getSession).toHaveBeenCalledWith(sessionId);
-      expect(mockService.getClient).toHaveBeenCalled();
+      expect(getClient).toHaveBeenCalledWith(mockContext);
     });
 
     it("should handle API errors with wrapError", async () => {

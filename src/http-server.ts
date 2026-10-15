@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import { createMcpExpressApp } from "@modelcontextprotocol/express";
 import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import { createServer } from "./server.js";
-import { sessionManager } from "./session-manager.js";
 import type { Request, Response } from "express";
 
 /**
@@ -48,7 +47,6 @@ app.post("/mcp", async (req: Request, res: Response) => {
         const sid = transport.sessionId;
         if (sid) {
           transports.delete(sid);
-          sessionManager.clearSession(sid);
           console.log(`Session closed: ${sid}`);
         }
       };
@@ -109,7 +107,6 @@ app.delete("/mcp", async (req: Request, res: Response) => {
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  sessionManager.startCleanup();
   console.log(`Plone MCP Server (HTTP) listening on port ${PORT}`);
 });
 

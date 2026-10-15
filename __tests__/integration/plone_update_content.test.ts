@@ -5,17 +5,13 @@ import { Nock ,
   createMockContext,
 } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneUpdateContent } from "plone-mcp/tools/plone_update_content";
-import { sessionManager } from "plone-mcp/session-manager";
-import { PloneClient } from "plone-mcp/plone-client";
 import * as BlockUtils from "plone-mcp/utils/block-utils"; // Import for mocking generateBlockId
-import { PreparedBlocks } from "plone-mcp/plone-service";
 
 describe("plone_update_content", () => {
   let mockServer: PloneMockServer;
   const testBaseUrl = "http://localhost:8080/Plone";
   const testPath = "/my-page";
-  const sessionId = "test-session-id";
-  const mockContext = createMockContext({ sessionId });
+  const mockContext = createMockContext();
   const mockContent = {
     ...sampleDocument,
     "@id": `${testBaseUrl}/++api++${testPath}`,
@@ -28,19 +24,16 @@ describe("plone_update_content", () => {
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
-    const service = sessionManager.getSession(sessionId);
-    service.client = new PloneClient({ baseUrl: testBaseUrl });
-    service.clearPreparedBlocks(); // Ensure no prepared blocks initially
+    vi.stubEnv("PLONE_BASE_URL", testBaseUrl);
     vi.spyOn(BlockUtils, "generateBlockId").mockImplementation(
       () => "mock-title-block-id",
     ); // Mock for title block generation
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     Nock.cleanAll();
     vi.restoreAllMocks();
-    const service = sessionManager.getSession(sessionId);
-    service.clearPreparedBlocks();
   });
 
   it("should successfully update title and description", async () => {
@@ -73,113 +66,46 @@ describe("plone_update_content", () => {
     expect(Nock.isDone()).toBe(true);
   });
 
-  it("should update content with prepared blocks and clear them after", async () => {
-    const preparedBlocksData: PreparedBlocks = {
-      blocks: {
-        "block-1": { "@type": "slate", plaintext: "Prepared text for update" },
-      },
-      blocks_layout: { items: ["block-1"] },
-      timestamp: Date.now(),
-    };
-    const service = sessionManager.getSession(sessionId);
-    service.setPreparedBlocks(preparedBlocksData);
-
-    const mockResponseWithPreparedBlocks = {
-      ...mockContent,
-      blocks: {
-        "mock-title-block-id": { "@type": "title" },
-        "block-1": { "@type": "slate", plaintext: "Prepared text for update" },
-      },
-      blocks_layout: { items: ["mock-title-block-id", "block-1"] },
-    };
-
-    const expectedPatchBody = (body: Record<string, unknown>) => {
-      expect(body.blocks).toMatchObject({
-        "mock-title-block-id": { "@type": "title" },
-        "block-1": { "@type": "slate", plaintext: "Prepared text for update" },
-      });
-      expect((body.blocks_layout as { items: string[] }).items).toEqual([
-        "mock-title-block-id",
-        "block-1",
-      ]);
-      return true;
-    };
-    mockServer.mockContentUpdate(
-      testPath,
-      expectedPatchBody,
-      mockResponseWithPreparedBlocks,
+  it("should replace blocks with block_specs in one call", async () => {
+    let idCounter = 0;
+    vi.spyOn(BlockUtils, "generateBlockId").mockImplementation(
+      () => `mock-id-${++idCounter}`,
     );
 
-    const args = {
-      path: testPath, // No inline blocks, should use prepared
-      title: undefined,
-      description: undefined,
-      blocks: undefined,
-      blocks_layout: undefined,
-      additionalFields: undefined,
-    };
-
-    await ploneUpdateContent.handler(args, mockContext);
-
-    expect(service.getPreparedBlocks()).toBeNull(); // Should be cleared
-    expect(Nock.isDone()).toBe(true);
-  });
-
-  it("should prioritize inline blocks over prepared blocks during update", async () => {
-    const preparedBlocksData: PreparedBlocks = {
-      blocks: {
-        "block-prepared": { "@type": "slate", plaintext: "Prepared text" },
-      },
-      blocks_layout: { items: ["block-prepared"] },
-      timestamp: Date.now(),
-    };
-    const service = sessionManager.getSession(sessionId);
-    service.setPreparedBlocks(preparedBlocksData);
-
-    const inlineBlocks = {
-      "block-inline": { "@type": "slate", plaintext: "Inline text for update" },
-    };
-    const inlineLayout = { items: ["block-inline"] };
-
-    const mockResponseWithInlineBlocks = {
-      ...mockContent,
-      blocks: {
-        "mock-title-block-id": { "@type": "title" },
-        ...inlineBlocks,
-      },
-      blocks_layout: { items: ["mock-title-block-id", ...inlineLayout.items] },
-    };
-
     const expectedPatchBody = (body: Record<string, unknown>) => {
-      expect(body.blocks).toMatchObject({
-        "mock-title-block-id": { "@type": "title" },
-        ...inlineBlocks,
-      });
       expect((body.blocks_layout as { items: string[] }).items).toEqual([
-        "mock-title-block-id",
-        ...inlineLayout.items,
+        "mock-id-2",
+        "mock-id-1",
       ]);
+      expect(body.blocks).toMatchObject({
+        "mock-id-2": { "@type": "title" },
+        "mock-id-1": { "@type": "slate", plaintext: "Updated text" },
+      });
       return true;
     };
-    mockServer.mockContentUpdate(
-      testPath,
-      expectedPatchBody,
-      mockResponseWithInlineBlocks,
-    );
+    mockServer.mockContentUpdate(testPath, expectedPatchBody, mockContent);
 
     const args = {
       path: testPath,
-      blocks: inlineBlocks,
-      blocks_layout: inlineLayout,
-      title: undefined,
-      description: undefined,
-      additionalFields: undefined,
+      block_specs: [{ type: "slate" as const, data: { text: "Updated text" } }],
     };
 
     await ploneUpdateContent.handler(args, mockContext);
 
-    expect(service.getPreparedBlocks()).toBeNull(); // Prepared should still be cleared
     expect(Nock.isDone()).toBe(true);
+  });
+
+  it("should reject block_specs together with raw blocks", async () => {
+    const args = {
+      path: testPath,
+      blocks_layout: { items: [] },
+      block_specs: [{ type: "slate" as const, data: { text: "Hello" } }],
+    };
+
+    await expect(ploneUpdateContent.handler(args, mockContext)).rejects.toThrow(
+      "[UpdateContent] Pass either block_specs or blocks/blocks_layout, not both.",
+    );
+    expect(Nock.pendingMocks()).toHaveLength(0);
   });
 
   it("should update content with additional fields", async () => {
@@ -239,17 +165,7 @@ describe("plone_update_content", () => {
     expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made
   });
 
-  it("should throw an error if content update fails and clear prepared blocks", async () => {
-    const preparedBlocksData: PreparedBlocks = {
-      blocks: {
-        "block-1": { "@type": "slate", plaintext: "Prepared text" },
-      },
-      blocks_layout: { items: ["block-1"] },
-      timestamp: Date.now(),
-    };
-    const service = sessionManager.getSession(sessionId);
-    service.setPreparedBlocks(preparedBlocksData);
-
+  it("should throw an error if content update fails", async () => {
     Nock(testBaseUrl, {
       reqheaders: {
         Accept: "application/json",
@@ -264,34 +180,11 @@ describe("plone_update_content", () => {
     const args = {
       path: testPath,
       title: "Failing Update",
-      description: undefined,
-      blocks: undefined,
-      blocks_layout: undefined,
-      additionalFields: undefined,
     };
 
     await expect(ploneUpdateContent.handler(args, mockContext)).rejects.toThrow(
       "[UpdateContent] Request failed with status code 500",
     );
-    expect(service.getPreparedBlocks()).toBeNull(); // Should be cleared
     expect(Nock.isDone()).toBe(true);
-  });
-
-  it("should throw an error if Plone client is not configured", async () => {
-    const service = sessionManager.getSession(sessionId);
-    service.client = null;
-
-    const args = {
-      path: testPath,
-      title: "New Title",
-      description: undefined,
-      blocks: undefined,
-      blocks_layout: undefined,
-      additionalFields: undefined,
-    };
-    await expect(ploneUpdateContent.handler(args, mockContext)).rejects.toThrow(
-      "Plone client not configured. Please run plone_configure first.",
-    );
-    expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made
   });
 });

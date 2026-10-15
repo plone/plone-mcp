@@ -1,12 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Nock ,
   PloneMockServer,
   sampleWorkflowInfo,
   createMockContext,
 } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneTransitionWorkflow } from "plone-mcp/tools/plone_transition_workflow";
-import { PloneClient } from "plone-mcp/plone-client";
-import { sessionManager } from "plone-mcp/session-manager";
 
 describe("plone_transition_workflow", () => {
   let mockServer: PloneMockServer;
@@ -14,18 +12,16 @@ describe("plone_transition_workflow", () => {
   const testPath = "/my-document";
   const transitionName = "publish";
 
-  const sessionId = "test-session-id";
-  const mockContext = createMockContext({ sessionId });
+  const mockContext = createMockContext();
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
-    const service = sessionManager.getSession(sessionId);
-    service.client = new PloneClient({ baseUrl: testBaseUrl });
+    vi.stubEnv("PLONE_BASE_URL", testBaseUrl);
   });
 
   afterEach(() => {
     Nock.cleanAll();
-    sessionManager.clearSession(sessionId);
+    vi.unstubAllEnvs();
   });
 
   it("should successfully execute a workflow transition", async () => {
@@ -89,20 +85,5 @@ describe("plone_transition_workflow", () => {
       "[TransitionWorkflow] Request failed with status code 400",
     );
     expect(Nock.isDone()).toBe(true);
-  });
-
-  it("should throw an error if Plone client is not configured", async () => {
-    const service = sessionManager.getSession(sessionId);
-    service.client = null;
-
-    const args = {
-      path: testPath,
-      transition: transitionName,
-      comment: undefined,
-    };
-    await expect(ploneTransitionWorkflow.handler(args, mockContext)).rejects.toThrow(
-      "Plone client not configured. Please run plone_configure first.",
-    );
-    expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made
   });
 });

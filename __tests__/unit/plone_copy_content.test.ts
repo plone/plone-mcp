@@ -1,13 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneCopyContent } from "plone-mcp/tools/plone_copy_content";
-import { sessionManager } from "plone-mcp/session-manager";
+import { getClient } from "plone-mcp/connection";
 import { wrapError } from "plone-mcp/utils/block-utils";
 
-vi.mock("plone-mcp/session-manager", () => ({
-  sessionManager: {
-    getSession: vi.fn(),
-  },
+vi.mock("plone-mcp/connection", () => ({
+  getClient: vi.fn(),
 }));
 
 vi.mock("plone-mcp/utils/block-utils", () => ({
@@ -16,9 +14,7 @@ vi.mock("plone-mcp/utils/block-utils", () => ({
 
 describe("plone_copy_content", () => {
   let mockClient: any;
-  let mockService: any;
-  const sessionId = "test-session-id";
-  const mockContext = createMockContext({ sessionId });
+  const mockContext = createMockContext();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -27,11 +23,7 @@ describe("plone_copy_content", () => {
       post: vi.fn(),
     };
 
-    mockService = {
-      getClient: vi.fn().mockReturnValue(mockClient),
-    };
-
-    (sessionManager.getSession as any).mockReturnValue(mockService);
+    (getClient as any).mockReturnValue(mockClient);
   });
 
   describe("config", () => {
@@ -112,7 +104,7 @@ describe("plone_copy_content", () => {
       expect(result.content[1].text).toContain("1 of 2 source(s)");
     });
 
-    it("should use the session from ctx", async () => {
+    it("should get the client from the request context", async () => {
       mockClient.post.mockResolvedValue([]);
 
       await ploneCopyContent.handler(
@@ -120,8 +112,7 @@ describe("plone_copy_content", () => {
         mockContext,
       );
 
-      expect(sessionManager.getSession).toHaveBeenCalledWith(sessionId);
-      expect(mockService.getClient).toHaveBeenCalled();
+      expect(getClient).toHaveBeenCalledWith(mockContext);
     });
 
     it("should wrap API errors", async () => {

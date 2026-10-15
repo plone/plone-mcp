@@ -13,16 +13,13 @@ This project is a Model Context Protocol (MCP) server designed to integrate MCP 
     - `src/stdio-server.ts`: Runs the server for local STDIO-based clients (like Claude Desktop).
 - **Core Logic:** The logic is split into:
     - `src/server.ts`: Central registry for tools, resources, and prompts.
-    - `src/plone-service.ts`: Domain logic, Volto block processing, and temporary state management.
+    - `src/connection.ts`: Builds the Plone client for each request, from the request's access token or the environment. Nothing is kept between requests.
     - `src/plone-client.ts`: Low-level axios-based HTTP client for Plone REST API.
-    - `src/session-manager.ts`: Manages multi-user sessions (especially for HTTP transport).
 - **Tools & Resources:** Tools are modularized in `src/tools/` and resources in `src/resources/`. Each tool/resource is a self-contained object with configuration (zod schema) and a handler.
-- **Configuration:** Plone connection details can be provided via tool arguments or environment variables:
+- **Configuration:** Plone connection details come from environment variables:
     - `PLONE_BASE_URL`: Base URL of the Plone site.
     - `PLONE_USERNAME`, `PLONE_PASSWORD`: Basic auth credentials.
     - `PLONE_TOKEN`: JWT authentication token.
-    - `PLONE_PREPARED_BLOCKS_TTL`: TTL for draft block layouts (default: 60,000ms).
-    - `PLONE_SESSION_TTL`: Inactivity timeout for HTTP sessions (default: 3,600,000ms).
 - **Block Management:** Sophisticated logic for Volto blocks (Slate, Teaser, Grid, etc.) is found in `src/utils/block-utils.ts`. It includes Markdown-to-Slate conversion using `remark`.
 - **Error Handling:** Use the `wrapError` utility from `src/utils/block-utils.ts` for all handlers to ensure consistent, descriptive error messages across the MCP interface.
 

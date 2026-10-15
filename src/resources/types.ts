@@ -1,5 +1,5 @@
 import { ServerContext } from "@modelcontextprotocol/server";
-import { sessionManager } from "../session-manager.js";
+import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
 
 export const ploneTypesResource = {
@@ -14,13 +14,7 @@ export const ploneTypesResource = {
     uri: URL,
     ctx: ServerContext
   ) => {
-    const sessionId = ctx.sessionId || "default";
-    const service = sessionManager.getSession(sessionId);
-    const client = service.getClient();
-
-    if (!client) {
-      throw wrapError("plone-types", "Plone client not configured.");
-    }
+    const client = getClient(ctx);
 
     try {
       const types = await client.get("/@types");

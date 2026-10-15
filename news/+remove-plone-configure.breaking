@@ -1,0 +1,1 @@
+Remove the `plone_configure` tool. The server no longer stores a connection between calls: set `PLONE_BASE_URL` and `PLONE_TOKEN` (or `PLONE_USERNAME` and `PLONE_PASSWORD`) in the MCP client's server configuration instead, and add one server entry per Plone site. @Tishasoumya-02

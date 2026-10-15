@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
-import { sessionManager } from "../session-manager.js";
+import { getClient } from "../connection.js";
 import { blockRegistry } from "../block-registry.js";
 import {
   wrapError,
@@ -46,10 +46,8 @@ export const ploneAddSingleBlock = {
     ctx: ServerContext,
   ) => {
     try {
-      const sessionId = ctx.sessionId || "default";
-      const service = sessionManager.getSession(sessionId);
       const { path, blockType, position, afterBlockId, blockData } = args;
-      const client = service.getClient();
+      const client = getClient(ctx);
 
       // First get the current content
       const content = (await client.get(path)) as PloneContent;

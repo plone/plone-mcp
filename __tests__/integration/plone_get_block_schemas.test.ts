@@ -5,8 +5,7 @@ import { blockRegistry } from "plone-mcp/block-registry";
 import * as BlockUtils from "plone-mcp/utils/block-utils"; // Import BlockUtils for mocking getBlockExample
 
 describe("plone_get_block_schemas", () => {
-  const sessionId = "test-session-id";
-  const mockContext = createMockContext({ sessionId });
+  const mockContext = createMockContext();
 
   beforeEach(() => {
     vi.restoreAllMocks();

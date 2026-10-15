@@ -1,20 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Nock, createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneCreateUser } from "plone-mcp/tools/plone_create_user";
-import { sessionManager } from "plone-mcp/session-manager";
-import { PloneClient } from "plone-mcp/plone-client";
 
 describe("plone_create_user", () => {
   const testBaseUrl = "http://localhost:8080/Plone";
-  const sessionId = "test-session-id";
-  const mockContext = createMockContext({ sessionId });
+  const mockContext = createMockContext();
 
   beforeEach(() => {
-    const service = sessionManager.getSession(sessionId);
-    service.client = new PloneClient({ baseUrl: testBaseUrl });
+    vi.stubEnv("PLONE_BASE_URL", testBaseUrl);
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     Nock.cleanAll();
     vi.restoreAllMocks();
   });

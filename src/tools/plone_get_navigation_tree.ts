@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
-import { sessionManager } from "../session-manager.js";
+import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
 
 const inputSchema = z.object({
@@ -34,9 +34,7 @@ export const ploneGetNavigationTree = {
   ) => {
     try {
       const { root_path, depth } = args;
-      const sessionId = ctx.sessionId || "default";
-      const service = sessionManager.getSession(sessionId);
-      const client = service.getClient();
+      const client = getClient(ctx);
 
       const normalizedRootPath =
         typeof root_path === "string" ? client.normalizePath(root_path) : "";

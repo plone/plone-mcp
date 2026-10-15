@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
-import { sessionManager } from "../session-manager.js";
+import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
 
 const inputSchema = z.object({
@@ -26,9 +26,7 @@ export const ploneDeleteContent = {
   ) => {
     try {
       const { path } = args;
-      const sessionId = ctx.sessionId || "default";
-      const service = sessionManager.getSession(sessionId);
-      const client = service.getClient();
+      const client = getClient(ctx);
 
       await client.delete(path);
 

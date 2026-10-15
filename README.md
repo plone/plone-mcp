@@ -15,13 +15,18 @@ Requires [Node.js 22+](https://nodejs.org). Add this to Claude Desktop's config 
   "mcpServers": {
     "plone": {
       "command": "npx",
-      "args": ["-y", "@plone/mcp"]
+      "args": ["-y", "@plone/mcp"],
+      "env": {
+        "PLONE_BASE_URL": "https://demo.plone.org",
+        "PLONE_USERNAME": "admin",
+        "PLONE_PASSWORD": "admin"
+      }
     }
   }
 }
 ```
 
-Now ask Claude to connect to your Plone site, e.g. *"Connect to https://demo.plone.org as admin/admin"*.
+Claude can now work with that Plone site.
 
 ## Prerequisites
 
@@ -36,7 +41,7 @@ Now ask Claude to connect to your Plone site, e.g. *"Connect to https://demo.plo
 The server ships two entry points:
 
 - **STDIO** (`plone-mcp` bin / `dist/stdio-server.js`) - for local MCP clients such as Claude Desktop.
-- **HTTP** (`dist/http-server.js`) - a streamable-HTTP server with per-session state, listening on `PORT` (default `3001`) at `/mcp`. Start it with `make start`.
+- **HTTP** (`dist/http-server.js`) - a streamable-HTTP server listening on `PORT` (default `3001`) at `/mcp`. Start it with `make start`. Until OAuth support lands, it uses the `PLONE_*` environment credentials only when `PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP=true` is set, and every caller then acts as that one account.
 
 ## Quick Start using Claude Desktop as an example
 
@@ -49,7 +54,7 @@ Add to Claude's configuration file:
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
-**With environment variables (optional):**
+Credentials come from environment variables. For several Plone sites, add one server entry per site.
 
 ```json
 {
@@ -67,43 +72,9 @@ Add to Claude's configuration file:
 }
 ```
 
-**Without environment variables** (useful if you connect to different Plone sites and prefer to pass credentials per session via `plone_configure`):
-
-```json
-{
-  "mcpServers": {
-    "plone": {
-      "command": "npx",
-      "args": ["-y", "@plone/mcp"]
-    }
-  }
-}
-```
+Use `PLONE_TOKEN` instead of `PLONE_USERNAME` and `PLONE_PASSWORD` to authenticate with a JWT token.
 
 2. **Restart Claude Desktop**
-
-3. **Connect to Plone**
-
-Call `plone_configure` once per session:
-
-```javascript
-// Using environment variables
-plone_configure({});
-
-// OR providing credentials/token directly to the LLM
-plone_configure({
-  baseUrl: "https://demo.plone.org",
-  username: "admin",
-  password: "admin",
-});
-
-plone_configure({
-  baseUrl: "https://demo.plone.org",
-  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-});
-```
-
-**Note:** Arguments take precedence over environment variables.
 
 ## Local Development
 
@@ -170,7 +141,6 @@ Run `make help` to list every available target.
 
 | Tool                        | Description                              | Example                                                                                |
 | --------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------- |
-| `plone_configure`           | Connect to Plone (call once per session) | `plone_configure({baseUrl, username, password})` or `plone_configure({})` for env vars |
 | `plone_get_content`         | Get content by path                      | `plone_get_content({path: "/news"})`                                                   |
 | `plone_create_content`      | Create new content                       | `plone_create_content({parentPath: "/", type: "Document", title: "Page"})`             |
 | `plone_update_content`      | Update existing content                  | `plone_update_content({path: "/page", title: "New Title"})`                            |
@@ -193,9 +163,12 @@ Run `make help` to list every available target.
 ### Creating Content with Blocks
 
 ```javascript
-// 1. Prepare blocks (60-second TTL - meant to be used inmediatly before content creation/editing)
-plone_create_blocks_layout({
-  blocks: [
+// Blocks are converted and saved in the same call
+plone_create_content({
+  parentPath: "/",
+  type: "Document",
+  title: "Homepage",
+  block_specs: [
     {
       type: "text",
       data: { text: "Welcome to our site!" },
@@ -211,11 +184,9 @@ plone_create_blocks_layout({
   ],
 });
 
-// 2. Create content (within 60 seconds), the previously prepared blocks will automatically be included in the request
-plone_create_content({
-  parentPath: "/",
-  type: "Document",
-  title: "Homepage",
+// Optional: check block specs without saving anything
+plone_validate_blocks({
+  block_specs: [{ type: "text", data: { text: "Welcome to our site!" } }],
 });
 ```
 
@@ -258,21 +229,12 @@ Use `plone_get_block_schemas()` to see all block types and their properties.
 ### Create and Publish a Page
 
 ```javascript
-// Configure connection
-plone_configure({
-  baseUrl: "https://mysite.com",
-  username: "editor",
-  password: "secret",
-});
-
 // Create with blocks
-plone_create_blocks_layout({
-  blocks: [{ type: "text", data: { text: "Article content..." } }],
-});
 plone_create_content({
   parentPath: "/news",
   type: "News Item",
   title: "Breaking News",
+  block_specs: [{ type: "text", data: { text: "Article content..." } }],
 });
 
 // Publish
@@ -311,21 +273,15 @@ plone_search({
 });
 ```
 
-## Important Notes
-
-⚠️ **Prepared blocks expire after 60 seconds** - Always call `plone_create_blocks_layout` immediately before creating/updating content.
-
-⚠️ **Configure once per session** - Run `plone_configure` once at the start of each session before using other tools. Once configured, you can use all other tools without reconfiguring.
-
 ## Troubleshooting
 
 | Issue                                | Solution                                                                                                                           |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `command not found` when using `npx` | Make sure the `args` in your config use `plone-mcp` as the binary name (not `plone-mcp-server`) — this was renamed in the package. |
-| "Plone client not configured"        | Run `plone_configure` once at the start of your session                                                                            |
+| "Base URL is required"               | Set `PLONE_BASE_URL` in the server's `env` configuration                                                                           |
 | "Block not found"                    | Use `plone_get_content` to get valid block IDs                                                                                     |
 | Connection errors                    | Verify Plone URL and credentials are correct                                                                                       |
-| Blocks not applied                   | Call `plone_create_blocks_layout` immediately before create/update (60s TTL)                                                       |
+| "block_specs[N] (type): ..."         | Fix the block spec at index N (see `plone_get_block_schemas`) and repeat the call                                                  |
 | TypeScript errors during local build | Run `make install` to ensure all dependencies are installed                                                                        |
 
 ## Resources
