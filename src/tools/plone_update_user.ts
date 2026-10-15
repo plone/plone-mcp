@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
-import { sessionManager } from "../session-manager.js";
+import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
 
 const inputSchema = z.object({
@@ -35,11 +35,8 @@ export const ploneUpdateUser = {
     args: z.infer<typeof inputSchema>,
     ctx: ServerContext,
   ) => {
-    const sessionId = ctx.sessionId || "default";
-    const service = sessionManager.getSession(sessionId);
-
     try {
-      const client = service.getClient();
+      const client = getClient(ctx);
       const { userid, ...fields } = args;
 
       const data: Record<string, unknown> = {};

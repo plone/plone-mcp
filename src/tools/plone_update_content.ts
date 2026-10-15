@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
-import { sessionManager } from "../session-manager.js";
+import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import {
+  blockSpecsSchema,
+  buildBlocksFromSpecs,
+  processBlocksForContent,
+} from "../utils/content-blocks.js";
 
 const inputSchema = z.object({
   path: z.string().describe("Path to the content to update"),
@@ -10,11 +15,12 @@ const inputSchema = z.object({
   blocks: z
     .record(z.string(), z.unknown())
     .optional()
-    .describe("Volto blocks structure for the content"),
+    .describe("Volto blocks structure for the content. Prefer block_specs."),
   blocks_layout: z
     .record(z.string(), z.unknown())
     .optional()
     .describe("Volto blocks layout configuration"),
+  block_specs: blockSpecsSchema.optional(),
   additionalFields: z
     .record(z.string(), z.unknown())
     .optional()
@@ -27,47 +33,54 @@ export const ploneUpdateContent = {
   config: {
     name: "plone_update_content",
     description:
-      "Modifies an existing content item in Plone. Can update metadata (like title) and/or replace the entire block structure. Use `plone_create_blocks_layout` to prepare complex block updates. Example: plone_update_content({path: '/my-page', title: 'Updated Title'})",
+      "Modifies an existing content item in Plone. Can update metadata (like title) and/or replace the entire block structure. To replace the blocks, pass `block_specs` (see `plone_get_block_schemas`); they are converted and saved in this same call. Example: plone_update_content({path: '/my-page', title: 'Updated Title'})",
     inputSchema,
     annotations: {
       readOnlyHint: false,
       destructiveHint: true,
       idempotentHint: false,
-      openWorldHint: false,
+      openWorldHint: true,
     },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,
     ctx: ServerContext,
   ) => {
-    const sessionId = ctx.sessionId || "default";
-    const service = sessionManager.getSession(sessionId);
-
     try {
-      const client = service.getClient();
+      const client = getClient(ctx);
       const {
         path,
         title,
         description,
         blocks,
         blocks_layout,
+        block_specs,
         additionalFields,
       } = args;
 
       if (!path) {
         throw new Error("Path is required for updating content");
       }
+      if (block_specs && (blocks || blocks_layout)) {
+        throw new Error(
+          "Pass either block_specs or blocks/blocks_layout, not both.",
+        );
+      }
 
       const data: Record<string, unknown> = {};
       if (title !== undefined) data.title = title;
       if (description !== undefined) data.description = description;
 
-      // Use the centralized helper, which will return null if no block changes are needed
-      const blockData = service.processBlocksForContent(
+      const built = block_specs
+        ? await buildBlocksFromSpecs(block_specs, client.baseUrl)
+        : undefined;
+      const blockData = processBlocksForContent({
         blocks,
         blocks_layout,
-        true,
-      );
+        built,
+        isUpdate: true,
+        baseUrl: client.baseUrl,
+      });
       if (blockData) {
         data.blocks = blockData.blocks;
         data.blocks_layout = blockData.blocks_layout;
@@ -90,7 +103,6 @@ export const ploneUpdateContent = {
         ],
       };
     } catch (error) {
-      service.clearPreparedBlocks();
       throw wrapError("UpdateContent", error);
     }
   },

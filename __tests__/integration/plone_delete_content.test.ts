@@ -1,24 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Nock , PloneMockServer, createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneDeleteContent } from "plone-mcp/tools/plone_delete_content";
-import { sessionManager } from "plone-mcp/session-manager";
-import { PloneClient } from "plone-mcp/plone-client";
 
 describe("plone_delete_content", () => {
   let mockServer: PloneMockServer;
   const testBaseUrl = "http://localhost:8080/Plone";
   const testPath = "/my-old-page";
-  const sessionId = "test-session-id";
-  const mockContext = createMockContext({ sessionId });
+  const mockContext = createMockContext();
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
-    const service = sessionManager.getSession(sessionId);
-    service.client = new PloneClient({ baseUrl: testBaseUrl });
+    vi.stubEnv("PLONE_BASE_URL", testBaseUrl);
   });
 
   afterEach(() => {
     Nock.cleanAll();
+    vi.unstubAllEnvs();
     vi.clearAllMocks();
   });
 
@@ -51,16 +48,5 @@ describe("plone_delete_content", () => {
       "[DeleteContent] Request failed with status code 404",
     );
     expect(Nock.isDone()).toBe(true);
-  });
-
-  it("should throw an error if Plone client is not configured", async () => {
-    const service = sessionManager.getSession(sessionId);
-    service.client = null;
-
-    const args = { path: testPath };
-    await expect(ploneDeleteContent.handler(args, mockContext)).rejects.toThrow(
-      "Plone client not configured. Please run plone_configure first.",
-    );
-    expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made
   });
 });

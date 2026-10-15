@@ -1,10 +1,8 @@
 import { McpServer, ToolAnnotations } from "@modelcontextprotocol/server";
-import { ploneConfigure } from "./plone_configure.js";
 import { ploneAddSingleBlock } from "./plone_add_single_block.js";
 import { ploneCancelWorkingCopy } from "./plone_cancel_working_copy.js";
 import { ploneCheckinWorkingCopy } from "./plone_checkin_working_copy.js";
 import { ploneCopyContent } from "./plone_copy_content.js";
-import { ploneCreateBlocksLayout } from "./plone_create_blocks_layout.js";
 import { ploneCreateContent } from "./plone_create_content.js";
 import { ploneCreateUser } from "./plone_create_user.js";
 import { ploneCreateWorkingCopy } from "./plone_create_working_copy.js";
@@ -28,6 +26,7 @@ import { ploneUnlinkTranslation } from "./plone_unlink_translation.js";
 import { ploneUpdateContent } from "./plone_update_content.js";
 import { ploneUpdateSingleBlock } from "./plone_update_single_block.js";
 import { ploneUpdateUser } from "./plone_update_user.js";
+import { ploneValidateBlocks } from "./plone_validate_blocks.js";
 
 /**
  * Every tool must declare annotations so clients can tell reads from
@@ -51,12 +50,10 @@ export function registerTools(server: McpServer) {
     : null;
 
   const tools = [
-    ploneConfigure,
     ploneAddSingleBlock,
     ploneCancelWorkingCopy,
     ploneCheckinWorkingCopy,
     ploneCopyContent,
-    ploneCreateBlocksLayout,
     ploneCreateContent,
     ploneCreateUser,
     ploneCreateWorkingCopy,
@@ -80,11 +77,11 @@ export function registerTools(server: McpServer) {
     ploneUpdateContent,
     ploneUpdateSingleBlock,
     ploneUpdateUser,
+    ploneValidateBlocks,
   ] satisfies AnnotatedTool[];
 
   for (const tool of tools) {
-    const isConfigure = tool.config.name === "plone_configure";
-    if (isConfigure || !enabledTools || enabledTools.has(tool.config.name)) {
+    if (!enabledTools || enabledTools.has(tool.config.name)) {
       server.registerTool(
         tool.config.name,
         {

@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
-import { sessionManager } from "../session-manager.js";
+import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import {
+  blockSpecsSchema,
+  buildBlocksFromSpecs,
+  processBlocksForContent,
+} from "../utils/content-blocks.js";
 import { PloneContent } from "../plone-client.js";
 
 const inputSchema = z.object({
@@ -27,8 +32,9 @@ const inputSchema = z.object({
     .record(z.string(), z.unknown())
     .optional()
     .describe(
-      "Volto blocks structure for the content, it specifies the blocks data and content",
+      "Volto blocks structure for the content, it specifies the blocks data and content. Prefer block_specs.",
     ),
+  block_specs: blockSpecsSchema.optional(),
   blocks_layout: z
     .record(z.string(), z.unknown())
     .optional()
@@ -47,24 +53,21 @@ export const ploneCreateContent = {
   config: {
     name: "plone_create_content",
     description:
-      "Creates a new content item (e.g., a page or news article) in Plone. To add complex block-based content, first prepare the structure with `plone_create_blocks_layout`, then call this tool. Example: plone_create_content({parentPath: '/', type: 'Document', title: 'My Page', description: 'A sample page'})",
+      "Creates a new content item (e.g., a page or news article) in Plone. To add block-based content, pass `block_specs` (see `plone_get_block_schemas`); they are converted and saved in this same call. Example: plone_create_content({parentPath: '/', type: 'Document', title: 'My Page', block_specs: [{type: 'slate', data: {text: 'Hello World'}}]})",
     inputSchema,
     annotations: {
       readOnlyHint: false,
       destructiveHint: false,
       idempotentHint: false,
-      openWorldHint: false,
+      openWorldHint: true,
     },
   },
   handler: async (
     args: z.infer<typeof inputSchema>,
     ctx: ServerContext,
   ) => {
-    const sessionId = ctx.sessionId || "default";
-    const service = sessionManager.getSession(sessionId);
-
     try {
-      const client = service.getClient();
+      const client = getClient(ctx);
       const {
         parentPath,
         type,
@@ -73,8 +76,15 @@ export const ploneCreateContent = {
         id,
         blocks,
         blocks_layout,
+        block_specs,
         additionalFields,
       } = args;
+
+      if (block_specs && (blocks || blocks_layout)) {
+        throw new Error(
+          "Pass either block_specs or blocks/blocks_layout, not both.",
+        );
+      }
 
       const data: Record<string, unknown> = {
         "@type": type,
@@ -84,12 +94,15 @@ export const ploneCreateContent = {
       if (description) data.description = description;
       if (id) data.id = id;
 
-      // Use the centralized helper to process blocks
-      const blockData = service.processBlocksForContent(
+      const built = block_specs
+        ? await buildBlocksFromSpecs(block_specs, client.baseUrl)
+        : undefined;
+      const blockData = processBlocksForContent({
         blocks,
         blocks_layout,
-        false,
-      );
+        built,
+        baseUrl: client.baseUrl,
+      });
       if (blockData) {
         data.blocks = blockData.blocks;
         data.blocks_layout = blockData.blocks_layout;
@@ -111,8 +124,6 @@ export const ploneCreateContent = {
         ],
       };
     } catch (error) {
-      // Ensure prepared blocks are cleared on any error
-      service.clearPreparedBlocks();
       throw wrapError("CreateContent", error);
     }
   },

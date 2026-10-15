@@ -96,6 +96,13 @@ describe("plone-client", () => {
       expect(() => resolveConfig({ baseUrl: "" })).toThrow(/baseUrl cannot be an empty string/);
     });
 
+    it("should throw if username, password or token is an empty string", () => {
+      const baseUrl = "https://plone.example.com";
+      expect(() => resolveConfig({ baseUrl, username: " " })).toThrow(/username cannot be an empty string/);
+      expect(() => resolveConfig({ baseUrl, password: "" })).toThrow(/password cannot be an empty string/);
+      expect(() => resolveConfig({ baseUrl, token: "" })).toThrow(/token cannot be an empty string/);
+    });
+
     it("should throw if baseUrl is invalid", () => {
       expect(() => resolveConfig({ baseUrl: "invalid-url" })).toThrow(/Invalid base URL/);
     });

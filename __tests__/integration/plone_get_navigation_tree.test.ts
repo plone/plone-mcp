@@ -1,8 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Nock, createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneGetNavigationTree } from "plone-mcp/tools/plone_get_navigation_tree";
-import { PloneClient } from "plone-mcp/plone-client";
-import { sessionManager } from "plone-mcp/session-manager";
 
 describe("plone_get_navigation_tree", () => {
   const testBaseUrl = "http://localhost:8080/Plone";
@@ -25,17 +23,15 @@ describe("plone_get_navigation_tree", () => {
     },
   ];
 
-  const sessionId = "test-session-id";
-  const mockContext = createMockContext({ sessionId });
+  const mockContext = createMockContext();
 
   beforeEach(() => {
-    const service = sessionManager.getSession(sessionId);
-    service.client = new PloneClient({ baseUrl: testBaseUrl });
+    vi.stubEnv("PLONE_BASE_URL", testBaseUrl);
   });
 
   afterEach(() => {
     Nock.cleanAll();
-    sessionManager.clearSession(sessionId);
+    vi.unstubAllEnvs();
   });
 
   it("should successfully retrieve navigation tree from root with default depth", async () => {
@@ -84,16 +80,5 @@ describe("plone_get_navigation_tree", () => {
       "[GetNavigationTree] Request failed with status code 500",
     );
     expect(Nock.isDone()).toBe(true);
-  });
-
-  it("should throw an error if Plone client is not configured", async () => {
-    const service = sessionManager.getSession(sessionId);
-    service.client = null;
-
-    const args = { root_path: undefined, depth: 2 }; // Explicitly set depth to its default
-    await expect(ploneGetNavigationTree.handler(args, mockContext)).rejects.toThrow(
-      "Plone client not configured. Please run plone_configure first.",
-    );
-    expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made
   });
 });

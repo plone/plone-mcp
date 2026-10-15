@@ -8,15 +8,15 @@ export const isNockDone = () => nock.isDone();
 export const getPendingNocks = () => nock.pendingMocks();
 
 export const createMockContext = ({
-  sessionId,
-}: { sessionId?: string } = {}): ServerContext =>
+  http,
+}: { http?: ServerContext["http"] } = {}): ServerContext =>
   ({
-    sessionId,
     mcpReq: {
       id: "test-request-id",
       method: "tools/call",
       signal: new AbortController().signal,
     },
+    http,
   }) as unknown as ServerContext;
 
 export class PloneMockServer {

@@ -6,8 +6,6 @@ import {
   createMockContext,
 } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneAddSingleBlock } from "plone-mcp/tools/plone_add_single_block";
-import { sessionManager } from "plone-mcp/session-manager";
-import { PloneClient } from "plone-mcp/plone-client";
 import * as BlockUtils from "plone-mcp/utils/block-utils"; // Import all from block-utils
 
 interface Block {
@@ -23,8 +21,7 @@ describe("plone_add_single_block", () => {
   let mockServer: PloneMockServer;
   const testBaseUrl = "http://localhost:8080/Plone";
   const testPath = "/my-page";
-  const sessionId = "test-session-id";
-  const mockContext = createMockContext({ sessionId });
+  const mockContext = createMockContext();
 
   const mockContent: {
     "@id": string;
@@ -51,8 +48,7 @@ describe("plone_add_single_block", () => {
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
-    const service = sessionManager.getSession(sessionId);
-    service.client = new PloneClient({ baseUrl: testBaseUrl });
+    vi.stubEnv("PLONE_BASE_URL", testBaseUrl);
     // Mock the validateImageURL function
     vi.spyOn(BlockUtils, "validateImageURL").mockResolvedValue(true);
     // Mock generateBlockId to return unique IDs
@@ -66,6 +62,7 @@ describe("plone_add_single_block", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     Nock.cleanAll();
     vi.restoreAllMocks(); // Restore all mocks after each test
   });
@@ -373,24 +370,6 @@ describe("plone_add_single_block", () => {
       "[AddBlock] Provide either 'position' or 'afterBlockId', not both",
     );
     expect(Nock.pendingMocks()).toHaveLength(0); // No patch request should be made
-  });
-
-  it("should throw an error if Plone client is not configured", async () => {
-    const service = sessionManager.getSession(sessionId);
-    service.client = null; // Ensure client is not configured
-
-    const args = {
-      path: testPath,
-      blockType: "text",
-      blockData: { text: "Some text" },
-    };
-
-    await expect(
-      ploneAddSingleBlock.handler(args, mockContext),
-    ).rejects.toThrow(
-      "Plone client not configured. Please run plone_configure first.",
-    );
-    expect(Nock.pendingMocks()).toHaveLength(0); // No API calls should be made
   });
 
   it("should throw an error if getting content fails", async () => {

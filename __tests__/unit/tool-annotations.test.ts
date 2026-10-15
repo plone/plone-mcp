@@ -19,7 +19,6 @@ const additive = (idempotentHint: boolean): ToolAnnotations => ({
 const readOnly: ToolAnnotations = { readOnlyHint: true, openWorldHint: false };
 
 const expected: Record<string, ToolAnnotations> = {
-  plone_configure: { ...additive(true), openWorldHint: true },
   plone_get_block_schemas: readOnly,
   plone_get_content: readOnly,
   plone_get_navigation_tree: readOnly,
@@ -33,8 +32,7 @@ const expected: Record<string, ToolAnnotations> = {
   plone_search: readOnly,
   plone_add_single_block: { ...destructive(false), openWorldHint: true },
   plone_copy_content: additive(false),
-  plone_create_blocks_layout: { ...additive(false), openWorldHint: true },
-  plone_create_content: additive(false),
+  plone_create_content: { ...additive(false), openWorldHint: true },
   plone_create_user: additive(false),
   plone_create_working_copy: additive(false),
   plone_cancel_working_copy: destructive(true),
@@ -45,9 +43,15 @@ const expected: Record<string, ToolAnnotations> = {
   plone_remove_single_block: destructive(false),
   plone_transition_workflow: destructive(false),
   plone_unlink_translation: destructive(true),
-  plone_update_content: destructive(false),
+  plone_update_content: { ...destructive(false), openWorldHint: true },
   plone_update_single_block: { ...destructive(false), openWorldHint: true },
   plone_update_user: destructive(true),
+  plone_validate_blocks: {
+    ...readOnly,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  },
 };
 
 function collectRegistrations() {
@@ -76,7 +80,10 @@ describe("tool annotations", () => {
 
   it("marks every get and search tool as read-only", () => {
     for (const [name, config] of collectRegistrations()) {
-      const isRead = name.startsWith("plone_get_") || name === "plone_search";
+      const isRead =
+        name.startsWith("plone_get_") ||
+        name === "plone_search" ||
+        name === "plone_validate_blocks";
       expect(config.annotations?.readOnlyHint, name).toBe(isRead);
     }
   });
@@ -85,10 +92,7 @@ describe("tool annotations", () => {
     vi.stubEnv("ENABLED_TOOLS", "plone_delete_content");
     const registered = collectRegistrations();
 
-    expect([...registered.keys()].sort()).toEqual([
-      "plone_configure",
-      "plone_delete_content",
-    ]);
+    expect([...registered.keys()]).toEqual(["plone_delete_content"]);
     expect(registered.get("plone_delete_content")?.annotations).toEqual(
       expected.plone_delete_content,
     );

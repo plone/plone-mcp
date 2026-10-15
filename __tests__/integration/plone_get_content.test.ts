@@ -5,15 +5,12 @@ import { Nock ,
   createMockContext,
 } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneGetContent } from "plone-mcp/tools/plone_get_content";
-import { sessionManager } from "plone-mcp/session-manager";
-import { PloneClient } from "plone-mcp/plone-client";
 
 describe("plone_get_content", () => {
   let mockServer: PloneMockServer;
   const testBaseUrl = "http://localhost:8080/Plone";
   const testPath = "/test-document";
-  const sessionId = "test-session-id";
-  const mockContext = createMockContext({ sessionId });
+  const mockContext = createMockContext();
   const defaultReqHeaders = {
     Accept: "application/json",
     "Content-Type": "application/json",
@@ -21,12 +18,12 @@ describe("plone_get_content", () => {
 
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
-    const service = sessionManager.getSession(sessionId);
-    service.client = new PloneClient({ baseUrl: testBaseUrl });
+    vi.stubEnv("PLONE_BASE_URL", testBaseUrl);
   });
 
   afterEach(() => {
     Nock.cleanAll();
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
@@ -76,17 +73,25 @@ describe("plone_get_content", () => {
     expect(Nock.isDone()).toBe(true);
   });
 
-  it("should throw an error if Plone client is not configured", async () => {
-    const service = sessionManager.getSession(sessionId);
-    service.client = null;
+  it("keeps concurrent requests with different credentials apart", async () => {
+    for (const token of ["token-a", "token-b"]) {
+      Nock(testBaseUrl, { reqheaders: { authorization: `Bearer ${token}` } })
+        .get(`/++api++${testPath}`)
+        .delay(token === "token-a" ? 20 : 0)
+        .reply(200, { ...sampleDocument, title: token });
+    }
+    const contextFor = (token: string) =>
+      createMockContext({
+        http: { authInfo: { token, clientId: "plone-mcp", scopes: [] } },
+      });
 
-    const args = {
-      path: testPath,
-      expand: undefined,
-    };
-    await expect(ploneGetContent.handler(args, mockContext)).rejects.toThrow(
-      "Plone client not configured. Please run plone_configure first.",
-    );
-    expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made
+    const [first, second] = await Promise.all([
+      ploneGetContent.handler({ path: testPath }, contextFor("token-a")),
+      ploneGetContent.handler({ path: testPath }, contextFor("token-b")),
+    ]);
+
+    expect(JSON.parse(first.content[0].text).title).toBe("token-a");
+    expect(JSON.parse(second.content[0].text).title).toBe("token-b");
+    expect(Nock.isDone()).toBe(true);
   });
 });

@@ -32,11 +32,10 @@ export const ploneCreatePageWorkflow = {
             text: `My goal is to create a new ${contentType} page about "${purpose}"${audience ? ` for an audience of ${audience}` : ""
               }. Perform the following steps:
 
-1.  Ensure the Plone connection is configured.
-2.  Determine the best parent path for this new content.
-3.  Create the page with a fitting title and description.
-4.  Add relevant content blocks (like text and images) to build out the page.
-5.  Finally, publish the page by transitioning its workflow state.
+1.  Determine the best parent path for this new content.
+2.  Look up the available block types with plone_get_block_schemas.
+3.  Create the page in a single plone_create_content call, with a fitting title, a description, and relevant content blocks (like text and images) passed as block_specs.
+4.  Finally, publish the page by transitioning its workflow state.
 
 Begin with the first step.`,
           },

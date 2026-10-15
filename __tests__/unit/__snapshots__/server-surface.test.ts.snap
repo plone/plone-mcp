@@ -112,42 +112,6 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_configure 1`] = `
-{
-  "annotations": {
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": true,
-    "readOnlyHint": false,
-  },
-  "description": "Establishes and authenticates the connection to a Plone CMS. **Must be called once per session** before other tools can be used. Configuration can be provided via arguments or environment variables (PLONE_BASE_URL, PLONE_USERNAME, PLONE_PASSWORD, PLONE_TOKEN). Arguments take precedence over environment variables. To use environment variables only, call with an empty object: plone_configure({}). Example with arguments: plone_configure({baseUrl: 'https://demo.plone.org', username: 'admin', password: 'secret'}).",
-  "inputSchema": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "additionalProperties": false,
-    "properties": {
-      "baseUrl": {
-        "description": "Base URL of the Plone site. Can be set via PLONE_BASE_URL environment variable.",
-        "type": "string",
-      },
-      "password": {
-        "description": "Password for authentication. Can be set via PLONE_PASSWORD environment variable.",
-        "type": "string",
-      },
-      "token": {
-        "description": "JWT token for authentication (alternative to username/password). Can be set via PLONE_TOKEN environment variable.",
-        "type": "string",
-      },
-      "username": {
-        "description": "Username for authentication. Can be set via PLONE_USERNAME environment variable.",
-        "type": "string",
-      },
-    },
-    "type": "object",
-  },
-  "name": "plone_configure",
-}
-`;
-
 exports[`server surface > keeps every tool's description, annotations and input schema > plone_copy_content 1`] = `
 {
   "annotations": {
@@ -193,7 +157,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_create_blocks_layout 1`] = `
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_create_content 1`] = `
 {
   "annotations": {
     "destructiveHint": false,
@@ -201,13 +165,21 @@ exports[`server surface > keeps every tool's description, annotations and input 
     "openWorldHint": true,
     "readOnlyHint": false,
   },
-  "description": "Prepares a complete block structure in memory (valid for 60 seconds). This structure is then used by the **next immediate call** to \`plone_create_content\` or \`plone_update_content\`. Use \`plone_get_block_schemas\` to learn what data each block type needs. The text displayed by the Title block is automatically managed by Plone, DO NOT add it in the block's data. Example: plone_create_blocks_layout({blocks: [{type: 'slate', data: {text: 'Hello World'}}]})",
+  "description": "Creates a new content item (e.g., a page or news article) in Plone. To add block-based content, pass \`block_specs\` (see \`plone_get_block_schemas\`); they are converted and saved in this same call. Example: plone_create_content({parentPath: '/', type: 'Document', title: 'My Page', block_specs: [{type: 'slate', data: {text: 'Hello World'}}]})",
   "inputSchema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "additionalProperties": false,
     "properties": {
-      "blocks": {
-        "description": "Array of block specifications to process. You MUST call plone_get_block_schemas first to see available block types and their required fields. You MUST follow the block specifications EXACTLY, DO NOT invent your own fields. DO NOT add the content object's title in a text block. To set the page title, use the 'title' field of the content object itself when calling plone_create_content or plone_update_content. A Title block will be automatically created by Plone.",
+      "additionalFields": {
+        "additionalProperties": {},
+        "description": "Additional fields to update. For preview images, include preview_image_link: { '@id': 'image-url' } in this object (if you get a 400 error, make sure the image URL is accessible).",
+        "propertyNames": {
+          "type": "string",
+        },
+        "type": "object",
+      },
+      "block_specs": {
+        "description": "Array of block specifications, converted to Volto blocks by the server in the same call. You MUST call plone_get_block_schemas first to see available block types and their required fields. You MUST follow the block specifications EXACTLY, DO NOT invent your own fields. DO NOT add the content object's title in a text block: set it with the 'title' argument instead, a Title block is created automatically.",
         "items": {
           "additionalProperties": false,
           "properties": {
@@ -241,40 +213,9 @@ exports[`server surface > keeps every tool's description, annotations and input 
         },
         "type": "array",
       },
-    },
-    "required": [
-      "blocks",
-    ],
-    "type": "object",
-  },
-  "name": "plone_create_blocks_layout",
-}
-`;
-
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_create_content 1`] = `
-{
-  "annotations": {
-    "destructiveHint": false,
-    "idempotentHint": false,
-    "openWorldHint": false,
-    "readOnlyHint": false,
-  },
-  "description": "Creates a new content item (e.g., a page or news article) in Plone. To add complex block-based content, first prepare the structure with \`plone_create_blocks_layout\`, then call this tool. Example: plone_create_content({parentPath: '/', type: 'Document', title: 'My Page', description: 'A sample page'})",
-  "inputSchema": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "additionalProperties": false,
-    "properties": {
-      "additionalFields": {
-        "additionalProperties": {},
-        "description": "Additional fields to update. For preview images, include preview_image_link: { '@id': 'image-url' } in this object (if you get a 400 error, make sure the image URL is accessible).",
-        "propertyNames": {
-          "type": "string",
-        },
-        "type": "object",
-      },
       "blocks": {
         "additionalProperties": {},
-        "description": "Volto blocks structure for the content, it specifies the blocks data and content",
+        "description": "Volto blocks structure for the content, it specifies the blocks data and content. Prefer block_specs.",
         "propertyNames": {
           "type": "string",
         },
@@ -936,10 +877,10 @@ exports[`server surface > keeps every tool's description, annotations and input 
   "annotations": {
     "destructiveHint": true,
     "idempotentHint": false,
-    "openWorldHint": false,
+    "openWorldHint": true,
     "readOnlyHint": false,
   },
-  "description": "Modifies an existing content item in Plone. Can update metadata (like title) and/or replace the entire block structure. Use \`plone_create_blocks_layout\` to prepare complex block updates. Example: plone_update_content({path: '/my-page', title: 'Updated Title'})",
+  "description": "Modifies an existing content item in Plone. Can update metadata (like title) and/or replace the entire block structure. To replace the blocks, pass \`block_specs\` (see \`plone_get_block_schemas\`); they are converted and saved in this same call. Example: plone_update_content({path: '/my-page', title: 'Updated Title'})",
   "inputSchema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "additionalProperties": false,
@@ -952,9 +893,44 @@ exports[`server surface > keeps every tool's description, annotations and input 
         },
         "type": "object",
       },
+      "block_specs": {
+        "description": "Array of block specifications, converted to Volto blocks by the server in the same call. You MUST call plone_get_block_schemas first to see available block types and their required fields. You MUST follow the block specifications EXACTLY, DO NOT invent your own fields. DO NOT add the content object's title in a text block: set it with the 'title' argument instead, a Title block is created automatically.",
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": {},
+              "description": "Block-specific data following the block specification",
+              "propertyNames": {
+                "type": "string",
+              },
+              "type": "object",
+            },
+            "type": {
+              "description": "Type of block to create",
+              "enum": [
+                "teaser",
+                "slate",
+                "__button",
+                "separator",
+                "image",
+                "gridBlock",
+                "listing",
+              ],
+              "type": "string",
+            },
+          },
+          "required": [
+            "type",
+            "data",
+          ],
+          "type": "object",
+        },
+        "type": "array",
+      },
       "blocks": {
         "additionalProperties": {},
-        "description": "Volto blocks structure for the content",
+        "description": "Volto blocks structure for the content. Prefer block_specs.",
         "propertyNames": {
           "type": "string",
         },
@@ -1088,6 +1064,64 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
+exports[`server surface > keeps every tool's description, annotations and input schema > plone_validate_blocks 1`] = `
+{
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true,
+    "readOnlyHint": true,
+  },
+  "description": "Checks block specifications without saving anything, and reports the first invalid spec by index. Optional: \`plone_create_content\` and \`plone_update_content\` run the same checks on their \`block_specs\`. Example: plone_validate_blocks({block_specs: [{type: 'slate', data: {text: 'Hello World'}}]})",
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "block_specs": {
+        "description": "Array of block specifications, converted to Volto blocks by the server in the same call. You MUST call plone_get_block_schemas first to see available block types and their required fields. You MUST follow the block specifications EXACTLY, DO NOT invent your own fields. DO NOT add the content object's title in a text block: set it with the 'title' argument instead, a Title block is created automatically.",
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": {},
+              "description": "Block-specific data following the block specification",
+              "propertyNames": {
+                "type": "string",
+              },
+              "type": "object",
+            },
+            "type": {
+              "description": "Type of block to create",
+              "enum": [
+                "teaser",
+                "slate",
+                "__button",
+                "separator",
+                "image",
+                "gridBlock",
+                "listing",
+              ],
+              "type": "string",
+            },
+          },
+          "required": [
+            "type",
+            "data",
+          ],
+          "type": "object",
+        },
+        "type": "array",
+      },
+    },
+    "required": [
+      "block_specs",
+    ],
+    "type": "object",
+  },
+  "name": "plone_validate_blocks",
+}
+`;
+
 exports[`server surface > registers the expected prompts 1`] = `
 [
   {
@@ -1176,12 +1210,10 @@ exports[`server surface > registers the expected resources 1`] = `
 
 exports[`server surface > registers the expected tools, in order 1`] = `
 [
-  "plone_configure",
   "plone_add_single_block",
   "plone_cancel_working_copy",
   "plone_checkin_working_copy",
   "plone_copy_content",
-  "plone_create_blocks_layout",
   "plone_create_content",
   "plone_create_user",
   "plone_create_working_copy",
@@ -1205,5 +1237,6 @@ exports[`server surface > registers the expected tools, in order 1`] = `
   "plone_update_content",
   "plone_update_single_block",
   "plone_update_user",
+  "plone_validate_blocks",
 ]
 `;

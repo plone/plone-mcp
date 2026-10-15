@@ -16,12 +16,9 @@ __tests__/
 │   ├── block-utils.test.ts
 │   ├── markdown-parser.test.ts
 │   ├── plone-client.test.ts
-│   ├── plone-service.test.ts
 │   ├── plone_delete_content.test.ts
-│   ├── session.test.ts
-│   └── session-manager.test.ts
+│   └── ...
 └── integration/                   # Integration tests (mocked Plone API)
-    ├── plone_configure.test.ts
     ├── plone_create_content.test.ts
     ├── plone_search.test.ts
     └── ...                         # one file per tool

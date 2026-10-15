@@ -5,10 +5,8 @@ import { Nock ,
   createMockContext,
 } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneCreateContent } from "plone-mcp/tools/plone_create_content";
-import { sessionManager } from "plone-mcp/session-manager";
-import { PloneClient, PloneContent } from "plone-mcp/plone-client";
+import { PloneContent } from "plone-mcp/plone-client";
 import * as BlockUtils from "plone-mcp/utils/block-utils";
-import { PreparedBlocks } from "plone-mcp/plone-service";
 
 describe("plone_create_content", () => {
   let mockServer: PloneMockServer;
@@ -16,8 +14,7 @@ describe("plone_create_content", () => {
   const parentPath = "/";
   const newContentId = "my-new-page";
   const newContentPath = `${parentPath}${newContentId}`;
-  const sessionId = "test-session-id";
-  const mockContext = createMockContext({ sessionId });
+  const mockContext = createMockContext();
 
   const mockCreatedContent = {
     ...sampleDocument,
@@ -29,9 +26,7 @@ describe("plone_create_content", () => {
   beforeEach(() => {
     mockServer = new PloneMockServer(testBaseUrl);
 
-    const service = sessionManager.getSession(sessionId);
-    service.client = new PloneClient({ baseUrl: testBaseUrl });
-    service.clearPreparedBlocks(); // Ensure no prepared blocks initially
+    vi.stubEnv("PLONE_BASE_URL", testBaseUrl);
 
     vi.spyOn(BlockUtils, "generateBlockId").mockImplementation(
       (
@@ -43,10 +38,9 @@ describe("plone_create_content", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     Nock.cleanAll();
     vi.restoreAllMocks();
-    const service = sessionManager.getSession(sessionId);
-    service.clearPreparedBlocks();
   });
 
   it("should successfully create simple content", async () => {
@@ -129,36 +123,14 @@ describe("plone_create_content", () => {
     expect(Nock.isDone()).toBe(true);
   });
 
-  it("should create content with prepared blocks and clear them after", async () => {
-    // Generate unique IDs for prepared blocks, separate from the title block
-    const preparedBlockId = BlockUtils.generateBlockId();
-    const preparedBlocksData: PreparedBlocks = {
-      blocks: {
-        [preparedBlockId]: { "@type": "slate", plaintext: "Prepared text" },
-      },
-      blocks_layout: { items: [preparedBlockId] },
-      timestamp: Date.now(),
-    };
-
-    const service = sessionManager.getSession(sessionId);
-    service.setPreparedBlocks(preparedBlocksData);
-
+  it("should create content with block_specs in one call", async () => {
     mockServer.mockContentCreate(
       parentPath,
       (body: PloneContent) => {
-        if (body.blocks_layout && body.blocks_layout.items && body.blocks) {
-          const titleBlockId = body.blocks_layout.items[0];
-          expect(body.blocks).toMatchObject({
-            [titleBlockId]: { "@type": "title" },
-            [preparedBlockId]: { "@type": "slate", plaintext: "Prepared text" },
-          });
-          expect(body.blocks_layout.items).toEqual([
-            titleBlockId,
-            preparedBlockId,
-          ]);
-        } else {
-          expect.fail("blocks_layout or blocks were undefined");
-        }
+        expect(body.blocks_layout?.items).toEqual(["mock-id-3", "mock-id-1", "mock-id-2"]);
+        expect(body.blocks?.["mock-id-3"]).toEqual({ "@type": "title" });
+        expect(body.blocks?.["mock-id-1"]).toMatchObject({ "@type": "slate", plaintext: "Hello World" });
+        expect(body.blocks?.["mock-id-2"]).toMatchObject({ "@type": "slate", plaintext: "Second paragraph" });
         return true;
       },
       mockCreatedContent,
@@ -167,75 +139,51 @@ describe("plone_create_content", () => {
     const args = {
       parentPath: parentPath,
       type: "Document",
-      title: "Page with Prepared Blocks",
-      description: undefined, // Explicitly undefined
-      id: undefined, // Explicitly undefined
-      blocks: undefined, // Explicitly undefined
-      blocks_layout: undefined, // Explicitly undefined
-      additionalFields: undefined, // Explicitly undefined
+      title: "Page with Blocks",
+      block_specs: [
+        { type: "slate" as const, data: { text: "Hello World" } },
+        { type: "slate" as const, data: { text: "Second paragraph" } },
+      ],
     };
 
     await ploneCreateContent.handler(args, mockContext);
 
-    expect(service.getPreparedBlocks()).toBeNull(); // Should be cleared
     expect(Nock.isDone()).toBe(true);
   });
 
-  it("should prioritize inline blocks over prepared blocks", async () => {
-    const preparedBlockId = BlockUtils.generateBlockId();
-    const preparedBlocksData: PreparedBlocks = {
-      blocks: {
-        [preparedBlockId]: { "@type": "slate", plaintext: "Prepared text" },
-      },
-      blocks_layout: { items: [preparedBlockId] },
-      timestamp: Date.now(),
+  it("should reject block_specs together with raw blocks", async () => {
+    const args = {
+      parentPath: parentPath,
+      type: "Document",
+      title: "Page",
+      blocks: { a: { "@type": "slate", plaintext: "Inline text" } },
+      block_specs: [{ type: "slate" as const, data: { text: "Hello" } }],
     };
 
-    const service = sessionManager.getSession(sessionId);
-    service.setPreparedBlocks(preparedBlocksData);
-
-    const inlineBlockId = BlockUtils.generateBlockId();
-    const inlineBlocks = {
-      [inlineBlockId]: { "@type": "slate", plaintext: "Inline text" },
-    };
-    const inlineLayout = { items: [inlineBlockId] };
-
-    mockServer.mockContentCreate(
-      parentPath,
-      (body: PloneContent) => {
-        if (body.blocks_layout && body.blocks_layout.items && body.blocks) {
-          const titleBlockId = body.blocks_layout.items[0];
-          expect(body.blocks).toMatchObject({
-            [titleBlockId]: { "@type": "title" },
-            ...inlineBlocks,
-          });
-          expect(body.blocks_layout.items).toEqual([
-            titleBlockId,
-            ...inlineLayout.items,
-          ]);
-        } else {
-          expect.fail("blocks_layout or blocks were undefined");
-        }
-        return true;
-      },
-      mockCreatedContent,
+    await expect(ploneCreateContent.handler(args, mockContext)).rejects.toThrow(
+      "[CreateContent] Pass either block_specs or blocks/blocks_layout, not both.",
     );
+    expect(Nock.pendingMocks()).toHaveLength(0);
+  });
+
+  it("should not call Plone when a block spec has an invalid image URL", async () => {
+    vi.spyOn(BlockUtils, "validateImageURL").mockResolvedValue(false);
+    const scope = mockServer.mockContentCreate(parentPath, () => true, mockCreatedContent);
 
     const args = {
       parentPath: parentPath,
       type: "Document",
-      title: "Page with Inline Blocks",
-      blocks: inlineBlocks,
-      blocks_layout: inlineLayout,
-      description: undefined, // Explicitly undefined
-      id: undefined, // Explicitly undefined
-      additionalFields: undefined, // Explicitly undefined
+      title: "Page",
+      block_specs: [
+        { type: "slate" as const, data: { text: "Hello" } },
+        { type: "image" as const, data: { url: "http://example.com/missing.jpg" } },
+      ],
     };
 
-    await ploneCreateContent.handler(args, mockContext);
-
-    expect(service.getPreparedBlocks()).toBeNull(); // Still cleared
-    expect(Nock.isDone()).toBe(true);
+    await expect(ploneCreateContent.handler(args, mockContext)).rejects.toThrow(
+      "[CreateContent] block_specs[1] (image): Invalid or inaccessible image URL: http://example.com/missing.jpg",
+    );
+    expect(scope.isDone()).toBe(false);
   });
 
   it("should create content with additional fields", async () => {
@@ -282,37 +230,10 @@ describe("plone_create_content", () => {
     expect(Nock.isDone()).toBe(true);
   });
 
-  it("should throw an error if content creation fails and clear prepared blocks", async () => {
-    const preparedBlockId = BlockUtils.generateBlockId();
-    const preparedBlocksData: PreparedBlocks = {
-      blocks: {
-        [preparedBlockId]: { "@type": "slate", plaintext: "Prepared text" },
-      },
-      blocks_layout: { items: [preparedBlockId] },
-      timestamp: Date.now(),
-    };
-
-    const service = sessionManager.getSession(sessionId);
-    service.setPreparedBlocks(preparedBlocksData);
-
+  it("should throw an error if content creation fails", async () => {
     mockServer.mockContentCreate(
       parentPath,
-      (body: PloneContent) => {
-        if (body.blocks_layout && body.blocks_layout.items && body.blocks) {
-          const titleBlockId = body.blocks_layout.items[0];
-          expect(body.blocks).toMatchObject({
-            [titleBlockId]: { "@type": "title" },
-            [preparedBlockId]: { "@type": "slate", plaintext: "Prepared text" },
-          });
-          expect(body.blocks_layout.items).toEqual([
-            titleBlockId,
-            preparedBlockId,
-          ]);
-        } else {
-          expect.fail("blocks_layout or blocks were undefined");
-        }
-        return true;
-      },
+      () => true,
       500,
       "Server Error" as string,
     );
@@ -321,38 +242,11 @@ describe("plone_create_content", () => {
       parentPath: parentPath,
       type: "Document",
       title: "Failing Page",
-      description: undefined, // Explicitly undefined
-      id: undefined, // Explicitly undefined
-      blocks: undefined, // Explicitly undefined
-      blocks_layout: undefined, // Explicitly undefined
-      additionalFields: undefined, // Explicitly undefined
     };
 
     await expect(ploneCreateContent.handler(args, mockContext)).rejects.toThrow(
       "[CreateContent] Request failed with status code 500",
     );
-    expect(service.getPreparedBlocks()).toBeNull(); // Should be cleared
     expect(Nock.isDone()).toBe(true);
-  });
-
-  it("should throw an error if Plone client is not configured", async () => {
-    const service = sessionManager.getSession(sessionId);
-    service.client = null;
-
-    const args = {
-      parentPath: parentPath,
-      type: "Document",
-      title: "My New Page",
-      description: undefined, // Explicitly undefined
-      id: undefined, // Explicitly undefined
-      blocks: undefined, // Explicitly undefined
-      blocks_layout: undefined, // Explicitly undefined
-      additionalFields: undefined, // Explicitly undefined
-    };
-
-    await expect(ploneCreateContent.handler(args, mockContext)).rejects.toThrow(
-      "Plone client not configured. Please run plone_configure first.",
-    );
-    expect(Nock.pendingMocks()).toHaveLength(0); // No API call should be made
   });
 });

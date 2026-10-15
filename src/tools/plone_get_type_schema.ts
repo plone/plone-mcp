@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
-import { sessionManager } from "../session-manager.js";
+import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
 
 const inputSchema = z.object({
@@ -25,9 +25,7 @@ export const ploneGetTypeSchema = {
     ctx: ServerContext,
   ) => {
     try {
-      const sessionId = ctx.sessionId || "default";
-      const service = sessionManager.getSession(sessionId);
-      const client = service.getClient();
+      const client = getClient(ctx);
       const { contentType } = args;
       const typeSchema = await client.get(`/@types/${contentType}`);
 

@@ -1,23 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Nock, PloneMockServer, createMockContext } from "plone-mcp/__tests__/utils/test-helpers";
 import { ploneUnlinkTranslation } from "plone-mcp/tools/plone_unlink_translation";
-import { sessionManager } from "plone-mcp/session-manager";
-import { PloneClient } from "plone-mcp/plone-client";
 
 describe("plone_unlink_translation", () => {
   const testBaseUrl = "http://localhost:8080/Plone";
   const testPath = "/en/my-page";
   const language = "de";
-  const sessionId = "test-session-id";
-  const mockContext = createMockContext({ sessionId });
+  const mockContext = createMockContext();
 
   beforeEach(() => {
     new PloneMockServer(testBaseUrl);
-    const service = sessionManager.getSession(sessionId);
-    service.client = new PloneClient({ baseUrl: testBaseUrl });
+    vi.stubEnv("PLONE_BASE_URL", testBaseUrl);
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     Nock.cleanAll();
     vi.clearAllMocks();
   });
@@ -36,15 +33,5 @@ describe("plone_unlink_translation", () => {
       `Successfully unlinked '${language}' translation from '${testPath}'.`,
     );
     expect(Nock.isDone()).toBe(true);
-  });
-
-  it("should throw an error if the Plone client is not configured", async () => {
-    const service = sessionManager.getSession(sessionId);
-    service.client = null;
-
-    await expect(
-      ploneUnlinkTranslation.handler({ path: testPath, language }, mockContext),
-    ).rejects.toThrow("Plone client not configured. Please run plone_configure first.");
-    expect(Nock.pendingMocks()).toHaveLength(0);
   });
 });
