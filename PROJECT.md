@@ -18,6 +18,7 @@ This project is a Model Context Protocol (MCP) server designed to integrate MCP 
     - `src/auth/verifier.ts`: Verifies Plone access tokens locally with `jose` (keys cached per issuer), and asks Plone's userinfo endpoint whether a token is still accepted.
     - `src/connection.ts`: Builds the Plone client for each request, from the request's access token or the environment. Nothing is kept between requests. The token is passed on to Plone; this is a documented deviation from the MCP spec.
     - `src/plone-client.ts`: Low-level axios-based HTTP client for Plone REST API.
+    - `src/trace-context.ts`: Validates the W3C trace context in a request's `_meta` and turns it into headers for that request's Plone calls.
 - **Tools & Resources:** Tools are modularized in `src/tools/` and resources in `src/resources/`. Each tool/resource is a self-contained object with configuration (zod schema) and a handler.
 - **Configuration:** Plone connection details come from environment variables:
     - `PLONE_BASE_URL`: Base URL of the Plone site.

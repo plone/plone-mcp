@@ -1,4 +1,5 @@
 import { PloneClient } from "./plone-client.js";
+import { traceHeaders } from "./trace-context.js";
 import type { ServerContext } from "@modelcontextprotocol/server";
 
 export const ENV_ALLOW_ENV_CREDENTIALS_OVER_HTTP =
@@ -18,6 +19,7 @@ export const ON_PLONE_UNAUTHORIZED = "onPloneUnauthorized";
  */
 export function getClient(ctx: ServerContext): PloneClient {
   const signal = ctx.mcpReq.signal;
+  const headers = traceHeaders(ctx.mcpReq._meta);
   const authInfo = ctx.http?.authInfo;
   if (authInfo?.token) {
     // The MCP spec says not to pass a client's token on to another service.
@@ -30,6 +32,7 @@ export function getClient(ctx: ServerContext): PloneClient {
       typeof onUnauthorized === "function"
         ? (onUnauthorized as () => void)
         : undefined,
+      headers,
     );
   }
 
@@ -39,5 +42,5 @@ export function getClient(ctx: ServerContext): PloneClient {
     );
   }
 
-  return new PloneClient({}, signal);
+  return new PloneClient({}, signal, undefined, headers);
 }

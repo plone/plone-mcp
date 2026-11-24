@@ -197,6 +197,7 @@ Run `make help` to list every available target.
 - **Search**: Full-text search with filtering and sorting
 - **Workflow**: Manage publication states and transitions
 - **Site Info**: Access content types, vocabularies, and site configuration
+- **Tracing**: When the MCP client sends W3C trace context (`traceparent`, `tracestate`, `baggage`) in a request's `_meta`, plone-mcp forwards it to Plone as headers, so a tracing backend shows one trace from the client through Plone. Malformed or oversized values are dropped.
 
 ## Essential Tools
 

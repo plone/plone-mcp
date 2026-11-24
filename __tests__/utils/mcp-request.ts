@@ -46,7 +46,15 @@ export function modernHttpRequest(
 ) {
   const name = params.name ?? params.uri;
   return httpRequest(
-    { jsonrpc: "2.0", id, method, params: { ...params, _meta: modernMeta } },
+    {
+      jsonrpc: "2.0",
+      id,
+      method,
+      params: {
+        ...params,
+        _meta: { ...modernMeta, ...(params._meta as Record<string, unknown>) },
+      },
+    },
     {
       "MCP-Protocol-Version": MODERN_VERSION,
       "Mcp-Method": method,

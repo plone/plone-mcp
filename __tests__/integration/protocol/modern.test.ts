@@ -65,6 +65,76 @@ describe("2026-07-28 over HTTP", () => {
     expect(Nock.isDone()).toBe(true);
   });
 
+  describe("trace context", () => {
+    const traceparent =
+      "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
+
+    const getContent = (_meta?: Record<string, unknown>) =>
+      modernRequest("tools/call", {
+        name: "plone_get_content",
+        arguments: { path: "/test-document" },
+        ...(_meta && { _meta }),
+      });
+
+    it("forwards the client's trace context to Plone", async () => {
+      Nock(testBaseUrl, {
+        reqheaders: { traceparent, tracestate: "vendor=abc" },
+      })
+        .get("/++api++/test-document")
+        .reply(200, sampleDocument);
+
+      const { result } = await getContent({
+        traceparent,
+        tracestate: "vendor=abc",
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(Nock.isDone()).toBe(true);
+    });
+
+    it("sends no trace headers when the client sent none", async () => {
+      Nock(testBaseUrl, { badheaders: ["traceparent", "tracestate", "baggage"] })
+        .get("/++api++/test-document")
+        .reply(200, sampleDocument);
+
+      const { result } = await getContent();
+
+      expect(result.isError).toBeUndefined();
+      expect(Nock.isDone()).toBe(true);
+    });
+
+    it("drops a malformed traceparent", async () => {
+      Nock(testBaseUrl, { badheaders: ["traceparent"] })
+        .get("/++api++/test-document")
+        .reply(200, sampleDocument);
+
+      const { result } = await getContent({ traceparent: "not-a-trace" });
+
+      expect(result.isError).toBeUndefined();
+      expect(Nock.isDone()).toBe(true);
+    });
+
+    it("keeps concurrent requests' trace context apart", async () => {
+      const other = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
+      const seen: string[] = [];
+      Nock(testBaseUrl)
+        .get("/++api++/test-document")
+        .times(2)
+        .delay(20)
+        .reply(function () {
+          seen.push(String(this.req.headers.traceparent));
+          return [200, sampleDocument];
+        });
+
+      await Promise.all([
+        getContent({ traceparent }),
+        getContent({ traceparent: other }),
+      ]);
+
+      expect(seen.sort()).toEqual([traceparent, other].sort());
+    });
+  });
+
   it("declares output schemas for tools with a stable result", async () => {
     const { result } = await modernRequest("tools/list");
     const declared = result.tools.filter((tool: any) => tool.outputSchema);
