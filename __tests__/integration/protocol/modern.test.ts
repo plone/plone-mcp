@@ -135,6 +135,24 @@ describe("2026-07-28 over HTTP", () => {
     });
   });
 
+  it("refuses a requestState it did not sign", async () => {
+    vi.stubEnv(
+      "PLONE_MCP_STATE_SECRET",
+      "a-test-secret-that-is-at-least-32-bytes",
+    );
+
+    const response = await modernRequest("tools/call", {
+      name: "plone_get_content",
+      arguments: { path: "/test-document" },
+      requestState: "v1.forged.state",
+    });
+
+    expect(response.error).toMatchObject({
+      code: -32602,
+      message: "Invalid or expired requestState",
+    });
+  });
+
   it("declares output schemas for tools with a stable result", async () => {
     const { result } = await modernRequest("tools/list");
     const declared = result.tools.filter((tool: any) => tool.outputSchema);
