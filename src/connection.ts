@@ -13,9 +13,10 @@ export const ENV_ALLOW_ENV_CREDENTIALS_OVER_HTTP =
  *   PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP is "true".
  */
 export function getClient(ctx: ServerContext): PloneClient {
+  const signal = ctx.mcpReq.signal;
   const token = ctx.http?.authInfo?.token;
   if (token) {
-    return new PloneClient({ token });
+    return new PloneClient({ token }, signal);
   }
 
   if (ctx.http && process.env[ENV_ALLOW_ENV_CREDENTIALS_OVER_HTTP] !== "true") {
@@ -24,5 +25,5 @@ export function getClient(ctx: ServerContext): PloneClient {
     );
   }
 
-  return new PloneClient({});
+  return new PloneClient({}, signal);
 }

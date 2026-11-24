@@ -115,7 +115,7 @@ describe("plone_move_content", () => {
 
     await expect(
       ploneMoveContent.handler({ parentPath, source: sourcePath }, mockContext),
-    ).rejects.toThrow("[MoveContent] Request failed with status code 403");
+    ).rejects.toThrow("[MoveContent] Not authorized by Plone (HTTP 403)");
     expect(Nock.isDone()).toBe(true);
   });
 });

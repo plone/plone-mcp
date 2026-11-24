@@ -1,0 +1,1 @@
+Add protocol tests for both MCP eras over HTTP and STDIO, including a fresh server per request, and `@modelcontextprotocol/client` as a dev dependency. @Tishasoumya-02

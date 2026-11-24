@@ -38,10 +38,20 @@ Claude can now work with that Plone site.
 
 ## Transports
 
-The server ships two entry points:
+The server speaks MCP `2026-07-28` and still serves 2025-era clients. It is stateless: there are no sessions, so any instance can answer any request and restarts are invisible to clients.
 
-- **STDIO** (`plone-mcp` bin / `dist/stdio-server.js`) - for local MCP clients such as Claude Desktop.
-- **HTTP** (`dist/http-server.js`) - a streamable-HTTP server listening on `PORT` (default `3001`) at `/mcp`. Start it with `make start`. Until OAuth support lands, it uses the `PLONE_*` environment credentials only when `PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP=true` is set, and every caller then acts as that one account.
+- **STDIO** (`plone-mcp` bin / `dist/stdio-server.js`) - for local MCP clients such as Claude Desktop. The process exits when stdin closes.
+- **HTTP** (`dist/http-server.js`) - streamable HTTP at `/mcp`, listening on `HOST` (default `127.0.0.1`; use `0.0.0.0` in containers) and `PORT` (default `3001`). Start it with `make start`. Only `POST` is used; `GET` and `DELETE` answer `405`. Until OAuth support lands, it uses the `PLONE_*` environment credentials only when `PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP=true` is set, and every caller then acts as that one account.
+- **Handler** (`@plone/mcp/handler`) - the same HTTP endpoint as a web-standard `fetch(Request) -> Response` function, for serverless platforms:
+
+  ```javascript
+  import { handler } from "@plone/mcp/handler";
+  export default { fetch: (request) => handler.fetch(request) };
+  ```
+
+  The handler loads `blocks.json` from disk, so it needs a Node.js runtime (not an edge runtime).
+
+Browsers may only call the HTTP endpoint from `localhost` pages, or from origins listed in `PLONE_MCP_ALLOWED_ORIGINS` (comma-separated, e.g. `https://cms.example.org`). Other origins get `403`.
 
 ## Quick Start using Claude Desktop as an example
 
@@ -72,7 +82,7 @@ Credentials come from environment variables. For several Plone sites, add one se
 }
 ```
 
-Use `PLONE_TOKEN` instead of `PLONE_USERNAME` and `PLONE_PASSWORD` to authenticate with a JWT token.
+Use `PLONE_TOKEN` instead of `PLONE_USERNAME` and `PLONE_PASSWORD` to authenticate with a JWT token from Plone's `@login` endpoint. The token expires (12 hours by default), so for long-running use the username and password are simpler.
 
 2. **Restart Claude Desktop**
 
@@ -94,7 +104,12 @@ Point Claude Desktop at your local build instead of the `npx` command:
   "mcpServers": {
     "plone": {
       "command": "node",
-      "args": ["/absolute/path/to/plone-mcp/dist/index.js"]
+      "args": ["/absolute/path/to/plone-mcp/dist/stdio-server.js"],
+      "env": {
+        "PLONE_BASE_URL": "http://localhost:8080/Plone",
+        "PLONE_USERNAME": "admin",
+        "PLONE_PASSWORD": "admin"
+      }
     }
   }
 }
@@ -280,7 +295,9 @@ plone_search({
 | `command not found` when using `npx` | Make sure the `args` in your config use `plone-mcp` as the binary name (not `plone-mcp-server`) — this was renamed in the package. |
 | "Base URL is required"               | Set `PLONE_BASE_URL` in the server's `env` configuration                                                                           |
 | "Block not found"                    | Use `plone_get_content` to get valid block IDs                                                                                     |
-| Connection errors                    | Verify Plone URL and credentials are correct                                                                                       |
+| "Could not reach Plone at ..."       | Check that Plone is running and `PLONE_BASE_URL` is correct                                                                        |
+| "Not authorized by Plone (HTTP 401/403)" | Check the credentials and that the Plone user has permission for that content                                                  |
+| `403` "Origin not allowed"           | Add the browser page's origin to `PLONE_MCP_ALLOWED_ORIGINS`                                                                       |
 | "block_specs[N] (type): ..."         | Fix the block spec at index N (see `plone_get_block_schemas`) and repeat the call                                                  |
 | TypeScript errors during local build | Run `make install` to ensure all dependencies are installed                                                                        |
 

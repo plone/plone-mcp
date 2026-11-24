@@ -1,0 +1,1 @@
+Add a package `exports` map. `@plone/mcp/handler` is new; deep imports such as `@plone/mcp/dist/server.js` are no longer possible. @Tishasoumya-02

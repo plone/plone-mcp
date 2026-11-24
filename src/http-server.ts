@@ -1,121 +1,33 @@
-import { randomUUID } from "node:crypto";
-import { createMcpExpressApp } from "@modelcontextprotocol/express";
-import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
-import { createServer } from "./server.js";
-import type { Request, Response } from "express";
+import express from "express";
+import { localhostHostValidation } from "@modelcontextprotocol/express";
+import { toNodeHandler } from "@modelcontextprotocol/node";
+import { handler } from "./handler.js";
 
 /**
- * Entry point for the Plone MCP Server running over HTTP with stateful sessions.
+ * Entry point for the Plone MCP Server running over HTTP. Stateless: no
+ * sessions, every request is served on its own.
  */
 
-// createMcpExpressApp() already installs express.json() body parsing.
-const app = createMcpExpressApp();
+const HOST = process.env.HOST || "127.0.0.1";
+const PORT = Number(process.env.PORT) || 3001;
 
-// Stateful session storage: sessionId -> transport
-const transports = new Map<string, NodeStreamableHTTPServerTransport>();
+const app = express();
+// The handler checks Origin; a localhost bind also checks Host, which blocks
+// DNS rebinding.
+if (["127.0.0.1", "localhost", "::1"].includes(HOST)) {
+  app.use(localhostHostValidation());
+}
+app.all("/mcp", toNodeHandler(handler));
 
-// POST handler - main MCP endpoint
-app.post("/mcp", async (req: Request, res: Response) => {
-  const sessionId = req.headers["mcp-session-id"] as string | undefined;
-
-  try {
-    let transport: NodeStreamableHTTPServerTransport;
-
-    if (sessionId && transports.has(sessionId)) {
-      // Reuse existing transport for session
-      const existingTransport = transports.get(sessionId);
-      if (!existingTransport) {
-        res.status(400).json({
-          jsonrpc: "2.0",
-          error: { code: -32001, message: "Invalid session ID" },
-          id: null,
-        });
-        return;
-      }
-      transport = existingTransport;
-    } else if (!sessionId && req.body.method === "initialize") {
-      // New session initialization
-      transport = new NodeStreamableHTTPServerTransport({
-        sessionIdGenerator: () => randomUUID(),
-        onsessioninitialized: (sid) => {
-          console.log(`Session initialized: ${sid}`);
-          transports.set(sid, transport);
-        },
-      });
-
-      transport.onclose = () => {
-        const sid = transport.sessionId;
-        if (sid) {
-          transports.delete(sid);
-          console.log(`Session closed: ${sid}`);
-        }
-      };
-
-      const server = createServer();
-      await server.connect(transport);
-    } else {
-      res.status(400).json({
-        jsonrpc: "2.0",
-        error: { code: -32001, message: "Invalid or missing session ID" },
-        id: null,
-      });
-      return;
-    }
-
-    await transport.handleRequest(req, res, req.body);
-  } catch (error) {
-    console.error("MCP request error:", error);
-    if (!res.headersSent) {
-      res.status(500).json({
-        jsonrpc: "2.0",
-        error: { code: -32603, message: "Internal server error" },
-        id: null,
-      });
-    }
-  }
-});
-
-// GET handler - SSE stream for notifications
-app.get("/mcp", async (req: Request, res: Response) => {
-  const sessionId = req.headers["mcp-session-id"] as string | undefined;
-  if (!sessionId || !transports.has(sessionId)) {
-    res.status(400).send("Invalid or missing session ID");
-    return;
-  }
-  const transport = transports.get(sessionId);
-  if (!transport) {
-    res.status(400).send("Session not found");
-    return;
-  }
-  await transport.handleRequest(req, res);
-});
-
-// DELETE handler - session termination
-app.delete("/mcp", async (req: Request, res: Response) => {
-  const sessionId = req.headers["mcp-session-id"] as string | undefined;
-  if (!sessionId || !transports.has(sessionId)) {
-    res.status(400).send("Invalid or missing session ID");
-    return;
-  }
-  const transport = transports.get(sessionId);
-  if (!transport) {
-    res.status(400).send("Session not found");
-    return;
-  }
-  await transport.handleRequest(req, res);
-});
-
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Plone MCP Server (HTTP) listening on port ${PORT}`);
+const httpServer = app.listen(PORT, HOST, () => {
+  console.log(`Plone MCP Server (HTTP) listening on http://${HOST}:${PORT}/mcp`);
 });
 
 // Graceful shutdown (SIGINT for local runs, SIGTERM for containers)
 const shutdown = async () => {
   console.log("Shutting down...");
-  for (const transport of transports.values()) {
-    await transport.close();
-  }
+  httpServer.close();
+  await handler.close();
   process.exit(0);
 };
 process.on("SIGINT", shutdown);

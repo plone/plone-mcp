@@ -1,4 +1,9 @@
-import axios, { AxiosInstance } from "axios";
+import axios, {
+  AxiosInstance,
+  AxiosResponse,
+  isAxiosError,
+  isCancel,
+} from "axios";
 import { z } from "zod";
 
 // Environment variable names for configuration
@@ -96,6 +101,20 @@ export interface PloneContent {
 }
 
 /**
+ * A failed Plone request. `status` is the HTTP status, unset when Plone could
+ * not be reached.
+ */
+export class PloneRequestError extends Error {
+  constructor(
+    message: string,
+    public readonly status?: number,
+  ) {
+    super(message);
+    this.name = "PloneRequestError";
+  }
+}
+
+/**
  * HTTP client for communicating with Plone REST API
  */
 export class PloneClient {
@@ -104,7 +123,11 @@ export class PloneClient {
   public readonly baseUrl: string;
   public readonly token?: string;
 
-  constructor(config: Config) {
+  /**
+   * @param signal Aborts in-flight Plone calls, e.g. when the MCP request is
+   * cancelled.
+   */
+  constructor(config: Config, signal?: AbortSignal) {
     this.config = resolveConfig(config);
     const normalizedBaseUrl = this.config.baseUrl.replace(/\/$/, "");
     this.config = { ...this.config, baseUrl: normalizedBaseUrl };
@@ -120,6 +143,7 @@ export class PloneClient {
         // return the updated object, which the update tools echo back.
         Prefer: "return=representation",
       },
+      signal,
     });
 
     // Set up authentication
@@ -157,20 +181,17 @@ export class PloneClient {
 
   async get(path: string, params?: Record<string, unknown>): Promise<unknown> {
     const normalizedPath = this.normalizePath(path);
-    const response = await this.axios.get(normalizedPath, { params });
-    return response.data;
+    return this.send(this.axios.get(normalizedPath, { params }));
   }
 
   async post(path: string, data?: unknown): Promise<unknown> {
     const normalizedPath = this.normalizePath(path);
-    const response = await this.axios.post(normalizedPath, data);
-    return response.data;
+    return this.send(this.axios.post(normalizedPath, data));
   }
 
   async patch(path: string, data?: unknown): Promise<unknown> {
     const normalizedPath = this.normalizePath(path);
-    const response = await this.axios.patch(normalizedPath, data);
-    return response.data;
+    return this.send(this.axios.patch(normalizedPath, data));
   }
 
   async delete(
@@ -178,7 +199,33 @@ export class PloneClient {
     data?: Record<string, unknown>,
   ): Promise<unknown> {
     const normalizedPath = this.normalizePath(path);
-    const response = await this.axios.delete(normalizedPath, { data });
-    return response.data;
+    return this.send(this.axios.delete(normalizedPath, { data }));
+  }
+
+  private async send(request: Promise<AxiosResponse>): Promise<unknown> {
+    try {
+      return (await request).data;
+    } catch (error) {
+      throw this.toPloneError(error);
+    }
+  }
+
+  private toPloneError(error: unknown): unknown {
+    if (isCancel(error) || !isAxiosError(error)) {
+      return error;
+    }
+    const status = error.response?.status;
+    if (status === 401 || status === 403) {
+      return new PloneRequestError(
+        `Not authorized by Plone (HTTP ${status}). The Plone user lacks permission for this content or action.`,
+        status,
+      );
+    }
+    if (status) {
+      return new PloneRequestError(error.message, status);
+    }
+    return new PloneRequestError(
+      `Could not reach Plone at ${this.baseUrl}${error.code ? ` (${error.code})` : ""}`,
+    );
   }
 }

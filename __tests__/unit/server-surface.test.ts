@@ -1,10 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { z } from "zod";
 import { InMemoryTransport } from "@modelcontextprotocol/server";
 import { registerTools } from "plone-mcp/tools/index";
 import { registerResources } from "plone-mcp/resources/index";
 import { registerPrompts } from "plone-mcp/prompts/index";
 import { createServer } from "plone-mcp/server";
+import { Nock } from "plone-mcp/__tests__/utils/test-helpers";
+import { modernRequest } from "plone-mcp/__tests__/utils/mcp-request";
 import packageJson from "../../package.json";
 
 type Server = Parameters<typeof registerTools>[0];
@@ -56,6 +58,64 @@ describe("server surface", () => {
     const { tools } = collectSurface();
 
     expect(tools.map((tool) => tool.name)).toMatchSnapshot();
+  });
+
+  it("uses tool names that never need encoding in the Mcp-Name header", () => {
+    for (const { name } of collectSurface().tools) {
+      expect(name).toMatch(/^[A-Za-z0-9_.-]{1,128}$/);
+    }
+  });
+
+  describe("over 2026-07-28", () => {
+    beforeEach(() => {
+      // The handler logs the protocol era of every request.
+      vi.spyOn(console, "error").mockReturnValue(undefined);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      vi.unstubAllEnvs();
+    });
+
+    it("lists tools in the same order on every fresh server", async () => {
+      const names = async () =>
+        (await modernRequest("tools/list")).result.tools.map(
+          (tool: { name: string }) => tool.name,
+        );
+
+      expect(await names()).toEqual(await names());
+    });
+
+    it("marks lists as cacheable for an hour by anyone", async () => {
+      for (const method of [
+        "server/discover",
+        "tools/list",
+        "prompts/list",
+        "resources/list",
+        "resources/templates/list",
+      ]) {
+        expect((await modernRequest(method)).result).toMatchObject({
+          resultType: "complete",
+          ttlMs: 3600000,
+          cacheScope: "public",
+        });
+      }
+    });
+
+    it("never lets content reads be cached", async () => {
+      vi.stubEnv("PLONE_BASE_URL", "https://test.plone.com");
+      vi.stubEnv("PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP", "true");
+      Nock("https://test.plone.com")
+        .get("/++api++")
+        .reply(200, { id: "plone" });
+
+      const { result } = await modernRequest("resources/read", {
+        uri: "plone://site",
+      });
+
+      expect(result).toMatchObject({ ttlMs: 0, cacheScope: "private" });
+      expect(result.contents).toHaveLength(1);
+    });
   });
 
   it("keeps every tool's description, annotations and input schema", () => {
