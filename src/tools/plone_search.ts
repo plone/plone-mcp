@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 
 const inputSchema = z.object({
   query: z.string().optional().describe("Search query text"),
@@ -31,12 +32,18 @@ const inputSchema = z.object({
   b_start: z.number().optional().describe("Batch start (for pagination)"),
 });
 
+const outputSchema = z.looseObject({
+  items: z.array(z.looseObject({ "@id": z.string(), title: z.string() })),
+  items_total: z.number(),
+});
+
 export const ploneSearch = {
   config: {
     name: "plone_search",
     description:
       "Performs a detailed search for content items, allowing filters by text, content type, path, and workflow state. Example: plone_search({query: 'annual report', portal_type: ['Document'], review_state: ['published']})",
     inputSchema,
+    outputSchema,
     annotations: {
       readOnlyHint: true,
       openWorldHint: false,
@@ -72,14 +79,7 @@ export const ploneSearch = {
 
       const results = await client.get("/@search", params);
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(results, null, 2),
-          },
-        ],
-      };
+      return toolResult(results);
     } catch (error) {
       throw wrapError("Search", error);
     }

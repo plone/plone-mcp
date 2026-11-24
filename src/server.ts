@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { registerTools } from "./tools/index.js";
 import { registerResources } from "./resources/index.js";
 import { registerPrompts } from "./prompts/index.js";
+import { confirmMode, createConfirmationCodec } from "./confirmation.js";
 
 const { version } = JSON.parse(
   readFileSync(
@@ -18,8 +19,14 @@ const LIST_CACHE_HINT = { ttlMs: 60 * 60 * 1000, cacheScope: "public" } as const
 
 /**
  * Creates and configures a new McpServer instance.
+ *
+ * @param stateKey Signs the requestState of confirmation round trips; every
+ * instance that may receive the second request needs the same key.
  */
-export function createServer() {
+export function createServer({
+  stateKey,
+}: { stateKey?: string | Uint8Array } = {}) {
+  const codec = stateKey ? createConfirmationCodec(stateKey) : undefined;
   const server = new McpServer(
     {
       name: "plone-mcp-server",
@@ -39,10 +46,11 @@ export function createServer() {
         "resources/templates/list": LIST_CACHE_HINT,
         "resources/read": { ttlMs: 0, cacheScope: "private" },
       },
+      ...(codec && { requestState: { verify: codec.verify } }),
     },
   );
 
-  registerTools(server);
+  registerTools(server, { server, codec, mode: confirmMode() });
   registerResources(server);
   registerPrompts(server);
 

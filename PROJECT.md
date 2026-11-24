@@ -18,6 +18,8 @@ This project is a Model Context Protocol (MCP) server designed to integrate MCP 
     - `src/auth/verifier.ts`: Verifies Plone access tokens locally with `jose` (keys cached per issuer), and asks Plone's userinfo endpoint whether a token is still accepted.
     - `src/connection.ts`: Builds the Plone client for each request, from the request's access token or the environment. Nothing is kept between requests. The token is passed on to Plone; this is a documented deviation from the MCP spec.
     - `src/plone-client.ts`: Low-level axios-based HTTP client for Plone REST API.
+    - `src/confirmation.ts`: Asks the user to confirm destructive actions through a multi round-trip request (`withConfirmation`), with the pending action in a signed, user-bound, expiring `requestState`.
+    - `src/trace-context.ts`: Validates the W3C trace context in a request's `_meta` and turns it into headers for that request's Plone calls.
 - **Tools & Resources:** Tools are modularized in `src/tools/` and resources in `src/resources/`. Each tool/resource is a self-contained object with configuration (zod schema) and a handler.
 - **Configuration:** Plone connection details come from environment variables:
     - `PLONE_BASE_URL`: Base URL of the Plone site.
@@ -26,8 +28,12 @@ This project is a Model Context Protocol (MCP) server designed to integrate MCP 
     - `PLONE_OAUTH_ISSUER`, `PLONE_OAUTH_ALLOWED_CLIENT_IDS`, `PLONE_MCP_RESOURCE_URL`: OAuth sign-in over HTTP through `pas.plugins.identity` (see README).
     - `PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP`: `true` lets HTTP requests without an access token use the credentials above. Without it or OAuth, the HTTP server refuses to start.
     - `HOST` (default `127.0.0.1`), `PORT` (default `3001`): HTTP server address.
+    - `ENABLED_TOOLS`: Comma-separated tool names; when set, only these tools are registered.
     - `PLONE_MCP_ALLOWED_ORIGINS`: Comma-separated browser origins allowed besides localhost.
+    - `PLONE_MCP_STATE_SECRET`: Key (at least 32 bytes) that signs confirmation round trips. Needed over HTTP, shared by all instances; stdio uses a random key per process when unset.
+    - `PLONE_MCP_CONFIRM_DESTRUCTIVE`: `off`, `when-supported` (default) or `required`; what happens when a client cannot ask the user.
 - **Block Management:** Sophisticated logic for Volto blocks (Slate, Teaser, Grid, etc.) is found in `src/utils/block-utils.ts`. It includes Markdown-to-Slate conversion using `remark`.
+- **Tool Results:** Build every tool result with `toolResult(value, text?)` from `src/utils/tool-result.ts`. It returns `value` as `structuredContent` and as JSON text (or the given text), so the two never drift apart. Declare an `outputSchema` only when the result's shape is stable; keep it shallow (field names and types, no descriptions) and require only fields Plone always returns, because the SDK fails a call whose result does not match.
 - **Error Handling:** Use the `wrapError` utility from `src/utils/block-utils.ts` for all handlers to ensure consistent, descriptive error messages across the MCP interface. A thrown tool error reaches the client as `isError: true`. `PloneClient` throws `PloneRequestError` with the HTTP `status`; resources turn a Plone 404 into `ResourceNotFoundError` (`-32602`). Do not hardcode JSON-RPC codes.
 
 ## Important Reminders

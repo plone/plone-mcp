@@ -127,11 +127,13 @@ export class PloneClient {
    * @param signal Aborts in-flight Plone calls, e.g. when the MCP request is
    * cancelled.
    * @param onUnauthorized Called when Plone answers 401.
+   * @param headers Extra headers for every Plone call, e.g. trace context.
    */
   constructor(
     config: Config,
     signal?: AbortSignal,
     private readonly onUnauthorized?: () => void,
+    headers: Record<string, string> = {},
   ) {
     this.config = resolveConfig(config);
     const normalizedBaseUrl = this.config.baseUrl.replace(/\/$/, "");
@@ -148,6 +150,7 @@ export class PloneClient {
         // Plone REST API answers PATCH with 204 No Content unless asked to
         // return the updated object, which the update tools echo back.
         Prefer: "return=representation",
+        ...headers,
       },
       signal,
       // Credentials go to PLONE_BASE_URL only. Same-origin redirects (moved

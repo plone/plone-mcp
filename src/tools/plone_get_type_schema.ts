@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 
 const inputSchema = z.object({
   contentType: z
@@ -29,14 +30,7 @@ export const ploneGetTypeSchema = {
       const { contentType } = args;
       const typeSchema = await client.get(`/@types/${contentType}`);
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(typeSchema, null, 2),
-          },
-        ],
-      };
+      return toolResult(typeSchema);
     } catch (error) {
       throw wrapError("GetTypeSchema", error);
     }

@@ -13,6 +13,7 @@ import {
   type HttpAuth,
 } from "./auth/http-auth.js";
 import { isTokenRefused } from "./auth/verifier.js";
+import { ENV_STATE_SECRET } from "./confirmation.js";
 import { ON_PLONE_UNAUTHORIZED } from "./connection.js";
 import { createServer } from "./server.js";
 
@@ -46,11 +47,14 @@ function isAllowedOrigin(origin: string | null): boolean {
  * Web-standard MCP handler (Request -> Response). Every request gets a fresh
  * server from the factory, so any instance can answer any request.
  */
-const mcpHandler = createMcpHandler(() => createServer(), {
-  legacy: "stateless",
-  responseMode: "json",
-  onerror: (error) => console.error(`MCP request error: ${error.message}`),
-});
+const mcpHandler = createMcpHandler(
+  () => createServer({ stateKey: process.env[ENV_STATE_SECRET] }),
+  {
+    legacy: "stateless",
+    responseMode: "json",
+    onerror: (error) => console.error(`MCP request error: ${error.message}`),
+  },
+);
 
 export const handler = {
   fetch: async (request: Request, options?: McpHandlerRequestOptions) => {

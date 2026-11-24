@@ -56,7 +56,8 @@ const expected: Record<string, ToolAnnotations> = {
 
 function collectRegistrations() {
   const registerTool = vi.fn();
-  registerTools({ registerTool } as unknown as McpServer);
+  const server = { registerTool } as unknown as McpServer;
+  registerTools(server, { server, mode: "off" });
   return new Map<string, { annotations?: ToolAnnotations }>(
     registerTool.mock.calls.map(([name, config]) => [name, config]),
   );

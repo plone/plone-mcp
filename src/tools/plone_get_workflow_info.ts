@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 
 const inputSchema = z.object({
   path: z.string().describe("Path to the content"),
@@ -28,14 +29,7 @@ export const ploneGetWorkflowInfo = {
 
       const workflow = await client.get(`${path}/@workflow`);
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(workflow, null, 2),
-          },
-        ],
-      };
+      return toolResult(workflow);
     } catch (error) {
       throw wrapError("GetWorkflowInfo", error);
     }

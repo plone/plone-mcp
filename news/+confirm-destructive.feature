@@ -1,0 +1,1 @@
+Ask the user to confirm before `plone_delete_content` deletes content or `plone_cancel_working_copy` discards a working copy, when the client supports elicitation. Configure with `PLONE_MCP_STATE_SECRET` and `PLONE_MCP_CONFIRM_DESTRUCTIVE`. @Tishasoumya-02

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { blockRegistry } from "../block-registry.js";
 import { wrapError, getBlockExample } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 
 const inputSchema = z.object({
   blockType: z
@@ -40,22 +41,11 @@ export const ploneGetBlockSchemas = {
           );
         }
 
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(
-                {
-                  blockType: blockType,
-                  specification: spec,
-                  example: getBlockExample(blockType),
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return toolResult({
+          blockType: blockType,
+          specification: spec,
+          example: getBlockExample(blockType),
+        });
       }
 
       // Return all block schemas with examples
@@ -64,22 +54,11 @@ export const ploneGetBlockSchemas = {
         examples[type] = getBlockExample(type);
       }
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(
-              {
-                availableTypes: blockRegistry.getBlockTypes(),
-                specifications: blockRegistry.getSpecifications(),
-                examples: examples,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return toolResult({
+        availableTypes: blockRegistry.getBlockTypes(),
+        specifications: blockRegistry.getSpecifications(),
+        examples: examples,
+      });
     } catch (error) {
       throw wrapError("GetBlockSchemas", error);
     }

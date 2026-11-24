@@ -100,7 +100,7 @@ describe("plone_add_single_block", () => {
     const result = await ploneAddSingleBlock.handler(args, mockContext);
 
     expect(result.content[0].text).toEqual(
-      JSON.stringify(mockContentAfterAdd, null, 2),
+      JSON.stringify(mockContentAfterAdd),
     );
     expect(Nock.isDone()).toBe(true);
   });
@@ -142,7 +142,7 @@ describe("plone_add_single_block", () => {
     const result = await ploneAddSingleBlock.handler(args, mockContext);
 
     expect(result.content[0].text).toEqual(
-      JSON.stringify(mockContentAfterImageAdd, null, 2),
+      JSON.stringify(mockContentAfterImageAdd),
     );
     expect(BlockUtils.validateImageURL).toHaveBeenCalledWith(
       "http://example.com/image.jpg",
@@ -207,7 +207,7 @@ describe("plone_add_single_block", () => {
 
     const result = await ploneAddSingleBlock.handler(args, mockContext);
     expect(result.content[0].text).toEqual(
-      JSON.stringify(mockContentAfterPositionAdd, null, 2),
+      JSON.stringify(mockContentAfterPositionAdd),
     );
     expect(Nock.isDone()).toBe(true);
   });
@@ -245,7 +245,7 @@ describe("plone_add_single_block", () => {
 
     const result = await ploneAddSingleBlock.handler(args, mockContext);
     expect(result.content[0].text).toEqual(
-      JSON.stringify(mockContentAfterAnchor, null, 2),
+      JSON.stringify(mockContentAfterAnchor),
     );
     expect(Nock.isDone()).toBe(true);
   });
@@ -281,7 +281,7 @@ describe("plone_add_single_block", () => {
 
     const result = await ploneAddSingleBlock.handler(args, mockContext);
     expect(result.content[0].text).toEqual(
-      JSON.stringify(mockContentAfterAppend, null, 2),
+      JSON.stringify(mockContentAfterAppend),
     );
     expect(Nock.isDone()).toBe(true);
   });
@@ -332,7 +332,7 @@ describe("plone_add_single_block", () => {
 
     const result = await ploneAddSingleBlock.handler(args, mockContext);
     expect(result.content[0].text).toEqual(
-      JSON.stringify(mockContentAfterTitle, null, 2),
+      JSON.stringify(mockContentAfterTitle),
     );
     expect(Nock.isDone()).toBe(true);
   });

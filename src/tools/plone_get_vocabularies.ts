@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 
 const inputSchema = z.object({
   vocabulary: z
@@ -43,14 +44,7 @@ export const ploneGetVocabularies = {
         params,
       );
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(vocabularies, null, 2),
-          },
-        ],
-      };
+      return toolResult(vocabularies);
     } catch (error) {
       throw wrapError("GetVocabularies", error);
     }

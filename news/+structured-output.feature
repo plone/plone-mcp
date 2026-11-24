@@ -1,0 +1,1 @@
+Tools return their result as `structuredContent` as well as text, so clients can read the data without parsing it, and the search, navigation, delete, working copy, translation unlink, user update and block validation tools declare an `outputSchema`. The text is now compact JSON instead of indented JSON. @Tishasoumya-02

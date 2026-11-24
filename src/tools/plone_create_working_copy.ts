@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 
 const inputSchema = z.object({
   path: z.string().describe("Path to the content item to check out"),
@@ -30,14 +31,7 @@ export const ploneCreateWorkingCopy = {
 
       const workingCopy = await client.post(`${path}/@workingcopy`);
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(workingCopy, null, 2),
-          },
-        ],
-      };
+      return toolResult(workingCopy);
     } catch (error) {
       throw wrapError("CreateWorkingCopy", error);
     }

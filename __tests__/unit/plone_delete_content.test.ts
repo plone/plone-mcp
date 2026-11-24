@@ -56,6 +56,7 @@ describe("plone_delete_content", () => {
             text: `Successfully deleted content at path: ${testPath} `,
           },
         ],
+        structuredContent: { path: testPath, deleted: true },
       });
     });
 

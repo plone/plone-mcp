@@ -62,5 +62,19 @@ describe("2025-era clients over HTTP", () => {
     });
 
     expect(JSON.parse(message.result.content[0].text)).toEqual(sampleDocument);
+    expect(message.result.structuredContent).toEqual(sampleDocument);
+  });
+
+  it("wraps an array result, as 2025 structured content must be an object", async () => {
+    const types = [{ "@id": `${testBaseUrl}/@types/Document`, title: "Page" }];
+    Nock(testBaseUrl).get("/++api++/@types").reply(200, types);
+
+    const { message } = await legacyRequest("tools/call", {
+      name: "plone_get_types",
+      arguments: {},
+    });
+
+    expect(message.result.structuredContent).toEqual({ result: types });
+    expect(JSON.parse(message.result.content[0].text)).toEqual(types);
   });
 });

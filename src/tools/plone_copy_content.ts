@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 
 const inputSchema = z.object({
   parentPath: z
@@ -40,21 +41,19 @@ export const ploneCopyContent = {
       const sources = Array.isArray(source) ? source : [source];
       const result = await client.post(`${parentPath}/@copy`, { source });
 
-      const content: { type: "text"; text: string }[] = [
-        { type: "text", text: JSON.stringify(result, null, 2) },
-      ];
+      const output = toolResult(result);
 
       // The endpoint silently skips sources it cannot resolve, so a shorter
       // result list means some sources were dropped.
       const copied = Array.isArray(result) ? result.length : sources.length;
       if (copied < sources.length) {
-        content.push({
+        output.content.push({
           type: "text",
           text: `Warning: ${sources.length - copied} of ${sources.length} source(s) could not be resolved and were skipped. Verify each source is a valid URL, path, or UID.`,
         });
       }
 
-      return { content };
+      return output;
     } catch (error) {
       throw wrapError("CopyContent", error);
     }

@@ -74,6 +74,7 @@ This needs the Plone site to be an OAuth authorization server, which a standard 
 | `PLONE_OAUTH_ISSUER` | `https://plone.example.com/Plone` | The issuer set in Plone, exactly; `https` except on localhost |
 | `PLONE_OAUTH_ALLOWED_CLIENT_IDS` | `plone-mcp-claude-code,plone-mcp-inspector` | Client ids whose tokens are accepted |
 | `PLONE_MCP_RESOURCE_URL` | `https://mcp.example.com/mcp` | This server's public URL, exactly as users enter it |
+| `PLONE_MCP_STATE_SECRET` | 32+ random bytes, e.g. `openssl rand -base64 48` | Signs [confirmation](#confirming-destructive-actions) round trips; the same on every instance |
 
 Do not set `PLONE_USERNAME`, `PLONE_PASSWORD` or `PLONE_TOKEN` here. Put the server behind HTTPS.
 
@@ -197,6 +198,9 @@ Run `make help` to list every available target.
 - **Search**: Full-text search with filtering and sorting
 - **Workflow**: Manage publication states and transitions
 - **Site Info**: Access content types, vocabularies, and site configuration
+- **Structured results**: Every tool returns its result as data (`structuredContent`) as well as JSON text; search, navigation and the tools with a fixed result also declare its shape (`outputSchema`)
+- **Confirmation**: Deleting content or discarding a working copy asks the user first, when the client can ([details](#confirming-destructive-actions))
+- **Tracing**: When the MCP client sends W3C trace context (`traceparent`, `tracestate`, `baggage`) in a request's `_meta`, plone-mcp forwards it to Plone as headers, so a tracing backend shows one trace from the client through Plone. Malformed or oversized values are dropped.
 
 ## Essential Tools
 
@@ -334,6 +338,19 @@ plone_search({
 });
 ```
 
+## Confirming destructive actions
+
+`plone_delete_content` and `plone_cancel_working_copy` ask the user before they run, when the MCP client can show a question (form elicitation): for example *Delete "News" (/news)? It contains 14 item(s), which are deleted with it. This cannot be undone.* Declining leaves the content untouched.
+
+The server keeps nothing between the question and the answer: the pending action travels in a signed `requestState` that is bound to the signed-in user, to the exact tool and path, and expires after five minutes.
+
+| Variable | Meaning |
+| --- | --- |
+| `PLONE_MCP_STATE_SECRET` | Signing key, at least 32 bytes. Needed over HTTP, and the same on every instance. Over STDIO a random key is used when unset. |
+| `PLONE_MCP_CONFIRM_DESTRUCTIVE` | `when-supported` (default): ask when the client can, otherwise run as before. `required`: refuse when the client cannot ask. `off`: never ask. |
+
+Clients that cannot ask include 2025-era clients over HTTP. Over HTTP without `PLONE_MCP_STATE_SECRET`, the server cannot ask either.
+
 ## Troubleshooting
 
 | Issue                                | Solution                                                                                                                           |
@@ -347,6 +364,9 @@ plone_search({
 | `500` "MCP server not configured"     | The handler's sign-in settings are incomplete; the server log names the variable |
 | Client keeps asking to sign in       | Check that the client id is in `PLONE_OAUTH_ALLOWED_CLIENT_IDS`, is enabled in Plone, and that `PLONE_OAUTH_ISSUER` equals Plone's issuer |
 | `403` "Origin not allowed"           | Add the browser page's origin to `PLONE_MCP_ALLOWED_ORIGINS`                                                                       |
+| "Invalid or expired requestState"    | The confirmation was answered after five minutes, or the instances do not share the same `PLONE_MCP_STATE_SECRET`; run the tool again |
+| "Confirmation is required, but ..."  | `PLONE_MCP_CONFIRM_DESTRUCTIVE=required` and the client cannot ask the user, or `PLONE_MCP_STATE_SECRET` is not set over HTTP |
+| "Output validation error: ..."       | Plone returned a result without a field the tool declares (for example an item without `title`); please report it |
 | "block_specs[N] (type): ..."         | Fix the block spec at index N (see `plone_get_block_schemas`) and repeat the call                                                  |
 | TypeScript errors during local build | Run `make install` to ensure all dependencies are installed                                                                        |
 

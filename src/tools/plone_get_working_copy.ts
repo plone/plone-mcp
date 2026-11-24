@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 
 const inputSchema = z.object({
   path: z
@@ -35,18 +36,7 @@ export const ploneGetWorkingCopy = {
         client.get(`${path}/@lock`),
       ]);
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(
-              { ...(workingCopy as Record<string, unknown>), lock },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return toolResult({ ...(workingCopy as Record<string, unknown>), lock });
     } catch (error) {
       throw wrapError("GetWorkingCopy", error);
     }
