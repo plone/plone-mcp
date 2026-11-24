@@ -28,6 +28,7 @@ This project is a Model Context Protocol (MCP) server designed to integrate MCP 
     - `PLONE_OAUTH_ISSUER`, `PLONE_OAUTH_ALLOWED_CLIENT_IDS`, `PLONE_MCP_RESOURCE_URL`: OAuth sign-in over HTTP through `pas.plugins.identity` (see README).
     - `PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP`: `true` lets HTTP requests without an access token use the credentials above. Without it or OAuth, the HTTP server refuses to start.
     - `HOST` (default `127.0.0.1`), `PORT` (default `3001`): HTTP server address.
+    - `ENABLED_TOOLS`: Comma-separated tool names; when set, only these tools are registered.
     - `PLONE_MCP_ALLOWED_ORIGINS`: Comma-separated browser origins allowed besides localhost.
     - `PLONE_MCP_STATE_SECRET`: Key (at least 32 bytes) that signs confirmation round trips. Needed over HTTP, shared by all instances; stdio uses a random key per process when unset.
     - `PLONE_MCP_CONFIRM_DESTRUCTIVE`: `off`, `when-supported` (default) or `required`; what happens when a client cannot ask the user.
