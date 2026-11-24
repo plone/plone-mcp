@@ -76,6 +76,7 @@
     "@modelcontextprotocol/server": "^2.3.1",
     "axios": "^1.6.0",
     "express": "^5.2.1",
+    "jose": "^6.2.3",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "remark-supersub": "^1.0.0",

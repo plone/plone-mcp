@@ -23,6 +23,7 @@ describe("statelessness", () => {
   beforeEach(() => {
     vi.spyOn(console, "error").mockReturnValue(undefined);
     vi.stubEnv("PLONE_BASE_URL", testBaseUrl);
+    vi.stubEnv("PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP", "true");
   });
 
   afterEach(() => {
@@ -32,7 +33,6 @@ describe("statelessness", () => {
   });
 
   it("runs a multi-step flow with a new handler for every request", async () => {
-    vi.stubEnv("PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP", "true");
     const plone = new PloneMockServer(testBaseUrl);
     plone.mockSearch({ SearchableText: "test" }, sampleSearchResults);
     plone.mockContentGet("/test-document", sampleDocument);

@@ -1,0 +1,1 @@
+The HTTP server now requires sign-in. Set `PLONE_OAUTH_ISSUER`, `PLONE_OAUTH_ALLOWED_CLIENT_IDS` and `PLONE_MCP_RESOURCE_URL`, or set `PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP=true` to keep using the environment credentials; with neither, it does not start. @Tishasoumya-02

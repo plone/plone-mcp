@@ -126,13 +126,19 @@ export class PloneClient {
   /**
    * @param signal Aborts in-flight Plone calls, e.g. when the MCP request is
    * cancelled.
+   * @param onUnauthorized Called when Plone answers 401.
    */
-  constructor(config: Config, signal?: AbortSignal) {
+  constructor(
+    config: Config,
+    signal?: AbortSignal,
+    private readonly onUnauthorized?: () => void,
+  ) {
     this.config = resolveConfig(config);
     const normalizedBaseUrl = this.config.baseUrl.replace(/\/$/, "");
     this.config = { ...this.config, baseUrl: normalizedBaseUrl };
     this.baseUrl = normalizedBaseUrl;
     this.token = this.config.token;
+    const baseOrigin = new URL(this.baseUrl).origin;
 
     this.axios = axios.create({
       baseURL: `${this.baseUrl}/++api++`,
@@ -144,6 +150,17 @@ export class PloneClient {
         Prefer: "return=representation",
       },
       signal,
+      // Credentials go to PLONE_BASE_URL only. Same-origin redirects (moved
+      // content) are followed; any other is refused, because the redirect
+      // library keeps the Authorization header for subdomains.
+      beforeRedirect: (options) => {
+        const target = new URL(`${options.protocol}//${options.host}`).origin;
+        if (target !== baseOrigin) {
+          throw new PloneRequestError(
+            `Plone redirected to another origin (${target}); not followed.`,
+          );
+        }
+      },
     });
 
     // Set up authentication
@@ -214,10 +231,23 @@ export class PloneClient {
     if (isCancel(error) || !isAxiosError(error)) {
       return error;
     }
+    // A refused redirect, wrapped by the redirect library and then by axios.
+    for (
+      let cause: unknown = error.cause;
+      cause instanceof Error;
+      cause = cause.cause
+    ) {
+      if (cause instanceof PloneRequestError) {
+        return cause;
+      }
+    }
     const status = error.response?.status;
+    if (status === 401) {
+      this.onUnauthorized?.();
+    }
     if (status === 401 || status === 403) {
       return new PloneRequestError(
-        `Not authorized by Plone (HTTP ${status}). The Plone user lacks permission for this content or action.`,
+        `Not authorized by Plone (HTTP ${status}). The Plone user lacks permission for this content or action${status === 401 ? ", or Plone did not accept the credentials" : ""}.`,
         status,
       );
     }

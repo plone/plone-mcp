@@ -1,0 +1,1 @@
+Call Plone as the signed-in user: a token Plone no longer accepts answers `401` with the sign-in challenge so the client refreshes and retries, a token with less than a minute left is refused before any Plone call, and Plone redirects to another origin are not followed. @Tishasoumya-02
