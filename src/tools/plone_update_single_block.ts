@@ -6,6 +6,7 @@ import {
   processBlock,
   validateImageURL,
 } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 import { PloneContent } from "../plone-client.js";
 
 const inputSchema = z.object({
@@ -84,14 +85,7 @@ export const ploneUpdateSingleBlock = {
         blocks,
       })) as PloneContent;
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(updatedContent, null, 2),
-          },
-        ],
-      };
+      return toolResult(updatedContent);
     } catch (error) {
       throw wrapError("UpdateBlock", error);
     }

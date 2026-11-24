@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 
 const inputSchema = z.object({
   root_path: z
@@ -17,12 +18,17 @@ const inputSchema = z.object({
     .describe("How many levels of the navigation tree to include"),
 });
 
+const outputSchema = z.looseObject({
+  items: z.array(z.looseObject({ "@id": z.string(), title: z.string() })),
+});
+
 export const ploneGetNavigationTree = {
   config: {
     name: "plone_get_navigation_tree",
     description:
       "Get the site navigation tree as seen from a given path. The tree is rooted at the nearest navigation root (the site root, or the language folder on multilingual sites) — use depth to include nested levels, then look up the relevant subtree in the result. Example: plone_get_navigation_tree({root_path: '/en/documentation', depth: 3})",
     inputSchema,
+    outputSchema,
     annotations: {
       readOnlyHint: true,
       openWorldHint: false,
@@ -52,14 +58,7 @@ export const ploneGetNavigationTree = {
       // Use the @navigation endpoint
       const navigation = await client.get(navigationPath, params);
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(navigation, null, 2),
-          },
-        ],
-      };
+      return toolResult(navigation);
     } catch (error) {
       throw wrapError("GetNavigationTree", error);
     }

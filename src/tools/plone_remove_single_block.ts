@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 import { PloneContent } from "../plone-client.js";
 
 const inputSchema = z.object({
@@ -61,14 +62,7 @@ export const ploneRemoveSingleBlock = {
         blocks_layout: { items: updatedLayoutItems },
       })) as PloneContent;
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(updatedContent, null, 2),
-          },
-        ],
-      };
+      return toolResult(updatedContent);
     } catch (error) {
       throw wrapError("RemoveBlock", error);
     }

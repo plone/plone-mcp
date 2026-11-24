@@ -88,6 +88,10 @@ export function registerTools(server: McpServer) {
           description: tool.config.description,
           inputSchema: tool.config.inputSchema,
           annotations: tool.config.annotations,
+          outputSchema:
+            "outputSchema" in tool.config
+              ? tool.config.outputSchema
+              : undefined,
         },
         tool.handler,
       );

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 
 const inputSchema = z.object({
   username: z.string().describe("Username for the new user"),
@@ -74,14 +75,7 @@ export const ploneCreateUser = {
 
       const user = await client.post("/@users", data);
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(user, null, 2),
-          },
-        ],
-      };
+      return toolResult(user);
     } catch (error) {
       throw wrapError("CreateUser", error);
     }

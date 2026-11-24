@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 
 const inputSchema = z.object({
   userid: z.string().describe("The ID of the user to update"),
@@ -18,12 +19,15 @@ const inputSchema = z.object({
     ),
 });
 
+const outputSchema = z.object({ userid: z.string(), updated: z.boolean() });
+
 export const ploneUpdateUser = {
   config: {
     name: "plone_update_user",
     description:
       "Updates an existing user's properties in Plone. Requires Manager role or the user updating their own account. Roles are specified as an object mapping role names to booleans to add or remove them. Example: plone_update_user({userid: 'jdoe', fullname: 'Jane Doe', roles: {Editor: true, Contributor: false}})",
     inputSchema,
+    outputSchema,
     annotations: {
       readOnlyHint: false,
       destructiveHint: true,
@@ -54,14 +58,10 @@ export const ploneUpdateUser = {
 
       await client.patch(`/@users/${userid}`, data);
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `Successfully updated user: ${userid}`,
-          },
-        ],
-      };
+      return toolResult(
+        { userid, updated: true },
+        `Successfully updated user: ${userid}`,
+      );
     } catch (error) {
       throw wrapError("UpdateUser", error);
     }

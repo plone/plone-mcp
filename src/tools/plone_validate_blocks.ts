@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 import {
   blockSpecsSchema,
   buildBlocksFromSpecs,
@@ -11,12 +12,15 @@ const inputSchema = z.object({
   block_specs: blockSpecsSchema,
 });
 
+const outputSchema = z.object({ valid: z.boolean(), count: z.number() });
+
 export const ploneValidateBlocks = {
   config: {
     name: "plone_validate_blocks",
     description:
       "Checks block specifications without saving anything, and reports the first invalid spec by index. Optional: `plone_create_content` and `plone_update_content` run the same checks on their `block_specs`. Example: plone_validate_blocks({block_specs: [{type: 'slate', data: {text: 'Hello World'}}]})",
     inputSchema,
+    outputSchema,
     annotations: {
       readOnlyHint: true,
       destructiveHint: false,
@@ -34,14 +38,10 @@ export const ploneValidateBlocks = {
 
       await buildBlocksFromSpecs(block_specs, baseUrl);
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `All ${block_specs.length} block specs are valid.`,
-          },
-        ],
-      };
+      return toolResult(
+        { valid: true, count: block_specs.length },
+        `All ${block_specs.length} block specs are valid.`,
+      );
     } catch (error) {
       throw wrapError("ValidateBlocks", error);
     }

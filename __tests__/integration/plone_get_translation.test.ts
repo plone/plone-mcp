@@ -26,7 +26,7 @@ describe("plone_get_translation", () => {
 
     const result = await ploneGetTranslation.handler({ path: testPath }, mockContext);
 
-    expect(result.content[0].text).toContain('"language": "de"');
+    expect(result.content[0].text).toContain('"language":"de"');
     expect(Nock.isDone()).toBe(true);
   });
 });

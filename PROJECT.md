@@ -28,6 +28,7 @@ This project is a Model Context Protocol (MCP) server designed to integrate MCP 
     - `HOST` (default `127.0.0.1`), `PORT` (default `3001`): HTTP server address.
     - `PLONE_MCP_ALLOWED_ORIGINS`: Comma-separated browser origins allowed besides localhost.
 - **Block Management:** Sophisticated logic for Volto blocks (Slate, Teaser, Grid, etc.) is found in `src/utils/block-utils.ts`. It includes Markdown-to-Slate conversion using `remark`.
+- **Tool Results:** Build every tool result with `toolResult(value, text?)` from `src/utils/tool-result.ts`. It returns `value` as `structuredContent` and as JSON text (or the given text), so the two never drift apart. Declare an `outputSchema` only when the result's shape is stable; keep it shallow (field names and types, no descriptions) and require only fields Plone always returns, because the SDK fails a call whose result does not match.
 - **Error Handling:** Use the `wrapError` utility from `src/utils/block-utils.ts` for all handlers to ensure consistent, descriptive error messages across the MCP interface. A thrown tool error reaches the client as `isError: true`. `PloneClient` throws `PloneRequestError` with the HTTP `status`; resources turn a Plone 404 into `ResourceNotFoundError` (`-32602`). Do not hardcode JSON-RPC codes.
 
 ## Important Reminders

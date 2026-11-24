@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 
 const inputSchema = z.object({
   path: z.string().describe("Path to the content item (e.g., '/en/my-page')"),
@@ -28,14 +29,7 @@ export const ploneGetTranslation = {
 
       const result = await client.get(`${path}/@translations`);
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
+      return toolResult(result);
     } catch (error) {
       throw wrapError("GetTranslations", error);
     }

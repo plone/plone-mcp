@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 
 const inputSchema = z.object({
   path: z.string().describe("Path to the content"),
@@ -35,14 +36,7 @@ export const ploneTransitionWorkflow = {
 
       const result = await client.post(`${path}/@workflow/${transition}`, data);
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
+      return toolResult(result);
     } catch (error) {
       throw wrapError("TransitionWorkflow", error);
     }

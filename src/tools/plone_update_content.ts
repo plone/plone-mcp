@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ServerContext } from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
 import { wrapError } from "../utils/block-utils.js";
+import { toolResult } from "../utils/tool-result.js";
 import {
   blockSpecsSchema,
   buildBlocksFromSpecs,
@@ -94,14 +95,7 @@ export const ploneUpdateContent = {
 
       const content = await client.patch(path, data);
 
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(content, null, 2),
-          },
-        ],
-      };
+      return toolResult(content);
     } catch (error) {
       throw wrapError("UpdateContent", error);
     }

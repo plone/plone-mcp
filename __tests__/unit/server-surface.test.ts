@@ -39,6 +39,9 @@ function collectSurface() {
       description: config.description,
       annotations: config.annotations,
       inputSchema: toJsonSchema(config.inputSchema),
+      ...(config.outputSchema && {
+        outputSchema: toJsonSchema(config.outputSchema),
+      }),
     })),
     resources: registerResource.mock.calls.map(([name, uri, metadata]) => ({
       name,
@@ -118,7 +121,7 @@ describe("server surface", () => {
     });
   });
 
-  it("keeps every tool's description, annotations and input schema", () => {
+  it("keeps every tool's description, annotations and schemas", () => {
     for (const tool of collectSurface().tools) {
       expect(tool).toMatchSnapshot(tool.name);
     }

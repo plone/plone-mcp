@@ -61,7 +61,68 @@ describe("2026-07-28 over HTTP", () => {
 
     expect(result.resultType).toBe("complete");
     expect(JSON.parse(result.content[0].text)).toEqual(sampleSearchResults);
+    expect(result.structuredContent).toEqual(sampleSearchResults);
     expect(Nock.isDone()).toBe(true);
+  });
+
+  it("declares output schemas for tools with a stable result", async () => {
+    const { result } = await modernRequest("tools/list");
+    const declared = result.tools.filter((tool: any) => tool.outputSchema);
+
+    expect(declared.map((tool: any) => tool.name).sort()).toEqual([
+      "plone_cancel_working_copy",
+      "plone_checkin_working_copy",
+      "plone_delete_content",
+      "plone_get_navigation_tree",
+      "plone_search",
+      "plone_unlink_translation",
+      "plone_update_user",
+      "plone_validate_blocks",
+    ]);
+    expect(JSON.stringify(declared)).not.toContain('"$ref"');
+  });
+
+  it("refuses a result that does not match its output schema", async () => {
+    plone.mockSearch(
+      { SearchableText: "news" },
+      { items: [{ "@id": `${testBaseUrl}/news` }], items_total: 1 },
+    );
+
+    const { result } = await modernRequest("tools/call", {
+      name: "plone_search",
+      arguments: { query: "news" },
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("Output validation error");
+  });
+
+  it("does not check an error result against the output schema", async () => {
+    Nock(testBaseUrl)
+      .get("/++api++/@search")
+      .query(true)
+      .reply(500, { message: "boom" });
+
+    const { result } = await modernRequest("tools/call", {
+      name: "plone_search",
+      arguments: { query: "news" },
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toBeUndefined();
+    expect(result.content[0].text).not.toMatch(/output schema/i);
+  });
+
+  it("returns an array result as structured content unchanged", async () => {
+    const types = [{ "@id": `${testBaseUrl}/@types/Document`, title: "Page" }];
+    Nock(testBaseUrl).get("/++api++/@types").reply(200, types);
+
+    const { result } = await modernRequest("tools/call", {
+      name: "plone_get_types",
+      arguments: {},
+    });
+
+    expect(result.structuredContent).toEqual(types);
   });
 
   it("runs a write tool", async () => {

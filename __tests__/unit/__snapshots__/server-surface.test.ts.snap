@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_add_single_block 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_add_single_block 1`] = `
 {
   "annotations": {
     "destructiveHint": true,
@@ -58,7 +58,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_cancel_working_copy 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_cancel_working_copy 1`] = `
 {
   "annotations": {
     "destructiveHint": true,
@@ -82,10 +82,27 @@ exports[`server surface > keeps every tool's description, annotations and input 
     "type": "object",
   },
   "name": "plone_cancel_working_copy",
+  "outputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "cancelled": {
+        "type": "boolean",
+      },
+      "path": {
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+      "cancelled",
+    ],
+    "type": "object",
+  },
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_checkin_working_copy 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_checkin_working_copy 1`] = `
 {
   "annotations": {
     "destructiveHint": true,
@@ -109,10 +126,27 @@ exports[`server surface > keeps every tool's description, annotations and input 
     "type": "object",
   },
   "name": "plone_checkin_working_copy",
+  "outputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "checkedIn": {
+        "type": "boolean",
+      },
+      "path": {
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+      "checkedIn",
+    ],
+    "type": "object",
+  },
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_copy_content 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_copy_content 1`] = `
 {
   "annotations": {
     "destructiveHint": false,
@@ -157,7 +191,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_create_content 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_create_content 1`] = `
 {
   "annotations": {
     "destructiveHint": false,
@@ -261,7 +295,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_create_user 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_create_user 1`] = `
 {
   "annotations": {
     "destructiveHint": false,
@@ -324,7 +358,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_create_working_copy 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_create_working_copy 1`] = `
 {
   "annotations": {
     "destructiveHint": false,
@@ -351,7 +385,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_delete_content 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_delete_content 1`] = `
 {
   "annotations": {
     "destructiveHint": true,
@@ -375,10 +409,27 @@ exports[`server surface > keeps every tool's description, annotations and input 
     "type": "object",
   },
   "name": "plone_delete_content",
+  "outputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "deleted": {
+        "type": "boolean",
+      },
+      "path": {
+        "type": "string",
+      },
+    },
+    "required": [
+      "path",
+      "deleted",
+    ],
+    "type": "object",
+  },
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_block_schemas 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_get_block_schemas 1`] = `
 {
   "annotations": {
     "openWorldHint": false,
@@ -409,7 +460,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_content 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_get_content 1`] = `
 {
   "annotations": {
     "openWorldHint": false,
@@ -441,7 +492,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_navigation_tree 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_get_navigation_tree 1`] = `
 {
   "annotations": {
     "openWorldHint": false,
@@ -468,10 +519,39 @@ exports[`server surface > keeps every tool's description, annotations and input 
     "type": "object",
   },
   "name": "plone_get_navigation_tree",
+  "outputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": {},
+    "properties": {
+      "items": {
+        "items": {
+          "additionalProperties": {},
+          "properties": {
+            "@id": {
+              "type": "string",
+            },
+            "title": {
+              "type": "string",
+            },
+          },
+          "required": [
+            "@id",
+            "title",
+          ],
+          "type": "object",
+        },
+        "type": "array",
+      },
+    },
+    "required": [
+      "items",
+    ],
+    "type": "object",
+  },
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_site_info 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_get_site_info 1`] = `
 {
   "annotations": {
     "openWorldHint": false,
@@ -488,7 +568,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_translation 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_get_translation 1`] = `
 {
   "annotations": {
     "openWorldHint": false,
@@ -513,7 +593,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_type_schema 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_get_type_schema 1`] = `
 {
   "annotations": {
     "openWorldHint": false,
@@ -538,7 +618,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_types 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_get_types 1`] = `
 {
   "annotations": {
     "openWorldHint": false,
@@ -555,7 +635,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_vocabularies 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_get_vocabularies 1`] = `
 {
   "annotations": {
     "openWorldHint": false,
@@ -585,7 +665,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_workflow_info 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_get_workflow_info 1`] = `
 {
   "annotations": {
     "openWorldHint": false,
@@ -610,7 +690,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_get_working_copy 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_get_working_copy 1`] = `
 {
   "annotations": {
     "openWorldHint": false,
@@ -635,7 +715,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_link_translation 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_link_translation 1`] = `
 {
   "annotations": {
     "destructiveHint": true,
@@ -667,7 +747,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_move_content 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_move_content 1`] = `
 {
   "annotations": {
     "destructiveHint": true,
@@ -712,7 +792,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_remove_single_block 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_remove_single_block 1`] = `
 {
   "annotations": {
     "destructiveHint": true,
@@ -744,7 +824,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_search 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_search 1`] = `
 {
   "annotations": {
     "openWorldHint": false,
@@ -801,10 +881,43 @@ exports[`server surface > keeps every tool's description, annotations and input 
     "type": "object",
   },
   "name": "plone_search",
+  "outputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": {},
+    "properties": {
+      "items": {
+        "items": {
+          "additionalProperties": {},
+          "properties": {
+            "@id": {
+              "type": "string",
+            },
+            "title": {
+              "type": "string",
+            },
+          },
+          "required": [
+            "@id",
+            "title",
+          ],
+          "type": "object",
+        },
+        "type": "array",
+      },
+      "items_total": {
+        "type": "number",
+      },
+    },
+    "required": [
+      "items",
+      "items_total",
+    ],
+    "type": "object",
+  },
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_transition_workflow 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_transition_workflow 1`] = `
 {
   "annotations": {
     "destructiveHint": true,
@@ -840,7 +953,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_unlink_translation 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_unlink_translation 1`] = `
 {
   "annotations": {
     "destructiveHint": true,
@@ -869,10 +982,31 @@ exports[`server surface > keeps every tool's description, annotations and input 
     "type": "object",
   },
   "name": "plone_unlink_translation",
+  "outputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "language": {
+        "type": "string",
+      },
+      "path": {
+        "type": "string",
+      },
+      "unlinked": {
+        "type": "boolean",
+      },
+    },
+    "required": [
+      "path",
+      "language",
+      "unlinked",
+    ],
+    "type": "object",
+  },
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_update_content 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_update_content 1`] = `
 {
   "annotations": {
     "destructiveHint": true,
@@ -966,7 +1100,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_update_single_block 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_update_single_block 1`] = `
 {
   "annotations": {
     "destructiveHint": true,
@@ -1007,7 +1141,7 @@ exports[`server surface > keeps every tool's description, annotations and input 
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_update_user 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_update_user 1`] = `
 {
   "annotations": {
     "destructiveHint": true,
@@ -1061,10 +1195,27 @@ exports[`server surface > keeps every tool's description, annotations and input 
     "type": "object",
   },
   "name": "plone_update_user",
+  "outputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "updated": {
+        "type": "boolean",
+      },
+      "userid": {
+        "type": "string",
+      },
+    },
+    "required": [
+      "userid",
+      "updated",
+    ],
+    "type": "object",
+  },
 }
 `;
 
-exports[`server surface > keeps every tool's description, annotations and input schema > plone_validate_blocks 1`] = `
+exports[`server surface > keeps every tool's description, annotations and schemas > plone_validate_blocks 1`] = `
 {
   "annotations": {
     "destructiveHint": false,
@@ -1119,6 +1270,23 @@ exports[`server surface > keeps every tool's description, annotations and input 
     "type": "object",
   },
   "name": "plone_validate_blocks",
+  "outputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "count": {
+        "type": "number",
+      },
+      "valid": {
+        "type": "boolean",
+      },
+    },
+    "required": [
+      "valid",
+      "count",
+    ],
+    "type": "object",
+  },
 }
 `;
 
