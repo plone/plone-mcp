@@ -21,10 +21,12 @@ async function send(request: Request) {
 describe("raw HTTP", () => {
   beforeEach(() => {
     vi.spyOn(console, "error").mockReturnValue(undefined);
+    vi.stubEnv("PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP", "true");
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it.each(["GET", "DELETE"])("answers %s with 405", async (method) => {

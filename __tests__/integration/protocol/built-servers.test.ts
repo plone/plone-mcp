@@ -96,7 +96,7 @@ describe.skipIf(!existsSync(httpServer))("built HTTP server", () => {
   async function start() {
     const port = String(20000 + Math.floor(Math.random() * 20000));
     child = spawn(process.execPath, [httpServer], {
-      env: { ...env, PORT: port },
+      env: { ...env, PORT: port, PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP: "true" },
       stdio: ["ignore", "pipe", "ignore"],
     });
     const lines = createInterface({ input: child.stdout! });
@@ -128,6 +128,19 @@ describe.skipIf(!existsSync(httpServer))("built HTTP server", () => {
     expect(ok.status).toBe(200);
     expect((await ok.json()).result.tools.length).toBeGreaterThan(0);
     expect(foreign.status).toBe(403);
+  });
+
+  it("refuses to start without sign-in configured", async () => {
+    child = spawn(process.execPath, [httpServer], {
+      env,
+      stdio: ["ignore", "ignore", "pipe"],
+    });
+    let stderr = "";
+    child.stderr!.on("data", (chunk) => (stderr += chunk));
+    const [code] = await once(child, "exit");
+
+    expect(code).toBe(1);
+    expect(stderr).toContain("PLONE_OAUTH_ISSUER");
   });
 
   it("shuts down on SIGTERM", async () => {

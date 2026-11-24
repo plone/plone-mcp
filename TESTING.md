@@ -11,8 +11,10 @@ __tests__/
 ├── setup.ts                       # Global test configuration
 ├── utils/
 │   ├── test-helpers.ts            # PloneMockServer + nock helpers
-│   └── mcp-request.ts             # Builds 2026-07-28 requests for the HTTP handler
+│   ├── mcp-request.ts             # Builds 2026-07-28 requests for the HTTP handler
+│   └── fake-issuer.ts             # Local stand-in for Plone's OAuth server; signs test tokens
 ├── unit/                          # Unit tests (isolated logic)
+│   ├── auth-verifier.test.ts      # token verification against fake-issuer
 │   ├── block-registry.test.ts
 │   ├── block-utils.test.ts
 │   ├── markdown-parser.test.ts
@@ -24,6 +26,7 @@ __tests__/
     ├── plone_search.test.ts
     ├── ...                         # one file per tool
     └── protocol/                   # The server through the real MCP protocol
+        ├── auth.test.ts            # sign-in: metadata, 401 challenges, calling Plone as the user
         ├── modern.test.ts          # 2026-07-28 requests
         ├── legacy.test.ts          # 2025-era requests
         ├── stateless.test.ts       # fresh handler per request, per-caller tokens
@@ -75,6 +78,10 @@ npx vitest
 - Send real MCP messages to `src/handler.ts` in process (no network), with Plone
   mocked by nock
 - Cover both protocol eras, statelessness, HTTP header checks and error codes
+- `auth.test.ts` signs tokens with `FakeIssuer`, which serves discovery, JWKS
+  and userinfo on a local port; each test gets its own site path, so the key
+  cache never carries over. Tests that do not test sign-in set
+  `PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP=true`
 - `built-servers.test.ts` runs the compiled servers from `dist/` and is skipped
   when `dist/` does not exist; CI builds before testing
 

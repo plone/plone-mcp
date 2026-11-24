@@ -70,6 +70,7 @@ describe("server surface", () => {
     beforeEach(() => {
       // The handler logs the protocol era of every request.
       vi.spyOn(console, "error").mockReturnValue(undefined);
+      vi.stubEnv("PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP", "true");
     });
 
     afterEach(() => {
@@ -104,7 +105,6 @@ describe("server surface", () => {
 
     it("never lets content reads be cached", async () => {
       vi.stubEnv("PLONE_BASE_URL", "https://test.plone.com");
-      vi.stubEnv("PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP", "true");
       Nock("https://test.plone.com")
         .get("/++api++")
         .reply(200, { id: "plone" });

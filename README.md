@@ -32,7 +32,7 @@ Claude can now work with that Plone site.
 
 - **Node.js 22+** - Required to run the server (`^20.19.0 || >=22.12.0`; install: `brew install node` on macOS or from [nodejs.org](https://nodejs.org))
 
-- **Plone 6.0+** site with REST API - The CMS you'll be connecting to
+- **Plone 6.0+** site with REST API - The CMS you'll be connecting to. Sign-in over HTTP needs Plone 6.2+ with `pas.plugins.identity` (see [Sign-in over HTTP](#sign-in-over-http))
 
 > `pnpm` is only needed if you want to clone the repo and develop locally (see [Local Development](#local-development)). The recommended setup below uses `npx` and doesn't require cloning anything.
 
@@ -41,7 +41,7 @@ Claude can now work with that Plone site.
 The server speaks MCP `2026-07-28` and still serves 2025-era clients. It is stateless: there are no sessions, so any instance can answer any request and restarts are invisible to clients.
 
 - **STDIO** (`plone-mcp` bin / `dist/stdio-server.js`) - for local MCP clients such as Claude Desktop. The process exits when stdin closes.
-- **HTTP** (`dist/http-server.js`) - streamable HTTP at `/mcp`, listening on `HOST` (default `127.0.0.1`; use `0.0.0.0` in containers) and `PORT` (default `3001`). Start it with `make start`. Only `POST` is used; `GET` and `DELETE` answer `405`. Until OAuth support lands, it uses the `PLONE_*` environment credentials only when `PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP=true` is set, and every caller then acts as that one account.
+- **HTTP** (`dist/http-server.js`) - streamable HTTP at `/mcp`, listening on `HOST` (default `127.0.0.1`; use `0.0.0.0` in containers) and `PORT` (default `3001`). Start it with `make start`. Only `POST` is used; `GET` and `DELETE` answer `405`. It requires sign-in, see [Sign-in over HTTP](#sign-in-over-http), and does not start without it.
 - **Handler** (`@plone/mcp/handler`) - the same HTTP endpoint as a web-standard `fetch(Request) -> Response` function, for serverless platforms:
 
   ```javascript
@@ -52,6 +52,52 @@ The server speaks MCP `2026-07-28` and still serves 2025-era clients. It is stat
   The handler loads `blocks.json` from disk, so it needs a Node.js runtime (not an edge runtime).
 
 Browsers may only call the HTTP endpoint from `localhost` pages, or from origins listed in `PLONE_MCP_ALLOWED_ORIGINS` (comma-separated, e.g. `https://cms.example.org`). Other origins get `403`.
+
+## Sign-in over HTTP
+
+Over HTTP every user signs in to Plone with OAuth and the server acts as that user: Plone applies their permissions and records their name on every change. No credentials are configured on the server.
+
+This needs the Plone site to be an OAuth authorization server, which a standard Plone or Volto site is not. It takes the [`pas.plugins.identity`](https://github.com/collective/pas-plugins-identity) add-on with its `server` layer (Plone 6.2+, alpha). Without it, use STDIO, or the [shared-account fallback](#without-oauth).
+
+**On the Plone site** (site administrator):
+
+1. Install `pas.plugins.identity[server]` and activate the `pas.plugins.identity:default` and `pas.plugins.identity.server:default` profiles. Users and groups become content, so back up first.
+2. Set the issuer to the site's public URL, e.g. `https://plone.example.com/Plone`. Leave the consent URL empty for Plone's own consent page, or point it at the Volto add-on's route.
+3. Register one OAuth client per MCP client app, with its exact redirect URI (the port must match too). For Claude Code: client id `plone-mcp-claude-code`, redirect `http://localhost:8765/callback`, grants `authorization_code` and `refresh_token`.
+4. Route the sign-in paths to the backend in the proxy: `/.well-known/openid-configuration`, `@@oauth-*`, the login page and the consent page. A Volto proxy usually forwards only `++api++`.
+
+**On the MCP server** (one server per Plone site):
+
+| Variable | Example | Meaning |
+|---|---|---|
+| `PLONE_BASE_URL` | `https://plone.example.com/Plone` | The Plone site |
+| `PLONE_OAUTH_ISSUER` | `https://plone.example.com/Plone` | The issuer set in Plone, exactly; `https` except on localhost |
+| `PLONE_OAUTH_ALLOWED_CLIENT_IDS` | `plone-mcp-claude-code,plone-mcp-inspector` | Client ids whose tokens are accepted |
+| `PLONE_MCP_RESOURCE_URL` | `https://mcp.example.com/mcp` | This server's public URL, exactly as users enter it |
+
+Do not set `PLONE_USERNAME`, `PLONE_PASSWORD` or `PLONE_TOKEN` here. Put the server behind HTTPS.
+
+**In the client:**
+
+```bash
+claude mcp add --transport http plone https://mcp.example.com/mcp \
+  --client-id plone-mcp-claude-code --callback-port 8765
+```
+
+Then run `/mcp` in Claude Code: a browser opens on the Plone login, then the consent page. Any MCP client that supports OAuth with a preset client id works the same way. Clients that only support dynamic client registration do not, because the add-on has none.
+
+**How it behaves:**
+
+- The server publishes [Protected Resource Metadata](https://datatracker.ietf.org/doc/html/rfc9728) at `/.well-known/oauth-protected-resource/mcp`, pointing at Plone. A request without a valid token answers `401` with a `WWW-Authenticate` header that leads the client there.
+- Tokens are checked locally against Plone's published keys: signature (RS256), issuer, expiry, type and client id. A token with less than a minute left is refused up front, so the client renews it before a tool starts.
+- If Plone stops accepting a token mid-session (client disabled, keys rotated), the request answers `401` and the client refreshes and retries. A Plone `401` or `403` for a missing permission is a tool error.
+- Plone redirects to another origin are not followed, so the token only goes to `PLONE_BASE_URL`.
+
+**Deviation from the MCP specification:** the specification says a server must not pass the token it received on to another service. This server does pass it to Plone, because the token's issuer and the API are the same Plone site, and `pas.plugins.identity` cannot yet issue a token meant for this server alone. The token never goes anywhere else.
+
+### Without OAuth
+
+`PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP=true` makes the HTTP server use the `PLONE_*` credentials for requests that carry no token. **Every caller then acts as that one Plone account**, so keep the endpoint on localhost or a private network and give the account as few rights as possible. A request with a bad token is still refused. With neither OAuth nor this setting, the HTTP server does not start.
 
 ## Quick Start using Claude Desktop as an example
 
@@ -297,6 +343,9 @@ plone_search({
 | "Block not found"                    | Use `plone_get_content` to get valid block IDs                                                                                     |
 | "Could not reach Plone at ..."       | Check that Plone is running and `PLONE_BASE_URL` is correct                                                                        |
 | "Not authorized by Plone (HTTP 401/403)" | Check the credentials and that the Plone user has permission for that content                                                  |
+| "Plone MCP Server (HTTP) not started" | Configure [sign-in](#sign-in-over-http), or set `PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP=true` |
+| `500` "MCP server not configured"     | The handler's sign-in settings are incomplete; the server log names the variable |
+| Client keeps asking to sign in       | Check that the client id is in `PLONE_OAUTH_ALLOWED_CLIENT_IDS`, is enabled in Plone, and that `PLONE_OAUTH_ISSUER` equals Plone's issuer |
 | `403` "Origin not allowed"           | Add the browser page's origin to `PLONE_MCP_ALLOWED_ORIGINS`                                                                       |
 | "block_specs[N] (type): ..."         | Fix the block spec at index N (see `plone_get_block_schemas`) and repeat the call                                                  |
 | TypeScript errors during local build | Run `make install` to ensure all dependencies are installed                                                                        |

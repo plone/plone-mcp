@@ -1,0 +1,1 @@
+Sign in to the HTTP server through Plone, with `pas.plugins.identity` as OAuth authorization server: Protected Resource Metadata at `/.well-known/oauth-protected-resource`, `401` challenges, and local verification of Plone access tokens with `jose`. @Tishasoumya-02
