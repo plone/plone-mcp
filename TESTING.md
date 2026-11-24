@@ -10,8 +10,11 @@ HTTP mocking.
 __tests__/
 ├── setup.ts                       # Global test configuration
 ├── utils/
-│   └── test-helpers.ts            # PloneMockServer + nock helpers
+│   ├── test-helpers.ts            # PloneMockServer + nock helpers
+│   ├── mcp-request.ts             # Builds 2026-07-28 requests for the HTTP handler
+│   └── fake-issuer.ts             # Local stand-in for Plone's OAuth server; signs test tokens
 ├── unit/                          # Unit tests (isolated logic)
+│   ├── auth-verifier.test.ts      # token verification against fake-issuer
 │   ├── block-registry.test.ts
 │   ├── block-utils.test.ts
 │   ├── markdown-parser.test.ts
@@ -21,7 +24,16 @@ __tests__/
 └── integration/                   # Integration tests (mocked Plone API)
     ├── plone_create_content.test.ts
     ├── plone_search.test.ts
-    └── ...                         # one file per tool
+    ├── ...                         # one file per tool
+    └── protocol/                   # The server through the real MCP protocol
+        ├── auth.test.ts            # sign-in: metadata, 401 challenges, calling Plone as the user
+        ├── modern.test.ts          # 2026-07-28 requests
+        ├── legacy.test.ts          # 2025-era requests
+        ├── stateless.test.ts       # fresh handler per request, per-caller tokens
+        ├── raw-http.test.ts        # header, version and Origin checks
+        ├── errors.test.ts          # error codes and tool errors
+        ├── client.test.ts          # SDK client in both eras
+        └── built-servers.test.ts   # spawns dist/ (run `make build` first)
 ```
 
 ## Running Tests
@@ -53,13 +65,25 @@ npx vitest
 - Test individual functions and modules in isolation
 - Mock external dependencies
 - Fast execution
-- Cover parsing, block logic, session handling, and the Plone client
+- Cover parsing, block logic, the connection resolver, and the Plone client
 
 ### 2. Integration Tests
 - Exercise each MCP tool end-to-end against a mocked Plone API
 - Verify request payloads and response handling
 - Cover error scenarios
 - One file per tool (`plone_create_content`, `plone_search`, ...)
+
+### 3. Protocol Tests
+- Live in `__tests__/integration/protocol/`
+- Send real MCP messages to `src/handler.ts` in process (no network), with Plone
+  mocked by nock
+- Cover both protocol eras, statelessness, HTTP header checks and error codes
+- `auth.test.ts` signs tokens with `FakeIssuer`, which serves discovery, JWKS
+  and userinfo on a local port; each test gets its own site path, so the key
+  cache never carries over. Tests that do not test sign-in set
+  `PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP=true`
+- `built-servers.test.ts` runs the compiled servers from `dist/` and is skipped
+  when `dist/` does not exist; CI builds before testing
 
 ## Mock Helpers
 

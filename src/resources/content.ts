@@ -1,5 +1,11 @@
-import { ResourceTemplate, Variables, ServerContext } from "@modelcontextprotocol/server";
+import {
+  ResourceNotFoundError,
+  ResourceTemplate,
+  Variables,
+  ServerContext,
+} from "@modelcontextprotocol/server";
 import { getClient } from "../connection.js";
+import { PloneRequestError } from "../plone-client.js";
 import { wrapError } from "../utils/block-utils.js";
 
 export const ploneContentResource = {
@@ -34,6 +40,9 @@ export const ploneContentResource = {
         ],
       };
     } catch (error: unknown) {
+      if (error instanceof PloneRequestError && error.status === 404) {
+        throw new ResourceNotFoundError(uri.href);
+      }
       throw wrapError("plone-content", `Failed to fetch content at "${normalizedPath}": ${error instanceof Error ? error.message : String(error)}`);
     }
   },

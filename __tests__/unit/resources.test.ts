@@ -61,7 +61,7 @@ describe("resource handlers", () => {
     expect(Nock.isDone()).toBe(true);
   });
 
-  it("plone-content wraps request errors", async () => {
+  it("plone-content reports a missing item as not found", async () => {
     Nock(testBaseUrl).get("/++api++/missing").reply(404, "Not Found");
 
     await expect(
@@ -70,8 +70,20 @@ describe("resource handlers", () => {
         { path: "/missing" },
         mockContext,
       ),
+    ).rejects.toThrow("Resource not found: plone://content/missing");
+  });
+
+  it("plone-content wraps other request errors", async () => {
+    Nock(testBaseUrl).get("/++api++/broken").reply(500, "Boom");
+
+    await expect(
+      ploneContentResource.handler(
+        new URL("plone://content/broken"),
+        { path: "/broken" },
+        mockContext,
+      ),
     ).rejects.toThrow(
-      '[plone-content] Failed to fetch content at "/missing": Request failed with status code 404',
+      '[plone-content] Failed to fetch content at "/broken": Request failed with status code 500',
     );
   });
 

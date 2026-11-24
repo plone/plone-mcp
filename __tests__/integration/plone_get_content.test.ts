@@ -94,4 +94,21 @@ describe("plone_get_content", () => {
     expect(JSON.parse(second.content[0].text).title).toBe("token-b");
     expect(Nock.isDone()).toBe(true);
   });
+
+  it("stops the Plone call when the MCP request is cancelled", async () => {
+    Nock(testBaseUrl)
+      .get(`/++api++${testPath}`)
+      .delay(1000)
+      .reply(200, sampleDocument);
+    const controller = new AbortController();
+
+    const pending = ploneGetContent.handler(
+      { path: testPath },
+      createMockContext({ signal: controller.signal }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    controller.abort();
+
+    await expect(pending).rejects.toThrow("[GetContent] canceled");
+  });
 });

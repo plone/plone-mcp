@@ -9,12 +9,13 @@ export const getPendingNocks = () => nock.pendingMocks();
 
 export const createMockContext = ({
   http,
-}: { http?: ServerContext["http"] } = {}): ServerContext =>
+  signal = new AbortController().signal,
+}: { http?: ServerContext["http"]; signal?: AbortSignal } = {}): ServerContext =>
   ({
     mcpReq: {
       id: "test-request-id",
       method: "tools/call",
-      signal: new AbortController().signal,
+      signal,
     },
     http,
   }) as unknown as ServerContext;

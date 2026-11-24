@@ -68,10 +68,8 @@ export default defineConfig(
     },
   },
   {
-    // The application layer keeps no state between requests. The HTTP entry
-    // point keeps its transport sessions until the stateless transport lands.
+    // The server keeps no state between requests.
     files: ["src/**/*.ts"],
-    ignores: ["src/http-server.ts"],
     rules: {
       "no-restricted-properties": [
         "error",

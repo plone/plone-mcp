@@ -51,6 +51,14 @@
     "release-major-alpha": "release-it major --preRelease=alpha"
   },
   "main": "dist/http-server.js",
+  "exports": {
+    ".": "./dist/http-server.js",
+    "./handler": {
+      "types": "./dist/handler.d.ts",
+      "default": "./dist/handler.js"
+    },
+    "./package.json": "./package.json"
+  },
   "bin": {
     "plone-mcp": "dist/stdio-server.js"
   },
@@ -63,11 +71,12 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/server": "^2.3.1",
-    "@modelcontextprotocol/node": "^2.1.1",
     "@modelcontextprotocol/express": "^2.0.2",
+    "@modelcontextprotocol/node": "^2.1.1",
+    "@modelcontextprotocol/server": "^2.3.1",
     "axios": "^1.6.0",
     "express": "^5.2.1",
+    "jose": "^6.2.3",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "remark-supersub": "^1.0.0",
@@ -78,6 +87,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.39.1",
+    "@modelcontextprotocol/client": "^2.3.1",
     "@modelcontextprotocol/inspector": "^2.8.0",
     "@types/express": "^5.0.0",
     "@types/mdast": "^4.0.4",
@@ -92,11 +102,11 @@
     "globals": "^16.5.0",
     "nock": "^13.5.0",
     "prettier": "^3.6.2",
+    "release-it": "^20.2.1",
     "tsx": "^4.0.0",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.47.0",
-    "vitest": "^4.0.8",
-    "release-it": "^20.2.1"
+    "vitest": "^4.0.8"
   },
   "packageManager": "pnpm@10.32.1"
 }

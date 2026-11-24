@@ -1,0 +1,1 @@
+Report Plone failures clearly: a missing content resource answers `-32602` with its URI, a Plone 401/403 in a tool says the user is not authorized, and an unreachable Plone names the URL instead of an empty message. @Tishasoumya-02
