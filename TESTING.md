@@ -82,6 +82,9 @@ npx vitest
   and userinfo on a local port; each test gets its own site path, so the key
   cache never carries over. Tests that do not test sign-in set
   `PLONE_ALLOW_ENV_CREDENTIALS_OVER_HTTP=true`
+- `confirmation.test.ts` runs the confirmation round trip by hand (asking,
+  accepting, declining, replaying for another path) and with the SDK client
+  answering the question
 - `built-servers.test.ts` runs the compiled servers from `dist/` and is skipped
   when `dist/` does not exist; CI builds before testing
 

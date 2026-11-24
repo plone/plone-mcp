@@ -103,12 +103,15 @@ function canAskUser(ctx: ServerContext, server: McpServer): boolean {
  * Clients that cannot be asked follow the configured mode: `when-supported`
  * runs the action, `required` refuses it.
  */
-export function withConfirmation<Args>(
-  handler: (args: Args, ctx: ServerContext) => Promise<CallToolResult>,
+export function withConfirmation<
+  Args,
+  Handler extends (args: Args, ctx: ServerContext) => Promise<CallToolResult>,
+>(
+  handler: Handler,
   confirmation: Confirmation<Args>,
   { server, codec, mode }: ConfirmationSettings,
-) {
-  return async (args: Args, ctx: ServerContext) => {
+): Handler {
+  const confirmed = async (args: Args, ctx: ServerContext) => {
     if (mode === "off") return handler(args, ctx);
 
     const operation = confirmation.operation(args);
@@ -159,4 +162,7 @@ export function withConfirmation<Args>(
       requestState: await codec.mint({ operation }, ctx),
     });
   };
+  // Typed as the wrapped handler so registerTool keeps inferring the tool's
+  // arguments; the SDK accepts the input-required result as well.
+  return confirmed as unknown as Handler;
 }

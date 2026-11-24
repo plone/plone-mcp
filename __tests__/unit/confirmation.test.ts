@@ -47,7 +47,7 @@ const confirmation = {
 };
 
 function setup(mode: ConfirmMode = "when-supported", withCodec = true) {
-  const handler = vi.fn(async () => ({
+  const handler = vi.fn(async (_args: { path: string }, _ctx: ServerContext) => ({
     content: [{ type: "text" as const, text: "done" }],
   }));
   const codec = withCodec ? createConfirmationCodec(KEY) : undefined;
@@ -285,7 +285,11 @@ describe("withConfirmation", () => {
 
   describe("2025 connection", () => {
     it("asks when the client declared elicitation at initialize", async () => {
-      const handler = vi.fn();
+      const handler = vi.fn(
+        async (_args: { path: string }, _ctx: ServerContext) => ({
+          content: [],
+        }),
+      );
       const guarded = withConfirmation(handler, confirmation, {
         server: makeServer({ elicitation: {} }),
         codec: createConfirmationCodec(KEY),

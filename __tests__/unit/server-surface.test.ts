@@ -29,7 +29,7 @@ function collectSurface() {
     registerPrompt,
   } as unknown as Server;
 
-  registerTools(server);
+  registerTools(server, { server, mode: "off" });
   registerResources(server);
   registerPrompts(server);
 

@@ -15,6 +15,17 @@ const inputSchema = z.object({
 const outputSchema = z.object({ path: z.string(), cancelled: z.boolean() });
 
 export const ploneCancelWorkingCopy = {
+  confirmation: {
+    operation: ({ path }: z.infer<typeof inputSchema>) =>
+      `plone_cancel_working_copy\0${path}`,
+    message: async (
+      { path }: z.infer<typeof inputSchema>,
+      ctx: ServerContext,
+    ) => {
+      const content = (await getClient(ctx).get(path)) as { title?: string };
+      return `Discard the working copy of "${content.title ?? path}" (${path})? All changes made in it are lost.`;
+    },
+  },
   config: {
     name: "plone_cancel_working_copy",
     description:

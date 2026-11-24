@@ -1,4 +1,8 @@
 import { McpServer, ToolAnnotations } from "@modelcontextprotocol/server";
+import {
+  withConfirmation,
+  type ConfirmationSettings,
+} from "../confirmation.js";
 import { ploneAddSingleBlock } from "./plone_add_single_block.js";
 import { ploneCancelWorkingCopy } from "./plone_cancel_working_copy.js";
 import { ploneCheckinWorkingCopy } from "./plone_checkin_working_copy.js";
@@ -42,8 +46,12 @@ interface AnnotatedTool {
 /**
  * Registers all tools with the provided McpServer instance.
  * Supports filtering via ENABLED_TOOLS environment variable.
+ * Tools with a `confirmation` are wrapped so they ask the user first.
  */
-export function registerTools(server: McpServer) {
+export function registerTools(
+  server: McpServer,
+  confirmationSettings: ConfirmationSettings,
+) {
   const enabledToolsEnv = process.env.ENABLED_TOOLS;
   const enabledTools = enabledToolsEnv
     ? new Set(enabledToolsEnv.split(",").map((t) => t.trim()))
@@ -51,13 +59,27 @@ export function registerTools(server: McpServer) {
 
   const tools = [
     ploneAddSingleBlock,
-    ploneCancelWorkingCopy,
+    {
+      ...ploneCancelWorkingCopy,
+      handler: withConfirmation(
+        ploneCancelWorkingCopy.handler,
+        ploneCancelWorkingCopy.confirmation,
+        confirmationSettings,
+      ),
+    },
     ploneCheckinWorkingCopy,
     ploneCopyContent,
     ploneCreateContent,
     ploneCreateUser,
     ploneCreateWorkingCopy,
-    ploneDeleteContent,
+    {
+      ...ploneDeleteContent,
+      handler: withConfirmation(
+        ploneDeleteContent.handler,
+        ploneDeleteContent.confirmation,
+        confirmationSettings,
+      ),
+    },
     ploneGetBlockSchemas,
     ploneGetContent,
     ploneGetNavigationTree,

@@ -335,6 +335,19 @@ plone_search({
 });
 ```
 
+## Confirming destructive actions
+
+`plone_delete_content` and `plone_cancel_working_copy` ask the user before they run, when the MCP client can show a question (form elicitation): for example *Delete "News" (/news)? It contains 14 item(s), which are deleted with it. This cannot be undone.* Declining leaves the content untouched.
+
+The server keeps nothing between the question and the answer: the pending action travels in a signed `requestState` that is bound to the signed-in user, to the exact tool and path, and expires after five minutes.
+
+| Variable | Meaning |
+| --- | --- |
+| `PLONE_MCP_STATE_SECRET` | Signing key, at least 32 bytes. Needed over HTTP, and the same on every instance. Over STDIO a random key is used when unset. |
+| `PLONE_MCP_CONFIRM_DESTRUCTIVE` | `when-supported` (default): ask when the client can, otherwise run as before. `required`: refuse when the client cannot ask. `off`: never ask. |
+
+Clients that cannot ask include 2025-era clients over HTTP. Over HTTP without `PLONE_MCP_STATE_SECRET`, the server cannot ask either.
+
 ## Troubleshooting
 
 | Issue                                | Solution                                                                                                                           |

@@ -4,7 +4,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { registerTools } from "./tools/index.js";
 import { registerResources } from "./resources/index.js";
 import { registerPrompts } from "./prompts/index.js";
-import { createConfirmationCodec } from "./confirmation.js";
+import { confirmMode, createConfirmationCodec } from "./confirmation.js";
 
 const { version } = JSON.parse(
   readFileSync(
@@ -50,7 +50,7 @@ export function createServer({
     },
   );
 
-  registerTools(server);
+  registerTools(server, { server, codec, mode: confirmMode() });
   registerResources(server);
   registerPrompts(server);
 

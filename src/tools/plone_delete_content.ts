@@ -11,6 +11,23 @@ const inputSchema = z.object({
 const outputSchema = z.object({ path: z.string(), deleted: z.boolean() });
 
 export const ploneDeleteContent = {
+  confirmation: {
+    operation: ({ path }: z.infer<typeof inputSchema>) =>
+      `plone_delete_content\0${path}`,
+    message: async (
+      { path }: z.infer<typeof inputSchema>,
+      ctx: ServerContext,
+    ) => {
+      const content = (await getClient(ctx).get(path)) as {
+        title?: string;
+        items_total?: number;
+      };
+      const contained = content.items_total
+        ? ` It contains ${content.items_total} item(s), which are deleted with it.`
+        : "";
+      return `Delete "${content.title ?? path}" (${path})?${contained} This cannot be undone.`;
+    },
+  },
   config: {
     name: "plone_delete_content",
     description:
